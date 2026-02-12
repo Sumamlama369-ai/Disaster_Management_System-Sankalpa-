@@ -1,0 +1,1263 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Tribhuvan International Airport",
+                "type": "Airport Buffer Zone",
+                "radius": "5.56km",
+                "authority": "Civil Aviation Authority",
+                "risk_level": "Extreme"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.357325, 27.699575],
+                    [85.358325, 27.699575],
+                    [85.358325, 27.700575],
+                    [85.357325, 27.700575],
+                    [85.357325, 27.699575]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pokhara International Airport",
+                "type": "Airport Buffer Zone",
+                "radius": "3km",
+                "authority": "Civil Aviation Authority",
+                "risk_level": "Extreme"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [84.014490, 28.189273],
+                    [84.015510, 28.189273],
+                    [84.015510, 28.190171],
+                    [84.014490, 28.190171],
+                    [84.014490, 28.189273]   
+                    ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pokhara Regional Airport",
+                "type": "Airport Buffer Zone",
+                "radius": "2.5km",
+                "authority": "Civil Aviation Authority",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [83.981379, 28.200547],
+                    [83.982379, 28.200547],
+                    [83.982379, 28.201547],
+                    [83.981379, 28.201547],
+                    [83.981379, 28.200547]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Gautam Buddha International Airport",
+                "type": "Airport Buffer Zone",
+                "radius": "1.8km",
+                "authority": "Civil Aviation Authority",
+                "risk_level": "Extreme"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [83.415605, 27.505106],
+                    [83.416618, 27.505106],
+                    [83.416618, 27.506005],
+                    [83.415605, 27.506005],
+                    [83.415605, 27.505106]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Tenzing-Hillary (Lukla) Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "5km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "Critical"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                    [86.729189, 27.686499],
+                    [86.730189, 27.686499],
+                    [86.730189, 27.687499],
+                    [86.729189, 27.687499],
+                    [86.729189, 27.686499]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Biratnagar Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "3km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [87.26339, 26.48094],
+                [87.26439, 26.48094],
+                [87.26439, 26.48184],
+                [87.26339, 26.48184],
+                [87.26339, 26.48094]
+            ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Nepalgunj Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "5km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [81.66650, 28.10316],
+                [81.66750, 28.10316],
+                [81.66750, 28.10406],
+                [81.66650, 28.10406],
+                [81.66650, 28.10316]
+            ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Bharatpur Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "18.5km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [84.42894, 27.67761],
+                [84.42994, 27.67761],
+                [84.42994, 27.67851],
+                [84.42894, 27.67851],
+                [84.42894, 27.67761]
+            ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Jomsom Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "1km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "Critical"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                    [137.078351, 50.59979],
+                    [137.079351, 50.59979],
+                    [137.079351, 50.60079],
+                    [137.078351, 50.60079],
+                    [137.078351, 50.59979]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Bhadrapur Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "5km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [88.07894, 26.57011],
+                [88.07994, 26.57011],
+                [88.07994, 26.57101],
+                [88.07894, 26.57101],
+                [88.07894, 26.57011]
+            ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Dhangadhi Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "9.3km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                    [86.425436, 23.833827],
+                    [86.426436, 23.833827],
+                    [86.426436, 23.834827],
+                    [86.425436, 23.834827],
+                    [86.425436, 23.833827]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Janakpur Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "4km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [85.92172, 26.70816],
+                [85.92272, 26.70816],
+                [85.92272, 26.70906],
+                [85.92172, 26.70906],
+                [85.92172, 26.70816]
+            ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Simara Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "5km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [84.97950, 27.15899],
+                [84.98050, 27.15899],
+                [84.98050, 27.15989],
+                [84.97950, 27.15989],
+                [84.97950, 27.15899]
+            ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+            "name": "Tumlingtar Airport",
+            "type": "Airport Buffer Zone",
+            "radius": "3km",
+            "authority": "Civil Aviation Authority",
+            "risk_level": "High"
+            },
+            "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [87.19283, 27.31455],
+                [87.19383, 27.31455],
+                [87.19383, 27.31545],
+                [87.19283, 27.31545],
+                [87.19283, 27.31455]
+            ]]
+            }
+        },
+
+
+
+
+
+
+
+
+
+
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Singha Durbar",
+                "type": "Government Buildings",
+                "radius": "0.5km",
+                "authority": "Government of Nepal",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.32475, 27.69782],
+                    [85.32575, 27.69782],
+                    [85.32575, 27.69872],
+                    [85.32475, 27.69872],
+                    [85.32475, 27.69782]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Rastrapati Bhawan (Shital Niwas)",
+                "type": "Government Buildings",
+                "radius": "0.05km",
+                "authority": "Government of Nepal",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.32617, 27.73205],
+                [85.32717, 27.73205],
+                [85.32717, 27.73295],
+                [85.32617, 27.73295],
+                [85.32617, 27.73205]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Former Royal Palace (Narayanhiti Palace)",
+                "type": "Government Buildings",
+                "radius": "1.5km",
+                "authority": "Government of Nepal",
+                "risk_level": "VeryHigh"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.3190, 27.7151],
+                [85.3220, 27.7151],
+                [85.3220, 27.7181],
+                [85.3190, 27.7181],
+                [85.3190, 27.7151]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Residence of the Prime Minister",
+                "type": "Government Buildings",
+                "radius": "1km",
+                "authority": "Government of Nepal",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.327476, 27.726475],
+                [85.328476, 27.726475],
+                [85.328476, 27.727375],
+                [85.327476, 27.727375],
+                [85.327476, 27.726475]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Residence of the Vice President",
+                "type": "Government Buildings",
+                "radius": "1km",
+                "authority": "Government of Nepal",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.314538, 27.715797],
+                [85.315538, 27.715797],
+                [85.315538, 27.716697],
+                [85.314538, 27.716697],
+                [85.314538, 27.715797]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Supreme Court of Nepal",
+                "type": "Government Buildings",
+                "radius": "500m",
+                "authority": "Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.321472, 27.696877],
+                    [85.322472, 27.696877],
+                    [85.322472, 27.697877],
+                    [85.321472, 27.697877],
+                    [85.321472, 27.696877]
+                ]]
+            }
+        },
+
+
+
+
+
+
+
+
+
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Nepal Army Headquarters",
+                "type": "Restricted Military Zones",
+                "radius": "5km",
+                "authority": "Nepal Army",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.316158, 27.697317],
+                    [85.317158, 27.697317],
+                    [85.317158, 27.698217],
+                    [85.316158, 27.698217],
+                    [85.316158, 27.697317]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Panchkhal Military Base (Birendra Peace Operations Training Centre)",
+                "type": "Restricted Military Zones",
+                "radius": "1.3km",
+                "authority": "Nepal Army",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                 [85.630580, 27.653629],
+                [85.631580, 27.653629],
+                [85.631580, 27.654529],
+                [85.630580, 27.654529],
+                [85.630580, 27.653629]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Nepal Army Eastern Region Headquarter",
+                "type": "Restricted Military Zones",
+                "radius": "1km",
+                "authority": "Nepal Army",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [87.274460, 26.669261],
+                [87.275460, 26.669261],
+                [87.275460, 26.670161],
+                [87.274460, 26.670161],
+                [87.274460, 26.669261]
+                ]]
+            }
+        },
+
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Nepal Army, Western Command",
+                "type": "Restricted Military Zones",
+                "radius": "1km",
+                "authority": "Nepal Army",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [81.638085, 28.607589],
+                [81.639085, 28.607589],
+                [81.639085, 28.608489],
+                [81.638085, 28.608489],
+                [81.638085, 28.607589]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Nepal Army Command and Staff College, Shivapuri",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.346113, 27.788829],
+                [85.347113, 27.788829],
+                [85.347113, 27.789729],
+                [85.346113, 27.789729],
+                [85.346113, 27.788829]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Military Academy, Kharipati",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.446959, 27.686540],
+                [85.447959, 27.686540],
+                [85.447959, 27.687440],
+                [85.446959, 27.687440],
+                [85.446959, 27.686540]
+                ]]
+            }
+        },
+    
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Recruit Training Center, Trishuli",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.144166, 27.905942],
+                [85.145166, 27.905942],
+                [85.145166, 27.906892],
+                [85.144166, 27.906892],
+                [85.144166, 27.905942]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Jungle Warfare School, Amlekhgunj",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [84.988405, 27.285906],
+                [84.989405, 27.285906],
+                [84.989405, 27.286856],
+                [84.988405, 27.286856],
+                [84.988405, 27.285906]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Nepal Army Helipad",
+                "type": "Restricted Military Zones",
+                "radius": "1km",
+                "authority": "Nepal Army",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [83.728679, 28.784755],
+                [83.729679, 28.784755],
+                [83.729679, 28.785655],
+                [83.728679, 28.785655],
+                [83.728679, 28.784755]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Nepali military intelligence school, Kharipati",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.459306, 27.691371],
+                [85.460306, 27.691371],
+                [85.460306, 27.692271],
+                [85.459306, 27.692271],
+                [85.459306, 27.691371]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Army Logistics School, Chhauni",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.291173, 27.704063],
+                [85.292173, 27.704063],
+                [85.292173, 27.704963],
+                [85.291173, 27.704963],
+                [85.291173, 27.704063]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "National Police Academy(NPA), Maharajgunj",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.327768, 27.733811],
+                [85.328768, 27.733811],
+                [85.328768, 27.734711],
+                [85.327768, 27.734711],
+                [85.327768, 27.733811]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Bhairavnath Battalion (Special Forces)",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "Very High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.330792, 27.733255],
+                [85.331792, 27.733255],
+                [85.331792, 27.734155],
+                [85.330792, 27.734155],
+                [85.330792, 27.733255]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Baireni Military Barrack, Baireni Galchhi",
+                "type": "Restricted Military Zones",
+                "radius": "2km",
+                "authority": "Nepal Army",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [84.995858, 27.803033],
+                [84.996858, 27.803033],
+                [84.996858, 27.803933],
+                [84.995858, 27.803933],
+                [84.995858, 27.803033]
+                ]]
+            }
+        },
+    
+
+
+
+
+
+
+
+
+
+
+
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Chitwan National Park",
+                "radius": "5km",
+                "type": "Protected Areas",
+                "authority": "Department of National Parks",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [84.313010, 27.519092],
+                    [84.314010, 27.519092],
+                    [84.314010, 27.519992],
+                    [84.313010, 27.519992],
+                    [84.313010, 27.519092]
+                ]]
+            }
+        },
+        
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Sagarmatha National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [86.700911, 27.932201],
+                    [86.701911, 27.932201],
+                    [86.701911, 27.933101],
+                    [86.700911, 27.933101],
+                    [86.700911, 27.932201]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Makalu-Barun National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [87.101921, 27.660019],
+                [87.102921, 27.660019],
+                [87.102921, 27.660919],
+                [87.101921, 27.660919],
+                [87.101921, 27.660019]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Parsa National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [84.79329492658372, 27.475219286792606], 
+                [84.79529492658372, 27.475219286792606], 
+                [84.79529492658372, 27.477219286792606], 
+                [84.79329492658372, 27.477219286792606], 
+                [84.79329492658372, 27.475219286792606]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Langtang National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.53881604382427, 28.155183156309403],
+                [85.54081604382427, 28.155183156309403],
+                [85.54081604382427, 28.157183156309403],
+                [85.53881604382427, 28.157183156309403],
+                [85.53881604382427, 28.155183156309403]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Shivapuri Nagarjun National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [85.38491253824501, 27.81212245323915],
+                [85.38691253824501, 27.81212245323915],
+                [85.38691253824501, 27.81412245323915],
+                [85.38491253824501, 27.81412245323915],
+                [85.38491253824501, 27.81212245323915]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Rara National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [82.07283537737236, 29.52028622339322],
+                [82.07483537737236, 29.52028622339322],
+                [82.07483537737236, 29.52228622339322],
+                [82.07283537737236, 29.52228622339322],
+                [82.07283537737236, 29.52028622339322]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Shey-Phoksundo National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [82.7980600536453, 29.462114118808292],
+                [82.8000600536453, 29.462114118808292],
+                [82.8000600536453, 29.464114118808292],
+                [82.7980600536453, 29.464114118808292],
+                [82.7980600536453, 29.462114118808292]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Banke National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [81.88420765923683, 28.189418902406158],
+                [81.88620765923683, 28.189418902406158],
+                [81.88620765923683, 28.191418902406158],
+                [81.88420765923683, 28.191418902406158],
+                [81.88420765923683, 28.189418902406158]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Bardiya National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [81.55855686525452, 28.364081512440263],
+                [81.56055686525452, 28.364081512440263],
+                [81.56055686525452, 28.366081512440263],
+                [81.55855686525452, 28.366081512440263],
+                [81.55855686525452, 28.364081512440263]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Khaptad National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [81.14061545179677, 29.377490204484002],
+                [81.14261545179677, 29.377490204484002],
+                [81.14261545179677, 29.379490204484002],
+                [81.14061545179677, 29.379490204484002],
+                [81.14061545179677, 29.377490204484002]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Shuklaphanta National Park",
+                "type": "Protected Areas",
+                "radius": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [80.25343499595274, 28.85459832008612],
+                [80.25543499595274, 28.85459832008612],
+                [80.25543499595274, 28.85659832008612],
+                [80.25343499595274, 28.85659832008612],
+                [80.25343499595274, 28.85459832008612]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Kanchenjunga Conservation Area",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [87.93247961124887, 27.627491307501573],
+                [87.93447961124887, 27.627491307501573],
+                [87.93447961124887, 27.629491307501573],
+                [87.93247961124887, 27.629491307501573],
+                [87.93247961124887, 27.627491307501573]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Gaurishankar Conservation Area",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [86.21809450594293, 27.85104275362483],
+                [86.22009450594293, 27.85104275362483],
+                [86.22009450594293, 27.85304275362483],
+                [86.21809450594293, 27.85304275362483],
+                [86.21809450594293, 27.85104275362483]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Manaslu Conservation Area",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [84.55909454011682, 28.549266204925798],
+                [84.56109454011682, 28.549266204925798],
+                [84.56109454011682, 28.551266204925798],
+                [84.55909454011682, 28.551266204925798],
+                [84.55909454011682, 28.549266204925798]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Annapurna Conservation Area",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [84.01409101395149, 28.829825542958973],
+                [84.01609101395149, 28.829825542958973],
+                [84.01609101395149, 28.831825542958973],
+                [84.01409101395149, 28.831825542958973],
+                [84.01409101395149, 28.829825542958973]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Api Nampa Conservation Area",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [80.89772529783834, 29.935588307041248],
+                [80.89972529783834, 29.935588307041248],
+                [80.89972529783834, 29.937588307041248],
+                [80.89772529783834, 29.937588307041248],
+                [80.89772529783834, 29.935588307041248]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Krishnasaar Conservation Area",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [81.33082751390414, 28.248820550701926],
+                [81.33282751390414, 28.248820550701926],
+                [81.33282751390414, 28.250820550701926],
+                [81.33082751390414, 28.250820550701926],
+                [81.33082751390414, 28.248820550701926]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Koshi Tappu Wildlife Reserve",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [86.9997498958748, 26.65078619925876],
+                [87.0017498958748, 26.65078619925876],
+                [87.0017498958748, 26.65278619925876],
+                [86.9997498958748, 26.65278619925876],
+                [86.9997498958748, 26.65078619925876]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Dhorpatan Hunting Reserve",
+                "type": "Protected Areas",
+                "buffer": "5km",
+                "authority": "Department of National Parks and Wildlife Conservation"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                [82.99680561269063, 28.595886052275092],
+                [82.99880561269063, 28.595886052275092],
+                [82.99880561269063, 28.597886052275092],
+                [82.99680561269063, 28.597886052275092],
+                [82.99680561269063, 28.595886052275092]
+                ]]
+            }
+        },
+
+
+
+
+
+
+
+
+
+
+
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Kathmandu Durbar Square",
+                "type": "Heritage Sites",
+                "radius": "500m",
+                "authority": "Department of Archaeology, Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.307044, 27.704305],
+                    [85.308044, 27.704305],
+                    [85.308044, 27.705305],
+                    [85.307044, 27.705305],
+                    [85.307044, 27.704305]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Patan Durbar Square",
+                "type": "Heritage Sites",
+                "radius": "500m",
+                "authority": "Department of Archaeology, Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.324797, 27.672566],
+                    [85.325997, 27.672566],
+                    [85.325997, 27.673566],
+                    [85.324797, 27.673566],
+                    [85.324797, 27.672566]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Bhaktapur Durbar Square",
+                "type": "Heritage Sites",
+                "radius": "500m",
+                "authority": "Department of Archaeology, Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.427874, 27.672183],
+                    [85.428874, 27.672183],
+                    [85.428874, 27.673183],
+                    [85.427874, 27.673183],
+                    [85.427874, 27.672183]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Swayambhunath Stupa",
+                "type": "Heritage Sites",
+                "radius": "500m",
+                "authority": "Department of Archaeology, Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.320160, 27.701614],
+                    [85.321160, 27.701614],
+                    [85.321160, 27.702614],
+                    [85.320160, 27.702614],
+                    [85.320160, 27.701614]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pashupatinath Temple",
+                "type": "Heritage Sites",
+                "radius": "500m",
+                "authority": "Department of Archaeology, Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.348216, 27.710476],
+                    [85.349216, 27.710476],
+                    [85.349216, 27.711476],
+                    [85.348216, 27.711476],
+                    [85.348216, 27.710476]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Boudhanath Stupa",
+                "type": "Heritage Sites",
+                "radius": "500m",
+                "authority": "Department of Archaeology, Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [85.363193, 27.720470],
+                    [85.364193, 27.720470],
+                    [85.364193, 27.721470],
+                    [85.363193, 27.721470],
+                    [85.363193, 27.720470]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Lumbini",
+                "type": "Heritage Sites",
+                "radius": "1km",
+                "authority": "Department of Archaeology, Government of Nepal",
+                "risk_level": "High"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [83.246713, 27.469794],
+                    [83.248713, 27.469794],
+                    [83.248713, 27.470794],
+                    [83.246713, 27.470794],
+                    [83.246713, 27.469794]
+                ]]
+            }
+        }
+
+    ]
+}

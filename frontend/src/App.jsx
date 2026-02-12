@@ -16,6 +16,7 @@ import DronePermitForm from './pages/DronePermitForm';
 import MyPermits from './pages/MyPermits';
 import PermitReview from './pages/PermitReview';
 import VideoAnalysis from './pages/VideoAnalysis';
+import NoFlyZone from './pages/NoFlyZone';
 
 function App() {
   return (
@@ -129,6 +130,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* No Fly Zone Route */}
+          <Route path="/no-fly-zone" element={<NoFlyZone />} />
 
           {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />

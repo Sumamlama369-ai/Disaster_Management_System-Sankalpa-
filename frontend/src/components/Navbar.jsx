@@ -23,6 +23,7 @@ export default function Navbar() {
         { id: 'my-permits', label: 'My Permits', icon: '📋', path: '/my-permits' },
         { id: 'video-analysis', label: 'Video Analysis', icon: '🎬', path: '/video-analysis' },
         { id: 'disaster-dashboard', label: 'Live Dashboard', icon: '📊', path: '/disaster-dashboard' },
+        { id: 'no-fly-zone', label: 'Non-Flying Zone', icon: '🗺️', path: '/no-fly-zone' },
         { id: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
       ];
     } else if (user?.role === 'officer') {

@@ -21,6 +21,7 @@
     "echarts-extension-gmap": "^1.7.0",
     "echarts-for-react": "^3.0.6",
     "framer-motion": "^12.30.0",
+    "leaflet": "^1.9.4",
     "plotly.js": "^3.3.1",
     "react": "^19.2.0",
     "react-chartjs-2": "^5.3.1",
