@@ -23,7 +23,7 @@ const categorySymbolPaths = {
   airport: { path: 'M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z', color: '#2563EB' },
   protected: { path: 'M17 12h2v6h-2v-6zm-4-4h2v10h-2V8zm-4 6h2v4H9v-4zm-4 2h2v2H5v-2zm16-6v10H3V10l9-6 9 6z', color: '#16A34A' },
   government: { path: 'M12 2L2 7v2h20V7L12 2zM4 10v8h3v-8H4zm5 0v8h3v-8H9zm5 0v8h3v-8h-3zm5 0v8h3v-8h-3zM2 20h20v2H2v-2z', color: '#7C3AED' },
-  heritage: { path: 'M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm-1-6h2v2h-2v-2zm0-8h2v6h-2V6z', color: '#EA580C' },
+  heritage: { path: 'M12 2l-7 4v2h14V6l-7-4zM5 9v9h3V9H5zm5 0v9h4V9h-4zm6 0v9h3V9h-3zM3 19v2h18v-2H3z', color: '#EA580C' },
 };
 
 // Advanced custom marker icons with teardrop/pin shape and embedded symbol
@@ -332,6 +332,8 @@ export default function NoFlyZone() {
       militaryZones: counts.military,
       airportZones: counts.airport,
       protectedAreas: counts.protected,
+      governmentZones: counts.government,
+      heritageZones: counts.heritage,
     });
     setZonesList(zones);
     setFilteredZones(zones);
@@ -503,22 +505,30 @@ export default function NoFlyZone() {
             </div>
 
             {/* Stats */}
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.totalZones}</div>
                 <div className="text-xs text-slate-400 uppercase tracking-wide">No-Fly Zones</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.militaryZones}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Military Zones</div>
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Military</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.airportZones}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Airport Zones</div>
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Airport</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.protectedAreas}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Protected Areas</div>
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Protected</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold">{stats.governmentZones}</div>
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Government</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold">{stats.heritageZones}</div>
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Heritage</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-400">Active</div>
