@@ -4,11 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 
-from app.api.v1.endpoints import auth, drone_permit, disaster, video
+from app.api.v1.endpoints import auth, drone_permit, disaster, video, disaster_reports
 from app.database.database import engine, Base
 
 # Import models for table creation
-from app.models import user, otp, drone_permit as drone_permit_models, disaster as disaster_models, video as video_models
+from app.models import user, otp, drone_permit as drone_permit_models, disaster as disaster_models, video as video_models, disaster_reports as disaster_reports_models
 
 # Try to import org_code if it exists, otherwise skip
 try:
@@ -26,6 +26,7 @@ os.makedirs("uploads/original", exist_ok=True)
 os.makedirs("uploads/processed", exist_ok=True)
 os.makedirs("uploads/detection_output", exist_ok=True)
 os.makedirs("uploads/segmentation_output", exist_ok=True)
+os.makedirs("uploads/disaster_images", exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -72,6 +73,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(drone_permit.router, prefix="/api/v1/permits", tags=["Drone Permits"])
 app.include_router(disaster.router, prefix="/api/v1/disasters", tags=["Disasters"])
 app.include_router(video.router, prefix="/api/v1/video", tags=["Video Analysis"])
+app.include_router(disaster_reports.router, prefix="/api/v1/disaster-reports", tags=["Disaster Reports"])
 
 @app.get("/")
 async def root():

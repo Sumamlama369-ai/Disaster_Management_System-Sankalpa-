@@ -24,6 +24,7 @@ export default function Navbar() {
         { id: 'video-analysis', label: 'Video Analysis', icon: '🎬', path: '/video-analysis' },
         { id: 'disaster-dashboard', label: 'Live Dashboard', icon: '📊', path: '/disaster-dashboard' },
         { id: 'no-fly-zone', label: 'Non-Flying Zone', icon: '🗺️', path: '/no-fly-zone' },
+        { id: 'report-disaster', label: 'Report Disaster', icon: '🚨', path: '/report-disaster' },
         { id: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
       ];
     } else if (user?.role === 'officer') {
@@ -31,6 +32,7 @@ export default function Navbar() {
         { id: 'home', label: 'Home', icon: '🏠', path: '/officer-dashboard' },
         { id: 'permit-review', label: 'Permit Review', icon: '✅', path: '/permit-review' },
         { id: 'video-analysis', label: 'Video Analysis', icon: '🎬', path: '/video-analysis' },
+        { id: 'command-center', label: 'Command Center', icon: '🎯', path: '/command-center' },
         { id: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
       ];
     } else if (user?.role === 'admin') {
@@ -40,6 +42,7 @@ export default function Navbar() {
         { id: 'users', label: 'User Management', icon: '👥', path: '/user-management' },
         { id: 'video-analysis', label: 'Video Analysis', icon: '🎬', path: '/video-analysis' },
         { id: 'reports', label: 'Reports', icon: '📄', path: '/reports' },
+        { id: 'command-center', label: 'Command Center', icon: '🎯', path: '/command-center' },
         { id: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
       ];
     }

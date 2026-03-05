@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 export default function CitizenDashboard() {
@@ -70,18 +71,18 @@ export default function CitizenDashboard() {
               Your safety is our priority. Report emergencies, register drones, and stay informed.
             </p>
             <div className="flex flex-wrap gap-4">
-              <a
-                href="/drone-permit-form"
+              <Link
+                to="/drone-permit-form"
                 className="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition"
               >
                 🚁 Register Drone
-              </a>
-              <a
-                href="/disaster-dashboard"
+              </Link>
+              <Link
+                to="/disaster-dashboard"
                 className="px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-lg font-semibold hover:bg-white/30 transition"
               >
                 📊 View Dashboard
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>
@@ -141,26 +142,27 @@ export default function CitizenDashboard() {
           <h2 className="text-3xl font-bold text-gray-800 mb-8">Available Services</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <motion.a
+              <motion.div
                 key={index}
-                href={feature.link}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * index }}
                 whileHover={{ scale: 1.03 }}
                 className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition-all"
               >
-                <div className={`h-2 bg-gradient-to-r ${feature.color}`}></div>
-                <div className="p-6">
-                  <div className="text-4xl mb-4">{feature.icon}</div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    {feature.description}
-                  </p>
-                </div>
-              </motion.a>
+                <Link to={feature.link} className="block">
+                  <div className={`h-2 bg-gradient-to-r ${feature.color}`}></div>
+                  <div className="p-6">
+                    <div className="text-4xl mb-4">{feature.icon}</div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      {feature.description}
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
             ))}
           </div>
         </div>

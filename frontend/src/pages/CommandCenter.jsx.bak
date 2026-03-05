@@ -1,0 +1,551 @@
+import { useEffect, useState, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { ref, onValue } from 'firebase/database';
+import { db } from '../firebase/firebase';
+import Navbar from '../components/Navbar';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const SEV_COLOR = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#059669' };
+const SEV_BG = { CRITICAL: '#fee2e2', HIGH: '#fff7ed', MEDIUM: '#fffbeb', LOW: '#ecfdf5' };
+
+const TYPE_EMOJI = {
+  fire: '🔥', flood: '🌊', earthquake: '🌍', landslide: '⛰️', storm: '🌪️',
+  cyclone: '🌀', tsunami: '🌊', drought: '☀️', volcano: '🌋',
+};
+
+const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
+/* Haversine distance in km */
+function calcDist(a, b) {
+  if (!a || !b) return null;
+  const R = 6371, toR = Math.PI / 180;
+  const dLat = (b[0] - a[0]) * toR, dLon = (b[1] - a[1]) * toR;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * toR) * Math.cos(b[0] * toR) * Math.sin(dLon / 2) ** 2;
+  return (2 * R * Math.asin(Math.sqrt(s))).toFixed(2);
+}
+
+function hdopInfo(hdop) {
+  const v = parseFloat(hdop);
+  if (!v || isNaN(v)) return { label: '—', color: '#94a3b8', quality: 'Unknown' };
+  if (v < 1) return { label: `${v.toFixed(2)} (Ideal)`, color: '#059669', quality: 'Excellent' };
+  if (v < 2) return { label: `${v.toFixed(2)} (Excellent)`, color: '#059669', quality: 'Excellent' };
+  if (v < 5) return { label: `${v.toFixed(2)} (Good)`, color: '#d97706', quality: 'Good' };
+  if (v < 10) return { label: `${v.toFixed(2)} (Moderate)`, color: '#ea580c', quality: 'Moderate' };
+  return { label: `${v.toFixed(2)} (Poor)`, color: '#dc2626', quality: 'Poor' };
+}
+
+/* Custom map icons */
+const incidentIcon = L.divIcon({
+  className: '',
+  html: `<div style="position:relative;width:48px;height:56px;display:flex;align-items:center;justify-content:center;">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:40px;height:40px;border:2px solid #dc2626;border-radius:50%;opacity:.4;animation:incPulse 2s ease-out infinite;"></div>
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:40px;height:40px;border:2px solid #dc2626;border-radius:50%;opacity:.4;animation:incPulse 2s ease-out 1s infinite;"></div>
+    <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(220,38,38,.5);">
+        <span style="transform:rotate(45deg);font-size:16px;">🚨</span>
+      </div>
+      <div style="width:3px;height:8px;background:#b91c1c;margin-top:-2px;border-radius:0 0 2px 2px;"></div>
+    </div>
+  </div>`,
+  iconSize: [48, 56],
+  iconAnchor: [24, 50],
+});
+
+const droneMarkerIcon = L.divIcon({
+  className: '',
+  html: `<div style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;">
+    <div style="position:absolute;inset:0;border:2px solid #2563eb;border-radius:50%;animation:dronePulse 2s ease-out infinite;"></div>
+    <div style="position:absolute;inset:0;border:2px solid #2563eb;border-radius:50%;animation:dronePulse 2s ease-out 1s infinite;"></div>
+    <div style="position:relative;z-index:2;width:40px;height:40px;background:linear-gradient(135deg,#2563eb,#0891b2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(37,99,235,.5);animation:droneFloat 3s ease-in-out infinite;">🚁</div>
+  </div>`,
+  iconSize: [52, 52],
+  iconAnchor: [26, 26],
+});
+
+/* Map control component */
+function FlyToTarget({ target }) {
+  const map = useMap();
+  useEffect(() => {
+    if (target) map.flyTo(target.center, target.zoom, { duration: 0.8 });
+  }, [target, map]);
+  return null;
+}
+
+export default function CommandCenter() {
+  const { token } = useAuth();
+  const [reports, setReports] = useState([]);
+  const [drone, setDrone] = useState(null);
+  const [droneTrail, setDroneTrail] = useState([]);
+  const trailRef = useRef([]);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [statistics, setStatistics] = useState({
+    totalReports: 0, pendingReports: 0, resolvedReports: 0,
+    criticalReports: 0, activeDrones: 0,
+  });
+  const [flyTarget, setFlyTarget] = useState(null);
+  const [clock, setClock] = useState(new Date());
+
+  /* Live clock */
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* Fetch from PostgreSQL */
+  useEffect(() => {
+    if (!token) return;
+    fetchReports();
+    fetchStatistics();
+    const interval = setInterval(() => { fetchReports(); fetchStatistics(); }, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  /* Firebase real-time drone (singular object at "drone") */
+  useEffect(() => {
+    const droneRef = ref(db, 'drone');
+    const unsubscribe = onValue(
+      droneRef,
+      (snapshot) => {
+        const d = snapshot.val();
+        if (d?.latitude && d.latitude !== 'Not Fixed') {
+          setDrone(d);
+          const pos = [parseFloat(d.latitude), parseFloat(d.longitude)];
+          trailRef.current = [...trailRef.current.slice(-99), pos];
+          setDroneTrail([...trailRef.current]);
+        }
+      },
+      (err) => console.error('Firebase drone error:', err)
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/v1/disaster-reports/map/markers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setReports(res.data);
+    } catch (e) { console.error('Error fetching reports:', e); }
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/v1/disaster-reports/statistics`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setStatistics(res.data);
+    } catch (e) { console.error('Error fetching statistics:', e); }
+  };
+
+  const navigateToReport = (report) => {
+    setSelectedReport(report);
+    if (report.latitude && report.longitude) {
+      setFlyTarget({ center: [parseFloat(report.latitude), parseFloat(report.longitude)], zoom: 14, ts: Date.now() });
+    }
+  };
+
+  const centerMap = () => setFlyTarget({ center: [28.3949, 84.124], zoom: 7, ts: Date.now() });
+
+  const dronePos = drone?.latitude && drone.latitude !== 'Not Fixed'
+    ? [parseFloat(drone.latitude), parseFloat(drone.longitude)] : null;
+  const selectedPos = selectedReport
+    ? [parseFloat(selectedReport.latitude), parseFloat(selectedReport.longitude)] : null;
+  const distance = calcDist(dronePos, selectedPos);
+  const hInfo = hdopInfo(drone?.hdop);
+
+  const sevBg = (s) =>
+    s === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' :
+    s === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+    s === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+    'bg-green-50 text-green-700 border-green-200';
+
+  const clockStr = clock.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  return (
+    <div className="h-screen flex flex-col bg-[#f0f4f8] overflow-hidden">
+      <Navbar />
+
+      {/* Stats Bar */}
+      <div className="flex items-center gap-3 px-5 py-2.5 bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto">
+        <StatCard icon="📊" value={statistics.totalReports} label="Total Reports" trend={`${reports.length} active`}
+          cls="bg-blue-50 border-blue-200" iconCls="bg-blue-100" trendCls="bg-blue-100 text-blue-600" />
+        <StatCard icon="🚨" value={statistics.criticalReports} label="Critical Alerts" trend="Urgent"
+          cls="bg-red-50 border-red-200" iconCls="bg-red-100" trendCls="bg-red-100 text-red-600" />
+        <StatCard icon="⏳" value={statistics.pendingReports} label="Pending" trend="Awaiting"
+          cls="bg-amber-50 border-amber-200" iconCls="bg-amber-100" trendCls="bg-amber-100 text-amber-600" />
+        <StatCard icon="✅" value={statistics.resolvedReports} label="Resolved" trend="Cleared"
+          cls="bg-green-50 border-green-200" iconCls="bg-green-100" trendCls="bg-green-100 text-green-600" />
+        <StatCard icon="🚁" value={drone ? 1 : 0} label="Drone Status"
+          trend={drone ? 'Online' : 'Offline'}
+          cls={drone ? 'bg-cyan-50 border-cyan-200' : 'bg-gray-50 border-gray-200'}
+          iconCls={drone ? 'bg-cyan-100' : 'bg-gray-100'}
+          trendCls={drone ? 'bg-cyan-100 text-cyan-700' : 'bg-gray-100 text-gray-500'} />
+        <StatCard icon="🛰️" value={drone?.satellites || 0} label="Satellites"
+          trend={hInfo.quality}
+          cls="bg-purple-50 border-purple-200" iconCls="bg-purple-100" trendCls="bg-purple-100 text-purple-600" />
+        {distance && (
+          <StatCard icon="📏" value={`${distance}`} label="Drone → Incident"
+            trend="km" cls="bg-teal-50 border-teal-200" iconCls="bg-teal-100" trendCls="bg-teal-100 text-teal-600" />
+        )}
+
+        {/* Live clock */}
+        <div className="ml-auto flex-shrink-0 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Live</div>
+          <div className="text-sm font-bold text-gray-800 font-mono tabular-nums">{clockStr}</div>
+        </div>
+      </div>
+
+      {/* 3-column layout */}
+      <div className="flex-1 grid grid-cols-[300px_1fr_320px] overflow-hidden">
+
+        {/* ─── Left sidebar: Reports ─── */}
+        <div className="bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 flex-shrink-0">
+            <span className="text-[13px] font-bold text-gray-800">📋 Active Reports</span>
+            <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold">{reports.length}</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+            {reports.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-16 text-gray-400 text-sm">
+                <span className="text-4xl">📭</span>
+                <span className="font-medium">No active reports</span>
+                <span className="text-xs text-gray-300">All systems clear</span>
+              </div>
+            ) : (
+              reports.map((r) => (
+                <div
+                  key={r.id}
+                  onClick={() => navigateToReport(r)}
+                  className={`relative p-3 rounded-xl border cursor-pointer transition-all duration-200 hover:border-blue-300 hover:bg-blue-50/50 hover:-translate-y-[1px] hover:shadow-sm ${
+                    selectedReport?.id === r.id
+                      ? 'border-blue-500 bg-blue-50 shadow-[0_0_0_3px_rgba(37,99,235,0.08)]'
+                      : 'border-gray-200 bg-[#f8fafc]'
+                  }`}
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
+                    style={{ background: SEV_COLOR[r.severity] || '#94a3b8' }} />
+
+                  <div className="flex justify-between items-center mb-1.5 ml-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base">{TYPE_EMOJI[r.metadata?.disaster_type] || '⚠️'}</span>
+                      <span className="text-[13px] font-bold text-gray-900 capitalize">
+                        {capitalize(r.metadata?.disaster_type || 'Unknown')}
+                      </span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sevBg(r.severity)}`}>
+                      {r.severity}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-500 ml-2 mb-1.5 line-clamp-2 leading-relaxed">
+                    {r.metadata?.description || 'No description'}
+                  </p>
+
+                  <div className="flex justify-between text-[11px] text-gray-400 ml-2">
+                    <span>👤 {r.metadata?.reporter_name || 'Anonymous'}</span>
+                    <span>🕒 {new Date(r.created_at).toLocaleTimeString()}</span>
+                  </div>
+                  <div className="text-[10px] text-blue-500/70 ml-2 mt-0.5 font-mono">
+                    📍 {parseFloat(r.latitude).toFixed(6)}, {parseFloat(r.longitude).toFixed(6)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ─── Center: Map ─── */}
+        <div className="relative flex flex-col overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-2 bg-white border-b border-gray-200 flex-shrink-0">
+            <span className="text-[13px] font-bold text-gray-800">🗺️ Live Command Map</span>
+            <div className="flex items-center gap-3 text-[11px] text-gray-500 font-mono">
+              <span>🚨 {reports.length} Reports</span>
+              <span>•</span>
+              <span className={drone ? 'text-green-600 font-semibold' : ''}>🚁 {drone ? '1 Online' : '0 Drones'}</span>
+            </div>
+          </div>
+
+          <MapContainer
+            center={[28.3949, 84.124]}
+            zoom={7}
+            scrollWheelZoom={true}
+            zoomControl={false}
+            minZoom={6}
+            maxZoom={18}
+            className="flex-1 w-full z-0"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
+            />
+            <FlyToTarget target={flyTarget} />
+
+            {/* Drone trail polyline */}
+            {droneTrail.length > 1 && (
+              <Polyline positions={droneTrail} pathOptions={{ color: '#2563eb', weight: 2, dashArray: '6,8', opacity: 0.6 }} />
+            )}
+
+            {/* Report markers */}
+            {reports.map((r) => (
+              <Marker
+                key={r.id}
+                position={[parseFloat(r.latitude), parseFloat(r.longitude)]}
+                icon={incidentIcon}
+                eventHandlers={{ click: () => setSelectedReport(r) }}
+              >
+                <Popup minWidth={250}>
+                  <div style={{ fontFamily: 'Inter,sans-serif', minWidth: 220 }}>
+                    <strong style={{ fontSize: 14 }}>
+                      {TYPE_EMOJI[r.metadata?.disaster_type] || '⚠️'}{' '}
+                      {capitalize(r.metadata?.disaster_type || 'Unknown')}
+                    </strong>
+                    <div style={{ margin: '6px 0 4px', fontSize: 12 }}>
+                      <span style={{ color: '#94a3b8' }}>Severity: </span>
+                      <span style={{
+                        background: (SEV_COLOR[r.severity] || '#64748b') + '20',
+                        color: SEV_COLOR[r.severity] || '#64748b',
+                        padding: '2px 8px', borderRadius: 100, fontWeight: 700, fontSize: 11,
+                      }}>{r.severity}</span>
+                    </div>
+                    {r.metadata?.reporter_name && (
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Reporter: {r.metadata.reporter_name}</div>
+                    )}
+                    {r.metadata?.description && (
+                      <div style={{ fontSize: 12, color: '#475569', marginTop: 4, lineHeight: '1.4' }}>
+                        {r.metadata.description.length > 120
+                          ? r.metadata.description.slice(0, 120) + '...'
+                          : r.metadata.description}
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
+            {/* Drone marker */}
+            {dronePos && (
+              <Marker position={dronePos} icon={droneMarkerIcon}>
+                <Popup minWidth={220}>
+                  <div style={{ fontFamily: 'Inter,sans-serif' }}>
+                    <strong style={{ fontSize: 14, display: 'block', marginBottom: 6 }}>🚁 Live Drone</strong>
+                    <div style={{ fontSize: 12, marginBottom: 3 }}>
+                      <span style={{ color: '#94a3b8' }}>Status: </span>
+                      <span style={{ fontWeight: 600, color: '#059669' }}>{drone.status || 'Active'}</span>
+                    </div>
+                    <div style={{ fontSize: 12, marginBottom: 3 }}>Alt: {parseFloat(drone.altitude).toFixed(1)}m</div>
+                    <div style={{ fontSize: 12, marginBottom: 3 }}>Speed: {parseFloat(drone.speed).toFixed(2)} km/h</div>
+                    <div style={{ fontSize: 12, marginBottom: 3 }}>Satellites: {drone.satellites}</div>
+                    <div style={{ fontSize: 12, marginBottom: 3 }}>HDOP: {hInfo.label}</div>
+                    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 6 }}>
+                      Updated: {drone.time} • {drone.date}
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
+
+            {/* Line from drone to selected report */}
+            {dronePos && selectedPos && (
+              <Polyline positions={[dronePos, selectedPos]} pathOptions={{ color: '#f59e0b', weight: 2, dashArray: '8,6', opacity: 0.8 }} />
+            )}
+          </MapContainer>
+
+          {/* Legend overlay */}
+          <div className="absolute bottom-4 left-3 z-[500] bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl px-4 py-2.5 flex items-center gap-5 shadow-lg text-[11px] text-gray-600 font-medium">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_6px_rgba(220,38,38,0.5)]" />
+              Incidents
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-blue-600 shadow-[0_0_6px_rgba(37,99,235,0.5)]" />
+              Drone
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-5 border-t-2 border-dashed border-blue-500" />
+              Trail
+            </div>
+            {distance && (
+              <span className="bg-cyan-50 text-cyan-700 px-2.5 py-0.5 rounded-full font-bold border border-cyan-200">
+                📏 {distance} km
+              </span>
+            )}
+            <button onClick={centerMap}
+              className="ml-1 px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg text-blue-600 font-semibold hover:bg-blue-100 transition">
+              🎯 Reset
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Right sidebar: Details + Telemetry ─── */}
+        <div className="bg-white border-l border-gray-200 overflow-y-auto flex flex-col">
+
+          {/* Drone telemetry — always visible */}
+          <div className="flex-shrink-0 border-b border-gray-100">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-50">
+              <span className="text-[13px] font-bold text-gray-800">🚁 Drone Telemetry</span>
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                drone ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-gray-50 text-gray-400 border border-gray-200'
+              }`}>
+                {drone ? '● Online' : '○ Offline'}
+              </span>
+            </div>
+
+            {drone ? (
+              <>
+                <div className="grid grid-cols-2 gap-2 p-3">
+                  <TeleCard icon="🌐" label="Latitude" value={parseFloat(drone.latitude).toFixed(5)} cls="bg-blue-50 border-blue-100" />
+                  <TeleCard icon="🌐" label="Longitude" value={parseFloat(drone.longitude).toFixed(5)} cls="bg-blue-50 border-blue-100" />
+                  <TeleCard icon="⬆️" label="Altitude" value={`${parseFloat(drone.altitude).toFixed(1)}m`} cls="bg-cyan-50 border-cyan-100" />
+                  <TeleCard icon="💨" label="Speed" value={`${parseFloat(drone.speed).toFixed(2)} km/h`} cls="bg-green-50 border-green-100" />
+                  <TeleCard icon="🛰️" label="Satellites" value={drone.satellites} cls="bg-purple-50 border-purple-100" />
+                  <TeleCard icon="🎯" label="HDOP" value={hInfo.label} cls="bg-gray-50 border-gray-200" valueColor={hInfo.color} />
+                </div>
+
+                {/* Signal strength bar */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50/50 border-t border-gray-100">
+                  <span className="text-[11px] text-gray-400 flex-1">Signal Strength</span>
+                  <div className="flex items-end gap-[3px] h-5">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i}
+                        className={`w-[6px] rounded-sm transition-colors ${drone.satellites >= i * 2 ? 'bg-gradient-to-t from-green-600 to-green-400' : 'bg-gray-200'}`}
+                        style={{ height: `${i * 4}px` }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[11px] font-bold text-green-600">{drone.satellites} sats</span>
+                </div>
+
+                {/* Last updated */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50/50 border-t border-gray-100 text-[11px] text-gray-400">
+                  <span className="flex-1">🕐 Last Update</span>
+                  <span className="font-mono font-medium text-gray-600">{drone.time} • {drone.date}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-8 text-gray-400 text-sm">
+                <span className="text-3xl">📡</span>
+                <span className="font-medium">No drone connected</span>
+                <span className="text-xs text-gray-300">Waiting for signal...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Selected report details */}
+          {selectedReport ? (
+            <div className="flex-1 overflow-y-auto">
+              <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
+                <span className="text-[13px] font-bold text-gray-800">📄 Incident Details</span>
+                <button onClick={() => setSelectedReport(null)}
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
+                  ✕
+                </button>
+              </div>
+
+              {/* Incident type header */}
+              <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100">
+                <span className="text-2xl">{TYPE_EMOJI[selectedReport.metadata?.disaster_type] || '⚠️'}</span>
+                <div>
+                  <div className="text-base font-bold text-gray-900 capitalize">
+                    {capitalize(selectedReport.metadata?.disaster_type || 'Unknown')}
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border inline-block mt-0.5"
+                    style={{ background: SEV_BG[selectedReport.severity], color: SEV_COLOR[selectedReport.severity], borderColor: SEV_COLOR[selectedReport.severity] + '40' }}>
+                    {selectedReport.severity}
+                  </span>
+                </div>
+              </div>
+
+              {/* Detail rows */}
+              <div className="m-3 bg-[#f8fafc] border border-gray-200 rounded-xl overflow-hidden">
+                <div className="divide-y divide-gray-100">
+                  <DetailRow label="Report ID" value={`#${selectedReport.id}`} />
+                  <DetailRow label="Status" value={selectedReport.status}
+                    valueStyle={selectedReport.status === 'PENDING' ? { color: '#d97706', fontWeight: 700 } : {}} />
+                  <DetailRow label="Reporter" value={selectedReport.metadata?.reporter_name || 'Anonymous'} />
+                  <DetailRow label="Contact" value={selectedReport.metadata?.reporter_contact || 'N/A'} />
+                  <DetailRow label="Time" value={new Date(selectedReport.created_at).toLocaleString()} />
+                  <DetailRow label="Coordinates"
+                    value={`${parseFloat(selectedReport.latitude).toFixed(6)}, ${parseFloat(selectedReport.longitude).toFixed(6)}`}
+                    valueStyle={{ color: '#2563eb', fontSize: '11px', fontFamily: 'monospace' }} />
+                  {distance && (
+                    <DetailRow label="Drone Distance" value={`📏 ${distance} km`}
+                      valueStyle={{ color: '#0891b2', fontWeight: 800 }} highlight />
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="mx-3 mb-3 bg-[#f8fafc] border border-gray-200 rounded-xl p-4">
+                <span className="block text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-2">Incident Description</span>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  {selectedReport.metadata?.description || 'No description provided'}
+                </p>
+              </div>
+
+              {/* Open in Google Maps */}
+              <div className="mx-3 mb-3">
+                <a href={`https://maps.google.com/?q=${selectedReport.latitude},${selectedReport.longitude}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="block w-full text-center py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-xs font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all">
+                  🗺️ Open in Google Maps
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-400 text-sm">
+              <span className="text-4xl">📍</span>
+              <span className="font-medium">Select a report</span>
+              <span className="text-xs text-gray-300">Click a report or map marker</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes incPulse { 0%{transform:translate(-50%,-60%) scale(0.6);opacity:0.6} 100%{transform:translate(-50%,-60%) scale(1.4);opacity:0} }
+        @keyframes dronePulse { 0%{transform:scale(0.6);opacity:0.7} 100%{transform:scale(1.4);opacity:0} }
+        @keyframes droneFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+      `}</style>
+    </div>
+  );
+}
+
+/* ── Sub-components ──────────────────────────────────────── */
+
+function StatCard({ icon, value, label, trend, cls, iconCls, trendCls }) {
+  return (
+    <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border min-w-[150px] flex-shrink-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${cls}`}>
+      <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center text-lg flex-shrink-0 ${iconCls}`}>{icon}</div>
+      <div className="flex flex-col gap-[1px] flex-1 min-w-0">
+        <div className="text-xl font-extrabold text-gray-900 leading-none">{value}</div>
+        <div className="text-[11px] text-gray-400 font-medium">{label}</div>
+      </div>
+      {trend && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${trendCls}`}>{trend}</span>}
+    </div>
+  );
+}
+
+function DetailRow({ label, value, valueStyle = {}, highlight = false }) {
+  return (
+    <div className={`flex justify-between items-center px-4 py-2.5 text-xs ${highlight ? 'bg-cyan-50/50' : ''}`}>
+      <span className="text-gray-400">{label}</span>
+      <span className="font-semibold text-gray-800 text-right max-w-[170px] truncate" style={valueStyle}>{value}</span>
+    </div>
+  );
+}
+
+function TeleCard({ icon, label, value, cls, valueColor }) {
+  return (
+    <div className={`rounded-[10px] border p-2.5 flex flex-col gap-1 transition-transform hover:scale-[1.02] ${cls}`}>
+      <span className="text-sm">{icon}</span>
+      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.5px]">{label}</span>
+      <span className="text-[14px] font-bold text-gray-900 leading-tight" style={valueColor ? { color: valueColor } : {}}>{value}</span>
+    </div>
+  );
+}

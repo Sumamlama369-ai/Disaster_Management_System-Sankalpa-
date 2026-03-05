@@ -44,3 +44,14 @@ class User(Base):
         back_populates="user",
         lazy="dynamic"  # ADD THIS
     )
+
+    disaster_reports = relationship(
+        "DisasterReport",
+        foreign_keys="DisasterReport.user_id",
+        back_populates="user"
+    )
+    assigned_reports = relationship(
+        "DisasterReport",
+        foreign_keys="DisasterReport.assigned_officer_id"
+    )
+    deployed_drones = relationship("DroneDeployment", back_populates="deployed_by")

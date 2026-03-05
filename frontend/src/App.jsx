@@ -18,6 +18,10 @@ import PermitReview from './pages/PermitReview';
 import VideoAnalysis from './pages/VideoAnalysis';
 import NoFlyZone from './pages/NoFlyZone';
 
+import DisasterReport from './pages/DisasterReport';
+import CommandCenter from './pages/CommandCenter';
+
+
 function App() {
   return (
     <AuthProvider>
@@ -133,6 +137,22 @@ function App() {
 
           {/* No Fly Zone Route */}
           <Route path="/no-fly-zone" element={<NoFlyZone />} />
+
+          {/* Disaster Report Route */}
+          <Route
+            path="/report-disaster"
+            element={<DisasterReport />}
+          />
+
+          {/* Command Center Route */}
+          <Route
+            path="/command-center"
+            element={
+              <ProtectedRoute allowedRoles={['officer', 'admin']}>
+                <CommandCenter />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
