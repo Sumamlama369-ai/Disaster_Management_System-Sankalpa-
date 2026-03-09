@@ -20,6 +20,7 @@ import NoFlyZone from './pages/NoFlyZone';
 
 import DisasterReport from './pages/DisasterReport';
 import CommandCenter from './pages/CommandCenter';
+import MyDisasterReports from './pages/MyDisasterReports';
 
 
 function App() {
@@ -142,6 +143,16 @@ function App() {
           <Route
             path="/report-disaster"
             element={<DisasterReport />}
+          />
+
+          {/* My Disaster Reports Route */}
+          <Route
+            path="/my-disaster-reports"
+            element={
+              <ProtectedRoute allowedRoles={['citizen', 'officer', 'admin']}>
+                <MyDisasterReports />
+              </ProtectedRoute>
+            }
           />
 
           {/* Command Center Route */}

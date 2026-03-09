@@ -48,6 +48,8 @@ export default function DisasterReport() {
   const [locationData, setLocationData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [reportId, setReportId] = useState(null);
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   const set_ = (f, v) => setForm((p) => ({ ...p, [f]: v }));
 
@@ -108,6 +110,33 @@ export default function DisasterReport() {
           );
 
           setReportId(response.data.id);
+
+          // Upload media files if any
+          if (mediaFiles.length > 0) {
+            setStatus("uploading");
+            let uploaded = 0;
+            for (const file of mediaFiles) {
+              const formData = new FormData();
+              formData.append("file", file);
+              try {
+                await axios.post(
+                  `${API_URL}/api/v1/disaster-reports/reports/${response.data.id}/media`,
+                  formData,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type": "multipart/form-data",
+                    },
+                  }
+                );
+                uploaded++;
+                setUploadProgress(`${uploaded}/${mediaFiles.length}`);
+              } catch (err) {
+                console.error("Media upload failed:", err);
+              }
+            }
+          }
+
           setStatus("success");
         } catch (error) {
           console.error("Submission error:", error);
@@ -143,6 +172,8 @@ export default function DisasterReport() {
     setLocationData(null);
     setErrorMsg("");
     setReportId(null);
+    setMediaFiles([]);
+    setUploadProgress(null);
   };
 
   const selType = DISASTER_TYPES.find((d) => d.value === form.disasterType);
@@ -221,6 +252,12 @@ export default function DisasterReport() {
             >
               Submit Another Report
             </button>
+            <a
+              href="/my-disaster-reports"
+              className="block mt-3 px-8 py-3 border-2 border-blue-200 text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-all text-center"
+            >
+              📋 Track My Reports
+            </a>
           </motion.div>
         </div>
       </div>
@@ -238,13 +275,23 @@ export default function DisasterReport() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              {"🚨"} Emergency Incident Report
-            </h1>
-            <p className="text-white/80 text-lg">
-              Fill out this form to report a disaster. Your GPS coordinates are
-              captured automatically on submission.
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                  {"🚨"} Emergency Incident Report
+                </h1>
+                <p className="text-white/80 text-lg">
+                  Fill out this form to report a disaster. Your GPS coordinates are
+                  captured automatically on submission.
+                </p>
+              </div>
+              <a
+                href="/my-disaster-reports"
+                className="flex-shrink-0 mt-1 px-5 py-2.5 bg-white/15 hover:bg-white/25 backdrop-blur border border-white/30 text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
+              >
+                {"📋"} Track My Reports
+              </a>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -417,6 +464,71 @@ export default function DisasterReport() {
               </div>
             </motion.div>
 
+            {/* Section 06: Media Upload */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="bg-white rounded-2xl shadow-md p-6"
+            >
+              <SectionHeader num="06" title="Photo / Video Evidence" optional />
+              <p className="text-xs text-gray-500 mt-2 mb-4">
+                Upload images (JPEG, PNG, WebP — max 10MB) or videos (MP4, WebM, MOV — max 50MB) to help responders assess the situation.
+              </p>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+                <div className="flex flex-col items-center">
+                  <span className="text-3xl mb-1">📎</span>
+                  <span className="text-sm font-medium text-gray-600">Click to add photos or videos</span>
+                  <span className="text-xs text-gray-400 mt-0.5">Up to 5 files</span>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setMediaFiles((prev) => [...prev, ...files].slice(0, 5));
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {mediaFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {mediaFiles.map((file, i) => {
+                    const isVideo = file.type.startsWith("video/");
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    return (
+                      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                        {isVideo ? (
+                          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-xl">🎬</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt=""
+                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
+                          <p className="text-xs text-gray-400">{sizeMB} MB · {isVideo ? "Video" : "Image"}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setMediaFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          className="text-red-400 hover:text-red-600 transition p-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+
             {(form.disasterType || form.severity) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -482,6 +594,11 @@ export default function DisasterReport() {
               {status === "sending" && (
                 <>
                   <Spinner /> Transmitting to Command...
+                </>
+              )}
+              {status === "uploading" && (
+                <>
+                  <Spinner /> Uploading media {uploadProgress || ""}...
                 </>
               )}
               {status === "error" && "✗ Submission Failed — Try Again"}

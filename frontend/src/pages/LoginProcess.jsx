@@ -28,7 +28,6 @@ export default function LoginProcess() {
 
       if (response.success) {
         // User is verified - direct login
-        toast.success('Welcome back!');
         login(response.access_token, response.user);
         
         // Navigate to dashboard

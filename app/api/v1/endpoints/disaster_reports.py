@@ -8,6 +8,7 @@ from sqlalchemy import func, and_, or_
 from typing import List, Optional
 from datetime import datetime, timedelta
 import base64
+import threading
 import os
 from pathlib import Path
 
@@ -34,6 +35,7 @@ from app.schemas.disaster_reports import (
     DisasterStatistics,
     MapMarker
 )
+from app.services.gmail_service import gmail_service
 
 router = APIRouter()
 
@@ -98,22 +100,25 @@ async def create_disaster_report(
         raise HTTPException(status_code=500, detail=f"Failed to create disaster report: {str(e)}")
 
 
-@router.post("/reports/{report_id}/images", response_model=DisasterReportImageResponse)
-async def upload_disaster_image(
+ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"]
+ALLOWED_MEDIA_TYPES = ALLOWED_IMAGE_TYPES + ALLOWED_VIDEO_TYPES
+
+
+@router.post("/reports/{report_id}/media", response_model=DisasterReportImageResponse)
+async def upload_disaster_media(
     report_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Upload image evidence for a disaster report
+    Upload image or video evidence for a disaster report
     
-    - Supports JPEG, PNG, WebP
-    - Auto-generates thumbnail
-    - Max size: 10MB
+    - Images: JPEG, PNG, WebP (max 10MB)
+    - Videos: MP4, WebM, MOV, AVI (max 50MB)
     """
     try:
-        # Verify report exists and belongs to user
         report = db.query(DisasterReport).filter(
             DisasterReport.id == report_id,
             DisasterReport.user_id == current_user.id
@@ -122,32 +127,30 @@ async def upload_disaster_image(
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
         
-        # Validate file type
-        if file.content_type not in ["image/jpeg", "image/jpg", "image/png", "image/webp"]:
-            raise HTTPException(status_code=400, detail="Invalid image format. Use JPEG, PNG, or WebP")
+        if file.content_type not in ALLOWED_MEDIA_TYPES:
+            raise HTTPException(status_code=400, detail="Invalid file format. Use JPEG, PNG, WebP for images or MP4, WebM, MOV for videos.")
         
-        # Read file
         contents = await file.read()
         file_size = len(contents)
         
-        if file_size > 10 * 1024 * 1024:  # 10MB limit
-            raise HTTPException(status_code=400, detail="Image too large. Max size: 10MB")
+        is_video = file.content_type in ALLOWED_VIDEO_TYPES
+        max_size = 50 * 1024 * 1024 if is_video else 10 * 1024 * 1024
         
-        # Create upload directory if not exists
+        if file_size > max_size:
+            limit_str = "50MB" if is_video else "10MB"
+            raise HTTPException(status_code=400, detail=f"File too large. Max size: {limit_str}")
+        
         upload_dir = Path("uploads/disaster_images")
         upload_dir.mkdir(parents=True, exist_ok=True)
         
-        # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        ext = Path(file.filename or "image.jpg").suffix
+        ext = Path(file.filename or ("video.mp4" if is_video else "image.jpg")).suffix
         filename = f"report_{report_id}_{timestamp}{ext}"
         file_path = upload_dir / filename
         
-        # Save file
         with open(file_path, "wb") as f:
             f.write(contents)
         
-        # Create database record
         db_image = DisasterReportImage(
             report_id=report_id,
             image_path=str(file_path),
@@ -163,7 +166,8 @@ async def upload_disaster_image(
         db.commit()
         db.refresh(db_image)
         
-        print(f"✓ Image uploaded for report {report_id}: {filename}")
+        media_type = "Video" if is_video else "Image"
+        print(f"✓ {media_type} uploaded for report {report_id}: {filename}")
         
         return db_image
         
@@ -171,8 +175,43 @@ async def upload_disaster_image(
         raise
     except Exception as e:
         db.rollback()
-        print(f"✗ Error uploading image: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
+        print(f"✗ Error uploading media: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload media: {str(e)}")
+
+
+# Keep legacy endpoint for backwards compatibility
+@router.post("/reports/{report_id}/images", response_model=DisasterReportImageResponse)
+async def upload_disaster_image(
+    report_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Legacy endpoint - redirects to media upload"""
+    return await upload_disaster_media(report_id, file, db, current_user)
+
+
+@router.get("/reports/{report_id}/media", response_model=List[DisasterReportImageResponse])
+async def get_report_media(
+    report_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all media (images/videos) for a specific report
+    """
+    report = db.query(DisasterReport).filter(DisasterReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    if current_user.role == "citizen" and report.user_id != current_user.id:  # type: ignore[arg-type]
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    media = db.query(DisasterReportImage).filter(
+        DisasterReportImage.report_id == report_id
+    ).order_by(DisasterReportImage.display_order).all()
+    
+    return media
 
 
 @router.get("/reports/my-reports", response_model=DisasterReportListResponse)
@@ -375,6 +414,29 @@ async def update_report_status(
         )
         db.add(status_history)
         db.commit()
+
+        # Send email notification to the reporting citizen
+        if report.user_id:  # type: ignore[arg-type]
+            reporter = db.query(User).filter(User.id == report.user_id).first()
+            if reporter and reporter.email:  # type: ignore[arg-type]
+                _email = str(reporter.email)
+                _name = str(reporter.name or report.reporter_name or "Citizen")
+                _dtype = str(report.disaster_type)
+                _status = str(update.status)
+                _notes = str(update.officer_notes or update.response_notes or "")
+                def _send_notification():
+                    try:
+                        gmail_service.send_report_status_email(
+                            to_email=_email,
+                            name=_name,
+                            report_id=report_id,
+                            disaster_type=_dtype,
+                            new_status=_status,
+                            officer_notes=_notes
+                        )
+                    except Exception as e:
+                        print(f"⚠️ Failed to send notification email: {e}")
+                threading.Thread(target=_send_notification, daemon=True).start()
     
     print(f"✓ Report {report_id} updated by officer {current_user.id}")
     
@@ -448,8 +510,16 @@ async def get_map_markers(
             metadata={
                 "disaster_type": report.disaster_type,
                 "description": str(report.description)[:100] + "..." if len(str(report.description)) > 100 else str(report.description),
+                "full_description": str(report.description),
+                "reporter_name": report.reporter_name,
                 "reporter_contact": report.reporter_contact,
-                "priority": report.priority
+                "priority": report.priority,
+                "officer_notes": report.officer_notes,
+                "response_notes": report.response_notes,
+                "user_id": report.user_id,
+                "media_count": db.query(func.count(DisasterReportImage.id)).filter(
+                    DisasterReportImage.report_id == report.id
+                ).scalar() or 0,
             }
         ))
     

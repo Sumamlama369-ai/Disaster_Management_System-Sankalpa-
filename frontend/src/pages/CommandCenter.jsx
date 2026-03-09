@@ -165,20 +165,30 @@ export default function CommandCenter() {
       const res = await axios.get(`${API_URL}/api/v1/disaster-reports/statistics`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setStatistics(res.data);
+      const d = res.data;
+      setStatistics({
+        totalReports: d.total_reports ?? d.totalReports ?? 0,
+        pendingReports: d.pending_reports ?? d.pendingReports ?? 0,
+        resolvedReports: d.resolved_reports ?? d.resolvedReports ?? 0,
+        criticalReports: d.critical_reports ?? d.criticalReports ?? 0,
+        activeDrones: d.active_drones ?? d.activeDrones ?? 0,
+      });
     } catch (e) { console.error('Error fetching statistics:', e); }
   };
 
-  const updateReportStatus = async (reportId, newStatus) => {
+  const [officerNotes, setOfficerNotes] = useState('');
+
+  const updateReportStatus = async (reportId, newStatus, notes = '') => {
     setUpdatingStatus(true);
     try {
       await axios.patch(
         `${API_URL}/api/v1/disaster-reports/reports/${reportId}`,
-        { status: newStatus },
+        { status: newStatus, officer_notes: notes || undefined },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+      toast.success(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}. Notification sent to citizen.`);
       setSelectedReport((prev) => prev ? { ...prev, status: newStatus } : prev);
+      setOfficerNotes('');
       fetchReports();
       fetchStatistics();
     } catch (e) {
@@ -258,22 +268,13 @@ export default function CommandCenter() {
             </div>
           </div>
 
-          {/* Stat cards row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            <StatCard icon={'\u{1F4CA}'} value={statistics.totalReports} label="Total Reports" gradient="from-blue-500 to-blue-600" />
-            <StatCard icon={'\u{1F6A8}'} value={statistics.criticalReports} label="Critical" gradient="from-red-500 to-red-600" />
-            <StatCard icon={'\u23F3'} value={statistics.pendingReports} label="Pending" gradient="from-amber-500 to-orange-500" />
-            <StatCard icon={'\u2705'} value={statistics.resolvedReports} label="Resolved" gradient="from-green-500 to-emerald-600" />
-            <StatCard icon={'\u{1F681}'} value={drone ? 1 : 0} label="Drones" gradient={drone ? 'from-cyan-500 to-teal-500' : 'from-gray-400 to-gray-500'} />
-            <StatCard icon={'\u{1F6F0}\uFE0F'} value={drone?.satellites || 0} label="Satellites" gradient="from-purple-500 to-violet-600" />
-            {distance && <StatCard icon={'\u{1F4CF}'} value={`${distance} km`} label="Drone Dist." gradient="from-teal-500 to-cyan-600" />}
-          </div>
+
         </div>
       </div>
 
       {/* Main 3-column layout */}
       <div className="flex-1 max-w-[1920px] w-full mx-auto p-4">
-        <div className="flex gap-4" style={{ height: 'calc(100vh - 280px)' }}>
+        <div className="flex gap-4" style={{ height: 'calc(100vh - 180px)' }}>
 
           {/* Left sidebar: Reports */}
           <motion.div
@@ -511,7 +512,7 @@ export default function CommandCenter() {
             </div>
           </motion.div>
 
-          {/* Right sidebar: Details + Telemetry */}
+          {/* Right sidebar: Drone Telemetry only */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -519,7 +520,7 @@ export default function CommandCenter() {
             className="w-[380px] flex-shrink-0 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-y-auto flex flex-col"
           >
             {/* Drone telemetry */}
-            <div className="flex-shrink-0 border-b border-gray-200">
+            <div className="flex-shrink-0">
               <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
                 <h2 className="text-lg font-bold text-gray-800">{'\u{1F681}'} Drone Telemetry</h2>
                 <span className={`text-xs font-bold px-3 py-1 rounded-full ${
@@ -568,117 +569,298 @@ export default function CommandCenter() {
             </div>
 
             {/* Selected report details */}
-            <AnimatePresence mode="wait">
-              {selectedReport ? (
-                <motion.div
-                  key={selectedReport.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.25 }}
-                  className="flex-1 overflow-y-auto"
-                >
-                  <div className="flex justify-between items-center px-5 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-                    <h2 className="text-lg font-bold text-gray-800">{'\u{1F4C4}'} Incident Details</h2>
-                    <button onClick={() => setSelectedReport(null)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition text-lg">
-                      {'\u2715'}
-                    </button>
+            {selectedReport && (
+              <div className="border-t border-gray-200 flex-1 overflow-y-auto">
+                <div className="px-5 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{TYPE_EMOJI[selectedReport.metadata?.disaster_type] || '\u26A0\uFE0F'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-gray-900 capitalize">{capitalize(selectedReport.metadata?.disaster_type || 'Unknown')}</div>
+                      <div className="text-xs text-gray-400">Report #{selectedReport.id}</div>
+                    </div>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${STATUS_CONFIG[selectedReport.status]?.bg || 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+                      {STATUS_CONFIG[selectedReport.status]?.label || selectedReport.status}
+                    </span>
                   </div>
+                </div>
 
-                  {/* Type header */}
-                  <div className="flex items-center gap-4 px-5 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
-                    <div className="w-14 h-14 bg-white rounded-xl shadow-md flex items-center justify-center text-3xl border border-gray-100">
-                      {TYPE_EMOJI[selectedReport.metadata?.disaster_type] || '\u26A0\uFE0F'}
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold text-gray-900 capitalize">
-                        {capitalize(selectedReport.metadata?.disaster_type || 'Unknown')}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-lg border"
-                          style={{ background: SEV_BG[selectedReport.severity], color: SEV_COLOR[selectedReport.severity], borderColor: SEV_COLOR[selectedReport.severity] + '40' }}>
-                          {selectedReport.severity}
-                        </span>
-                        <span className="text-sm text-gray-400">#{selectedReport.id}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status Update Buttons */}
-                  <div className="px-5 py-4 border-b border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">{'\u{1F504}'} Update Status</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                        <button
-                          key={key}
-                          disabled={updatingStatus || selectedReport.status === key}
-                          onClick={() => updateReportStatus(selectedReport.id, key)}
-                          className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-xs font-bold transition-all ${
-                            selectedReport.status === key
-                              ? 'border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200 shadow-md'
-                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400 hover:shadow-sm'
-                          } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          <span className="text-lg">{cfg.icon}</span>
-                          <span>{cfg.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Detail rows */}
-                  <div className="mx-4 my-4 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="divide-y divide-gray-100">
-                      <DetailRow label="Report ID" value={`#${selectedReport.id}`} />
-                      <DetailRow label="Current Status"
-                        value={STATUS_CONFIG[selectedReport.status]?.label || selectedReport.status}
-                        valueStyle={{ color: STATUS_CONFIG[selectedReport.status]?.color || '#64748b', fontWeight: 700 }} />
-                      <DetailRow label="Reporter" value={selectedReport.metadata?.reporter_name || 'Anonymous'} />
-                      <DetailRow label="Contact" value={selectedReport.metadata?.reporter_contact || 'N/A'} />
-                      <DetailRow label="Time" value={new Date(selectedReport.created_at).toLocaleString()} />
-                      <DetailRow label="Coordinates"
-                        value={`${parseFloat(selectedReport.latitude).toFixed(6)}, ${parseFloat(selectedReport.longitude).toFixed(6)}`}
-                        valueStyle={{ color: '#2563eb', fontFamily: 'monospace' }} />
-                      {distance && (
-                        <DetailRow label="Drone Distance" value={`${'\u{1F4CF}'} ${distance} km`}
-                          valueStyle={{ color: '#0891b2', fontWeight: 800 }} highlight />
-                      )}
-                    </div>
+                <div className="px-5 py-3 space-y-3">
+                  {/* Severity */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Severity</span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-200 capitalize">
+                      {selectedReport.severity || 'Unknown'}
+                    </span>
                   </div>
 
                   {/* Description */}
-                  <div className="mx-4 mb-4 bg-gray-50 border border-gray-200 rounded-xl p-5">
+                  <div>
+                    <span className="text-xs text-gray-400 uppercase tracking-wide block mb-1">Description</span>
+                    <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{selectedReport.description || 'No description'}</p>
+                  </div>
+
+                  {/* Reporter */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Reporter</span>
+                    <span className="text-xs font-medium text-gray-700">{selectedReport.reporter_name || 'Anonymous'}</span>
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <span className="text-xs text-gray-400 uppercase tracking-wide block mb-1">Location</span>
+                    <span className="text-xs font-mono text-blue-600">
+                      {parseFloat(selectedReport.latitude).toFixed(5)}, {parseFloat(selectedReport.longitude).toFixed(5)}
+                    </span>
+                  </div>
+
+                  {/* Drone distance */}
+                  {distance && (
+                    <div className="flex items-center justify-between bg-cyan-50 rounded-lg px-3 py-2 border border-cyan-200">
+                      <span className="text-xs text-cyan-600">{'\u{1F4CF}'} Drone Distance</span>
+                      <span className="text-sm font-bold text-cyan-800">{distance} km</span>
+                    </div>
+                  )}
+
+                  {/* Submitted time */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Submitted</span>
+                    <span className="text-xs text-gray-600">{new Date(selectedReport.created_at).toLocaleString()}</span>
+                  </div>
+
+                  {/* Officer Notes */}
+                  {selectedReport.officer_notes && (
+                    <div className="bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+                      <span className="text-xs text-amber-600 font-bold block mb-0.5">{'\u{1F4DD}'} Officer Notes</span>
+                      <p className="text-xs text-amber-800 line-clamp-2">{selectedReport.officer_notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-5 py-2 border-t border-gray-100 bg-gray-50">
+                  <p className="text-xs text-gray-400 text-center">{'\u2193'} Full analysis details below</p>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* ═══════ INCIDENT DETAILS SECTION (BELOW 3-COL LAYOUT) ═══════ */}
+        <AnimatePresence mode="wait">
+          {selectedReport ? (
+            <motion.div
+              key={`details-${selectedReport.id}`}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center text-2xl">
+                    {TYPE_EMOJI[selectedReport.metadata?.disaster_type] || '\u26A0\uFE0F'}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold capitalize">
+                      {capitalize(selectedReport.metadata?.disaster_type || 'Unknown')} — Report #{selectedReport.id}
+                    </h2>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs font-bold px-3 py-1 rounded-lg"
+                        style={{
+                          background: SEV_COLOR[selectedReport.severity] + '30',
+                          color: '#fff',
+                          border: `1px solid ${SEV_COLOR[selectedReport.severity]}80`,
+                        }}>
+                        {selectedReport.severity}
+                      </span>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-lg border ${
+                        STATUS_CONFIG[selectedReport.status]?.bg || 'bg-gray-100 text-gray-600 border-gray-300'
+                      }`}>
+                        {STATUS_CONFIG[selectedReport.status]?.icon} {STATUS_CONFIG[selectedReport.status]?.label || selectedReport.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedReport(null)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition text-lg"
+                >
+                  {'\u2715'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 lg:gap-0">
+                {/* LEFT: Report Info */}
+                <div className="lg:border-r border-gray-200 p-6">
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">{'\u{1F4CB}'} Report Information</h3>
+                  <div className="space-y-3">
+                    <InfoItem label="Reporter" value={selectedReport.metadata?.reporter_name || 'Anonymous'} icon={'\u{1F464}'} />
+                    <InfoItem label="Contact" value={selectedReport.metadata?.reporter_contact || 'N/A'} icon={'\u{1F4DE}'} />
+                    <InfoItem label="Submitted" value={new Date(selectedReport.created_at).toLocaleString()} icon={'\u{1F552}'} />
+                    <InfoItem label="Coordinates"
+                      value={`${parseFloat(selectedReport.latitude).toFixed(6)}, ${parseFloat(selectedReport.longitude).toFixed(6)}`}
+                      icon={'\u{1F4CD}'} mono />
+                    {distance && (
+                      <InfoItem label="Drone Distance" value={`${distance} km`} icon={'\u{1F4CF}'} highlight />
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div className="mt-5 p-4 bg-gray-50 border border-gray-200 rounded-xl">
                     <span className="block text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">Description</span>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {selectedReport.metadata?.description || 'No description provided'}
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedReport.metadata?.full_description || selectedReport.metadata?.description || 'No description provided'}
                     </p>
                   </div>
 
                   {/* Google Maps */}
-                  <div className="mx-4 mb-4">
-                    <a href={`https://maps.google.com/?q=${selectedReport.latitude},${selectedReport.longitude}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="block w-full text-center py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all">
-                      {'\u{1F5FA}\uFE0F'} Open in Google Maps
-                    </a>
+                  <a href={`https://maps.google.com/?q=${selectedReport.latitude},${selectedReport.longitude}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="mt-4 block w-full text-center py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all">
+                    {'\u{1F5FA}\uFE0F'} Open in Google Maps
+                  </a>
+                </div>
+
+                {/* CENTER: Officer Actions — Approve / Reject / Status */}
+                <div className="lg:border-r border-gray-200 p-6 border-t lg:border-t-0">
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">{'\u{1F6E1}\uFE0F'} Officer Actions</h3>
+
+                  {/* Quick Approve / Reject */}
+                  <div className="flex gap-3 mb-5">
+                    <button
+                      disabled={updatingStatus || selectedReport.status === 'RESOLVED'}
+                      onClick={() => updateReportStatus(selectedReport.id, 'RESOLVED', officerNotes)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
+                        selectedReport.status === 'RESOLVED'
+                          ? 'bg-green-100 text-green-700 border-2 border-green-400 ring-2 ring-green-200'
+                          : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-green-200'
+                      } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {'\u2705'} Approve / Resolve
+                    </button>
+                    <button
+                      disabled={updatingStatus || selectedReport.status === 'REJECTED'}
+                      onClick={() => updateReportStatus(selectedReport.id, 'REJECTED', officerNotes)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
+                        selectedReport.status === 'REJECTED'
+                          ? 'bg-red-100 text-red-700 border-2 border-red-400 ring-2 ring-red-200'
+                          : 'bg-gradient-to-r from-red-500 to-rose-600 text-white hover:shadow-lg hover:shadow-red-200'
+                      } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {'\u274C'} Reject
+                    </button>
                   </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400"
-                >
-                  <span className="text-5xl">{'\u{1F4CD}'}</span>
-                  <span className="text-base font-medium">Select a report</span>
-                  <span className="text-sm text-gray-300">Click a report or map marker</span>
-                </motion.div>
+
+                  {/* Officer Notes */}
+                  <div className="mb-5">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{'\u{1F4DD}'} Officer Notes (sent to citizen)</label>
+                    <textarea
+                      value={officerNotes}
+                      onChange={(e) => setOfficerNotes(e.target.value)}
+                      placeholder="Add notes for the citizen (reason for rejection, instructions, etc.)..."
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none resize-none transition"
+                    />
+                  </div>
+
+                  {/* All Status Options */}
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{'\u{1F504}'} All Status Options</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        disabled={updatingStatus || selectedReport.status === key}
+                        onClick={() => updateReportStatus(selectedReport.id, key, officerNotes)}
+                        className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-xs font-bold transition-all ${
+                          selectedReport.status === key
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200 shadow-md'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400 hover:shadow-sm'
+                        } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <span className="text-lg">{cfg.icon}</span>
+                        <span>{cfg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* RIGHT: Response Timeline / Notes */}
+                <div className="p-6 border-t lg:border-t-0">
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">{'\u{1F4C4}'} Report Summary</h3>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                      <span className="text-xl">{TYPE_EMOJI[selectedReport.metadata?.disaster_type] || '\u26A0\uFE0F'}</span>
+                      <div>
+                        <span className="text-xs text-gray-400 block">Disaster Type</span>
+                        <span className="text-sm font-bold text-gray-900 capitalize">{capitalize(selectedReport.metadata?.disaster_type || 'Unknown')}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 rounded-xl border"
+                      style={{ background: SEV_BG[selectedReport.severity] || '#f8fafc', borderColor: (SEV_COLOR[selectedReport.severity] || '#94a3b8') + '40' }}>
+                      <span className="text-xl">{'\u26A1'}</span>
+                      <div>
+                        <span className="text-xs text-gray-400 block">Severity Level</span>
+                        <span className="text-sm font-bold" style={{ color: SEV_COLOR[selectedReport.severity] }}>{selectedReport.severity}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 rounded-xl border"
+                      style={{ background: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '10', borderColor: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '30' }}>
+                      <span className="text-xl">{STATUS_CONFIG[selectedReport.status]?.icon || '\u{1F4CB}'}</span>
+                      <div>
+                        <span className="text-xs text-gray-400 block">Current Status</span>
+                        <span className="text-sm font-bold" style={{ color: STATUS_CONFIG[selectedReport.status]?.color }}>{STATUS_CONFIG[selectedReport.status]?.label || selectedReport.status}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                      <span className="text-xl">{'\u{1F4CD}'}</span>
+                      <div>
+                        <span className="text-xs text-gray-400 block">Priority</span>
+                        <span className="text-sm font-bold text-blue-800">{selectedReport.metadata?.priority || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Officer notes if any */}
+                  {selectedReport.metadata?.officer_notes && (
+                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <span className="block text-xs text-amber-600 uppercase tracking-wider font-bold mb-1">{'\u{1F4DD}'} Officer Notes</span>
+                      <p className="text-sm text-amber-800">{selectedReport.metadata.officer_notes}</p>
+                    </div>
+                  )}
+
+                  {selectedReport.metadata?.response_notes && (
+                    <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                      <span className="block text-xs text-green-600 uppercase tracking-wider font-bold mb-1">{'\u{1F4AC}'} Response Notes</span>
+                      <p className="text-sm text-green-800">{selectedReport.metadata.response_notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Media Gallery — full width below the 3-col grid */}
+              {selectedReport.metadata?.media_count > 0 && (
+                <MediaGallery reportId={selectedReport.id} token={token} />
               )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty-details"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 bg-white/60 rounded-2xl border border-dashed border-gray-300 flex items-center justify-center py-12"
+            >
+              <div className="text-center text-gray-400">
+                <span className="text-4xl block mb-2">{'\u{1F4CD}'}</span>
+                <span className="text-base font-medium">Select a report from the list or map to view full details</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <style>{`
@@ -726,6 +908,89 @@ function TeleCard({ icon, label, value, cls, valueColor }) {
       <span className="text-lg">{icon}</span>
       <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</span>
       <span className="text-base font-bold text-gray-900 leading-tight" style={valueColor ? { color: valueColor } : {}}>{value}</span>
+    </div>
+  );
+}
+
+function InfoItem({ label, value, icon, mono = false, highlight = false }) {
+  return (
+    <div className={`flex items-start gap-3 ${highlight ? 'bg-cyan-50 p-2 rounded-lg' : ''}`}>
+      <span className="text-base mt-0.5">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <span className="text-xs text-gray-400 block">{label}</span>
+        <span className={`text-sm font-semibold text-gray-800 break-all ${mono ? 'font-mono text-blue-600' : ''} ${highlight ? 'text-cyan-700' : ''}`}>{value}</span>
+      </div>
+    </div>
+  );
+}
+
+function MediaGallery({ reportId, token }) {
+  const [media, setMedia] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lightbox, setLightbox] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/v1/disaster-reports/reports/${reportId}/media`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setMedia(res.data);
+      } catch (e) {
+        console.error('Failed to load media:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [reportId, token]);
+
+  if (loading) return (
+    <div className="px-6 py-4 border-t border-gray-200 text-center text-sm text-gray-400">Loading media...</div>
+  );
+  if (!media.length) return null;
+
+  return (
+    <div className="px-6 py-5 border-t border-gray-200">
+      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">{'\u{1F4F7}'} Evidence Media ({media.length})</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {media.map((m) => {
+          const isVideo = m.mime_type?.startsWith('video/');
+          const url = m.image_url?.startsWith('http') ? m.image_url : `${API_URL}${m.image_url}`;
+          return (
+            <div
+              key={m.id}
+              className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 cursor-pointer hover:shadow-lg transition-all"
+              onClick={() => setLightbox({ url, isVideo })}
+            >
+              {isVideo ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100">
+                  <span className="text-4xl mb-1">{'\u{1F3AC}'}</span>
+                  <span className="text-xs font-bold text-purple-600">VIDEO</span>
+                </div>
+              ) : (
+                <img src={url} alt="Evidence" className="w-full h-full object-cover" />
+              )}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 text-white text-2xl transition-opacity">{isVideo ? '\u25B6' : '\u{1F50D}'}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <div className="relative max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setLightbox(null)} className="absolute -top-3 -right-3 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-red-500 text-lg font-bold">{'\u2715'}</button>
+            {lightbox.isVideo ? (
+              <video src={lightbox.url} controls autoPlay className="w-full max-h-[85vh] rounded-xl" />
+            ) : (
+              <img src={lightbox.url} alt="Evidence" className="w-full max-h-[85vh] object-contain rounded-xl" />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 
 export default function Navbar() {
@@ -8,42 +8,52 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  // Define navigation items based on role
+  // Close profile popup on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    if (profileOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profileOpen]);
+
+  // Define navigation items based on role (no Profile page)
   const getNavItems = () => {
     if (user?.role === 'citizen') {
       return [
-        { id: 'home', label: 'Home', icon: '🏠', path: '/citizen-dashboard' },
-        { id: 'drone-permit', label: 'Drone Permit', icon: '🚁', path: '/drone-permit-form' },
-        { id: 'my-permits', label: 'My Permits', icon: '📋', path: '/my-permits' },
-        { id: 'video-analysis', label: 'Video Analysis', icon: '🎬', path: '/video-analysis' },
-        { id: 'disaster-dashboard', label: 'Live Dashboard', icon: '📊', path: '/disaster-dashboard' },
-        { id: 'no-fly-zone', label: 'Non-Flying Zone', icon: '🗺️', path: '/no-fly-zone' },
-        { id: 'report-disaster', label: 'Report Disaster', icon: '🚨', path: '/report-disaster' },
-        { id: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
+        { id: 'home', label: 'Home', path: '/citizen-dashboard' },
+        { id: 'drone-permit', label: 'Drone Permit', path: '/drone-permit-form' },
+        { id: 'my-permits', label: 'My Permits', path: '/my-permits' },
+        { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
+        { id: 'disaster-dashboard', label: 'Live Dashboard', path: '/disaster-dashboard' },
+        { id: 'no-fly-zone', label: 'No-Fly Zone', path: '/no-fly-zone' },
+        { id: 'report-disaster', label: 'Report Disaster', path: '/report-disaster' },
       ];
     } else if (user?.role === 'officer') {
       return [
-        { id: 'home', label: 'Home', icon: '🏠', path: '/officer-dashboard' },
-        { id: 'permit-review', label: 'Permit Review', icon: '✅', path: '/permit-review' },
-        { id: 'video-analysis', label: 'Video Analysis', icon: '🎬', path: '/video-analysis' },
-        { id: 'command-center', label: 'Command Center', icon: '🎯', path: '/command-center' },
-        { id: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
+        { id: 'home', label: 'Home', path: '/officer-dashboard' },
+        { id: 'permit-review', label: 'Permit Review', path: '/permit-review' },
+        { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
+        { id: 'command-center', label: 'Command Center', path: '/command-center' },
       ];
     } else if (user?.role === 'admin') {
       return [
-        { id: 'home', label: 'Home', icon: '🏠', path: '/admin-dashboard' },
-        { id: 'analytics', label: 'Analytics', icon: '📊', path: '/analytics' },
-        { id: 'users', label: 'User Management', icon: '👥', path: '/user-management' },
-        { id: 'video-analysis', label: 'Video Analysis', icon: '🎬', path: '/video-analysis' },
-        { id: 'reports', label: 'Reports', icon: '📄', path: '/reports' },
-        { id: 'command-center', label: 'Command Center', icon: '🎯', path: '/command-center' },
-        { id: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
+        { id: 'home', label: 'Home', path: '/admin-dashboard' },
+        { id: 'analytics', label: 'Analytics', path: '/analytics' },
+        { id: 'users', label: 'User Management', path: '/user-management' },
+        { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
+        { id: 'reports', label: 'Reports', path: '/reports' },
+        { id: 'command-center', label: 'Command Center', path: '/command-center' },
       ];
     }
     return [];
@@ -106,11 +116,11 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(navItems[0].path)}>
-            <div className={`w-10 h-10 bg-gradient-to-br ${theme.gradient} rounded-lg flex items-center justify-center`}>
+          <div className="flex items-center gap-3 cursor-pointer flex-shrink-0" onClick={() => navigate(navItems[0].path)}>
+            <div className={`w-11 h-11 bg-gradient-to-br ${theme.gradient} rounded-xl flex items-center justify-center`}>
               <span className="text-white text-2xl">{getRoleIcon()}</span>
             </div>
             <div>
@@ -120,18 +130,17 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1 mx-4">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => navigate(item.path)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                   location.pathname === item.path
                     ? `${theme.bg} text-white`
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <span className="mr-1">{item.icon}</span>
                 {item.label}
               </button>
             ))}
@@ -166,26 +175,79 @@ export default function Navbar() {
             </svg>
           </button>
 
-          {/* User Menu - Desktop */}
-          <div className="hidden lg:flex items-center gap-4">
+          {/* User Menu - Desktop (clickable for profile popup) */}
+          <div className="hidden lg:flex items-center gap-3 relative" ref={profileRef}>
             <span className={`px-3 py-1 ${theme.badge} rounded-full text-xs font-semibold capitalize`}>
               {user?.role}
             </span>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-gray-800">{user?.name}</p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
-            </div>
-            <img
-              src={user?.profile_picture || `https://ui-avatars.com/api/?name=${user?.name}`}
-              alt="Profile"
-              className={`w-10 h-10 rounded-full border-2 ${theme.border}`}
-            />
             <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition"
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-3 hover:bg-gray-50 rounded-xl px-3 py-1.5 transition-all"
             >
-              Logout
+              <div className="text-right">
+                <p className="text-sm font-semibold text-gray-800">{user?.name}</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+              </div>
+              <img
+                src={user?.profile_picture || `https://ui-avatars.com/api/?name=${user?.name}`}
+                alt="Profile"
+                className={`w-10 h-10 rounded-full border-2 ${theme.border}`}
+              />
             </button>
+
+            {/* Profile Popup */}
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                {/* Popup Header */}
+                <div className={`bg-gradient-to-r ${theme.gradient} px-6 py-5 text-white relative`}>
+                  <button
+                    onClick={() => setProfileOpen(false)}
+                    className="absolute top-3 right-3 w-7 h-7 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center text-white text-sm transition"
+                  >
+                    ✕
+                  </button>
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={user?.profile_picture || `https://ui-avatars.com/api/?name=${user?.name}&size=80`}
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full border-3 border-white/50 shadow-lg"
+                    />
+                    <div>
+                      <h3 className="text-lg font-bold">{user?.name}</h3>
+                      <p className="text-white/80 text-sm">{user?.email}</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Popup Body */}
+                <div className="px-6 py-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Role</span>
+                    <span className={`px-3 py-1 ${theme.badge} rounded-full text-xs font-bold capitalize`}>{user?.role}</span>
+                  </div>
+                  {user?.phone && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Phone</span>
+                      <span className="text-sm text-gray-700 font-medium">{user.phone}</span>
+                    </div>
+                  )}
+                  {user?.created_at && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Joined</span>
+                      <span className="text-sm text-gray-700 font-medium">{new Date(user.created_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+                {/* Logout */}
+                <div className="border-t border-gray-100 px-6 py-3">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full py-2.5 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -224,7 +286,6 @@ export default function Navbar() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <span className="mr-2">{item.icon}</span>
                 {item.label}
               </button>
             ))}

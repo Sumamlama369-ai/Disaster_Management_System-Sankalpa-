@@ -78,7 +78,8 @@ class RedditDisasterMonitor:
             "unitedkingdom",
         ]
         
-        self.processing_delay = 2  # seconds between posts
+        self.subreddit_delay = 3  # seconds between subreddit fetches
+        self.nlp_delay = 3  # seconds between NLP processing calls
         self.nlp_processor = nlp_processor  # NLP processor instance
     
     def is_disaster_related(self, post):
@@ -168,8 +169,8 @@ class RedditDisasterMonitor:
                     print(f"⚠️ r/{subreddit_name}: {error_msg}")
                 continue
             
-            # Shorter delay for faster collection
-            time.sleep(1)  # Reduced from 2 seconds
+            # Delay between subreddit fetches (controlled by self.subreddit_delay)
+            time.sleep(self.subreddit_delay)
         
         return all_posts
     
@@ -268,8 +269,8 @@ class RedditDisasterMonitor:
                     print(f"⚠️ Error committing insight for post {post.id}: {commit_error}")
                     continue
                 
-                # Small delay for processing
-                time.sleep(0.5)
+                # Delay between NLP processing calls (controlled by self.nlp_delay)
+                time.sleep(self.nlp_delay)
                 
             except Exception as e:
                 print(f"⚠️ Error processing post {post.id}: {e}")

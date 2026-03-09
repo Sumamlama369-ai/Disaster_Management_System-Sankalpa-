@@ -36,6 +36,13 @@ export default function CitizenDashboard() {
       link: '/disaster-dashboard'
     },
     {
+      icon: '📋',
+      title: 'My Disaster Reports',
+      description: 'Track your submitted disaster reports, status updates, and officer responses',
+      color: 'from-indigo-500 to-indigo-600',
+      link: '/my-disaster-reports'
+    },
+    {
       icon: '🔔',
       title: 'Emergency Alerts',
       description: 'Receive instant notifications about disasters near you',
