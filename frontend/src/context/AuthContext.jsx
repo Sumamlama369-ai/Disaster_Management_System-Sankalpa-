@@ -46,6 +46,13 @@ export const AuthProvider = ({ children }) => {
     return user?.role === role;
   };
 
+  // Update user data (e.g., after phone number change)
+  const updateUser = (updatedData) => {
+    const newUser = { ...user, ...updatedData };
+    localStorage.setItem('user', JSON.stringify(newUser));
+    setUser(newUser);
+  };
+
   const value = {
     user,
     token,
@@ -54,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     getRole,
     hasRole,
+    updateUser,
     isAuthenticated: !!token,
   };
 

@@ -42,4 +42,9 @@ export const authService = {
     const response = await api.get(`/auth/check-email/${email}`);
     return response.data;
   },
+
+  updatePhone: async (phone) => {
+    const response = await api.put('/users/me/phone', { phone });
+    return response.data;
+  },
 };

@@ -137,10 +137,11 @@ class AuthService:
                 'email': user.email,
                 'name': user.name,
                 'role': user.role.value,
-                'profile_picture': user.profile_picture
+                'profile_picture': user.profile_picture,
+                'phone': user.phone
             }
         }
-    
+
     @staticmethod
     def login_user(db: Session, google_token: str) -> Dict:
         """
@@ -202,7 +203,8 @@ class AuthService:
                 'email': user.email,
                 'name': user.name,
                 'role': user.role.value,
-                'profile_picture': user.profile_picture
+                'profile_picture': user.profile_picture,
+                'phone': user.phone
             }
         }
 

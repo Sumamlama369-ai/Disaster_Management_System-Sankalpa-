@@ -93,6 +93,18 @@ class LoginRequest(BaseModel):
 
 # ============ User Response Schema ============
 
+class UpdatePhoneRequest(BaseModel):
+    """Update phone number request"""
+    phone: str = Field(..., min_length=7, max_length=20, description="Phone number")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "phone": "+977-9800000000"
+            }
+        }
+
+
 class UserResponse(BaseModel):
     """User information response"""
     id: int
@@ -100,7 +112,8 @@ class UserResponse(BaseModel):
     name: str
     role: str
     profile_picture: Optional[str] = None
-    
+    phone: Optional[str] = None
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -108,7 +121,8 @@ class UserResponse(BaseModel):
                 "email": "user@example.com",
                 "name": "John Doe",
                 "role": "officer",
-                "profile_picture": "https://lh3.googleusercontent.com/..."
+                "profile_picture": "https://lh3.googleusercontent.com/...",
+                "phone": "+977-9800000000"
             }
         }
 

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.models.user import User
-from app.schemas.auth import UserResponse
+from app.schemas.auth import UserResponse, UpdatePhoneRequest
 from app.api.v1.dependencies.auth import (
     get_current_user,
     get_current_officer,
@@ -21,7 +21,7 @@ router = APIRouter()
 def get_current_user_profile(current_user: User = Depends(get_current_user)):
     """
     Get current user's profile
-    
+
     Requires: Valid JWT token
     """
     return UserResponse(
@@ -29,7 +29,33 @@ def get_current_user_profile(current_user: User = Depends(get_current_user)):
         email=current_user.email,  # type: ignore
         name=current_user.name,  # type: ignore
         role=current_user.role.value,
-        profile_picture=current_user.profile_picture  # type: ignore
+        profile_picture=current_user.profile_picture,  # type: ignore
+        phone=current_user.phone  # type: ignore
+    )
+
+
+@router.put("/me/phone", response_model=UserResponse)
+def update_phone_number(
+    request: UpdatePhoneRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update current user's phone number
+
+    Requires: Valid JWT token
+    """
+    current_user.phone = request.phone  # type: ignore
+    db.commit()
+    db.refresh(current_user)
+
+    return UserResponse(
+        id=current_user.id,  # type: ignore
+        email=current_user.email,  # type: ignore
+        name=current_user.name,  # type: ignore
+        role=current_user.role.value,
+        profile_picture=current_user.profile_picture,  # type: ignore
+        phone=current_user.phone  # type: ignore
     )
 
 
@@ -41,7 +67,7 @@ def get_user_profile(
 ):
     """
     Get any user's profile
-    
+
     Citizens: Can only view their own profile
     Officers: Can view any profile
     Admins: Can view any profile
@@ -52,20 +78,21 @@ def get_user_profile(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only view your own profile"
         )
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     return UserResponse(
         id=user.id,  # type: ignore
         email=user.email,  # type: ignore
         name=user.name,  # type: ignore
         role=user.role.value,
-        profile_picture=user.profile_picture  # type: ignore
+        profile_picture=user.profile_picture,  # type: ignore
+        phone=user.phone  # type: ignore
     )
 
 
@@ -78,11 +105,11 @@ def get_all_users(
 ):
     """
     Get all users (Admin only)
-    
+
     Supports pagination
     """
     users = db.query(User).offset(skip).limit(limit).all()
-    
+
     return {
         "total": db.query(User).count(),
         "users": [
@@ -108,7 +135,7 @@ def deactivate_user(
 ):
     """
     Deactivate user account (Admin only)
-    
+
     Soft delete - user is marked as inactive
     """
     if current_user.id == user_id:  # type: ignore
@@ -116,15 +143,15 @@ def deactivate_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot deactivate your own account"
         )
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     setattr(user, 'is_active', False)
     db.commit()
-    
+
     return {"success": True, "message": f"User {user.email} deactivated"}

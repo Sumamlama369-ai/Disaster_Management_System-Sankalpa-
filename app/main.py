@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 
-from app.api.v1.endpoints import auth, drone_permit, disaster, video, disaster_reports
+from app.api.v1.endpoints import auth, users, drone_permit, disaster, video, disaster_reports
 from app.database.database import engine, Base
 
 # Import models for table creation
@@ -70,6 +70,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(drone_permit.router, prefix="/api/v1/permits", tags=["Drone Permits"])
 app.include_router(disaster.router, prefix="/api/v1/disasters", tags=["Disasters"])
 app.include_router(video.router, prefix="/api/v1/video", tags=["Video Analysis"])
