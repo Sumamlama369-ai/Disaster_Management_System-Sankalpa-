@@ -1,263 +1,465 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Navbar from '../components/Navbar';
+import api from '../services/api';
 
+// ─── SVG Icons ────────────────────────────────────────────────
+const ChartBarIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
+const UsersIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+const ShieldIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+const AlertIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+const DroneIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 12m-1 0a1 1 0 1 0 2 0 1 1 0 1 0 -2 0" fill="currentColor" />
+    <path d="M12 12L5 5M12 12l7-7M12 12l-7 7M12 12l7 7" />
+    <circle cx="5" cy="5" r="2" /><circle cx="19" cy="5" r="2" />
+    <circle cx="5" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
+  </svg>
+);
+const VideoIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="6" width="14" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" />
+  </svg>
+);
+const CommandIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><path d="M12 2v10l4.5 4.5" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const ClipboardCheckIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="8" y="2" width="8" height="4" rx="1" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    <path d="M9 14l2 2 4-4" />
+  </svg>
+);
+const FileTextIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+  </svg>
+);
+const CameraIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
+  </svg>
+);
+const ArrowRightIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+const ChevronRightIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+const UserIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const PulseIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
+const MapPinIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+  </svg>
+);
+const ClockIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+// ─── Animated Counter ─────────────────────────────────────────
+function useCounter(target, dur = 1000) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!target) { setVal(0); return; }
+    let cur = 0;
+    const step = Math.max(1, Math.ceil(target / (dur / 25)));
+    const t = setInterval(() => {
+      cur += step;
+      if (cur >= target) { setVal(target); clearInterval(t); } else setVal(cur);
+    }, 25);
+    return () => clearInterval(t);
+  }, [target, dur]);
+  return val;
+}
+
+// ─── Component ────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState('home');
+  const [loading, setLoading] = useState(true);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [officerCount, setOfficerCount] = useState(0);
+  const [citizenCount, setCitizenCount] = useState(0);
+  const [stats, setStats] = useState(null);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [usersRes, statsRes] = await Promise.allSettled([
+        api.get('/users/all?skip=0&limit=500'),
+        api.get('/disaster-reports/statistics'),
+      ]);
+
+      if (usersRes.status === 'fulfilled') {
+        const data = usersRes.value.data;
+        setTotalUsers(data.total || 0);
+        const users = data.users || [];
+        setOfficerCount(users.filter(u => u.role === 'officer').length);
+        setCitizenCount(users.filter(u => u.role === 'citizen').length);
+      }
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data);
+      }
+    } catch (err) {
+      console.error('Admin dashboard error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const navItems = [
-    { id: 'home', label: 'Home', icon: '🏠' },
-    { id: 'analytics', label: 'Analytics', icon: '📊' },
-    { id: 'users', label: 'User Management', icon: '👥' },
-    { id: 'reports', label: 'Reports', icon: '📄' },
-    { id: 'profile', label: 'Profile', icon: '👤' },
+  const firstName = user?.name?.split(' ')[0] || 'Admin';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
+  const aTotal = useCounter(loading ? 0 : totalUsers);
+  const aOfficers = useCounter(loading ? 0 : officerCount);
+  const aCitizens = useCounter(loading ? 0 : citizenCount);
+  const aReports = useCounter(loading ? 0 : (stats?.total_reports || 0));
+  const aPending = useCounter(loading ? 0 : (stats?.pending_reports || 0));
+  const aCritical = useCounter(loading ? 0 : (stats?.critical_reports || 0));
+
+  const statCards = [
+    { label: 'Total Users', value: aTotal, color: 'text-sky-600', bg: 'bg-sky-50', iconBg: 'bg-sky-100', icon: <UsersIcon className="w-5 h-5" /> },
+    { label: 'Citizens', value: aCitizens, color: 'text-blue-600', bg: 'bg-blue-50', iconBg: 'bg-blue-100', icon: <UsersIcon className="w-5 h-5" /> },
+    { label: 'Officers', value: aOfficers, color: 'text-emerald-600', bg: 'bg-emerald-50', iconBg: 'bg-emerald-100', icon: <ShieldIcon className="w-5 h-5" /> },
+    { label: 'Total Reports', value: aReports, color: 'text-sky-600', bg: 'bg-sky-50', iconBg: 'bg-sky-100', icon: <FileTextIcon className="w-5 h-5" /> },
+    { label: 'Pending', value: aPending, color: 'text-amber-600', bg: 'bg-amber-50', iconBg: 'bg-amber-100', icon: <AlertIcon className="w-5 h-5" /> },
+    { label: 'Critical', value: aCritical, color: 'text-red-600', bg: 'bg-red-50', iconBg: 'bg-red-100', icon: <AlertIcon className="w-5 h-5" /> },
   ];
 
-  const features = [
+  const quickActions = [
     {
-      icon: '📊',
       title: 'System Analytics',
-      description: 'View comprehensive system-wide statistics and insights',
-      color: 'from-blue-500 to-blue-600',
-      count: 'Real-time',
-      link: 'analytics'
+      description: 'Interactive visualizations of users, reports, and system performance metrics',
+      path: '/analytics',
+      icon: <ChartBarIcon className="w-7 h-7" />,
+      iconBg: 'bg-sky-500',
+      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=250&fit=crop&q=80',
+      badge: 'Live Data',
+      badgeColor: 'bg-sky-100 text-sky-700',
     },
     {
-      icon: '👥',
-      title: 'User Management',
-      description: 'Manage all users, roles, and permissions',
-      color: 'from-purple-500 to-purple-600',
-      count: '0 Users',
-      link: 'users'
+      title: 'Command Center',
+      description: 'Real-time disaster monitoring, drone GPS tracking, and emergency report management',
+      path: '/command-center',
+      icon: <CommandIcon className="w-7 h-7" />,
+      iconBg: 'bg-emerald-500',
+      image: 'https://images.unsplash.com/photo-1551703599-6b3e8379aa8c?w=400&h=250&fit=crop&q=80',
+      badge: stats?.pending_reports > 0 ? `${stats.pending_reports} active` : null,
+      badgeColor: 'bg-emerald-100 text-emerald-700',
     },
     {
-      icon: '📄',
-      title: 'Reports & Logs',
-      description: 'Access detailed reports and system activity logs',
-      color: 'from-green-500 to-green-600',
-      count: 'Latest',
-      link: 'reports'
+      title: 'Permit Review',
+      description: 'Review and approve emergency drone permit applications from citizens',
+      path: '/permit-review',
+      icon: <ClipboardCheckIcon className="w-7 h-7" />,
+      iconBg: 'bg-cyan-500',
+      image: 'https://images.unsplash.com/photo-1521791055366-0d553872125f?w=400&h=250&fit=crop&q=80',
     },
     {
-      icon: '⚙️',
-      title: 'System Settings',
-      description: 'Configure system parameters and preferences',
-      color: 'from-gray-500 to-gray-600',
-      count: 'Configure',
-      link: 'settings'
+      title: 'Video Analysis',
+      description: 'AI-powered disaster video analysis with YOLOv8 object detection and segmentation',
+      path: '/video-analysis',
+      icon: <VideoIcon className="w-7 h-7" />,
+      iconBg: 'bg-sky-600',
+      image: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=400&h=250&fit=crop&q=80',
     },
     {
-      icon: '🔑',
-      title: 'Access Control',
-      description: 'Manage organization codes and permissions',
-      color: 'from-yellow-500 to-yellow-600',
-      count: 'Secure',
-      link: 'access'
+      title: 'Live Surveillance',
+      description: 'Real-time IP camera feeds with YOLOv8 AI detection for field monitoring',
+      path: '/live-surveillance',
+      icon: <CameraIcon className="w-7 h-7" />,
+      iconBg: 'bg-cyan-600',
+      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=250&fit=crop&q=80',
     },
     {
-      icon: '🛡️',
-      title: 'Security',
-      description: 'Monitor security events and manage policies',
-      color: 'from-red-500 to-red-600',
-      count: 'Protected',
-      link: 'security'
+      title: 'Disaster Reports',
+      description: 'View, track, and manage all citizen-submitted disaster reports',
+      path: '/my-disaster-reports',
+      icon: <FileTextIcon className="w-7 h-7" />,
+      iconBg: 'bg-amber-500',
+      image: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=400&h=250&fit=crop&q=80',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-2xl">👑</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">Sankalpa</h1>
-                <p className="text-xs text-gray-500">Admin Portal</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-white">
+      <Navbar />
 
-            {/* Navigation Links */}
-            <div className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveNav(item.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    activeNav === item.id
-                      ? 'bg-red-500 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
+      {/* ── Hero Section ───────────────────────────────────────── */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=1920&h=600&fit=crop&q=80"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-600/92 via-sky-500/88 to-cyan-500/82" />
+        </div>
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '36px 36px' }} />
+        <div className="absolute top-10 right-[15%] w-72 h-72 bg-white/5 rounded-full blur-[80px]" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 pb-24 lg:pb-28">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+              {/* Status */}
+              <div className="inline-flex items-center gap-2.5 bg-white/15 backdrop-blur-md border border-white/25 rounded-full px-4 py-1.5 mb-6">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative rounded-full h-2.5 w-2.5 bg-emerald-400" />
+                </span>
+                <span className="text-xs font-semibold text-white/90 tracking-wider uppercase">Super Admin Portal</span>
+              </div>
+
+              <p className="text-sky-100 text-sm font-medium mb-2">{greeting}, {firstName}</p>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4">
+                Admin{' '}
+                <span className="bg-gradient-to-r from-white via-cyan-100 to-sky-200 bg-clip-text text-transparent">
+                  Control Center
+                </span>
+              </h1>
+              <p className="text-base lg:text-lg text-sky-100/80 max-w-xl mb-8 leading-relaxed">
+                Full system oversight — manage users, monitor analytics, review permits, and coordinate emergency operations across the Sankalpa platform.
+              </p>
+
+              <div className="flex flex-wrap gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/analytics')}
+                  className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-white text-sky-600 font-bold rounded-xl shadow-lg shadow-sky-900/15 hover:shadow-xl transition-shadow"
                 >
-                  <span className="mr-1">{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            {/* User Menu */}
-            <div className="flex items-center gap-4">
-              <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
-                Admin
-              </span>
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-gray-800">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+                  <ChartBarIcon className="w-5 h-5" />
+                  View Analytics
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/command-center')}
+                  className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-white/15 backdrop-blur-md border border-white/30 text-white font-semibold rounded-xl hover:bg-white/25 transition-colors"
+                >
+                  <CommandIcon className="w-5 h-5" />
+                  Command Center
+                </motion.button>
               </div>
-              <img
-                src={user?.profile_picture || 'https://ui-avatars.com/api/?name=' + user?.name}
-                alt="Profile"
-                className="w-10 h-10 rounded-full border-2 border-red-500"
-              />
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition"
-              >
-                Logout
-              </button>
-            </div>
+            </motion.div>
+
+            {/* Right - Admin info card */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="hidden lg:block"
+            >
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-sm ml-auto">
+                <div className="flex items-center gap-4 mb-5">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white/30 to-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+                    {user?.profile_picture ? (
+                      <img src={user.profile_picture} alt="" className="w-14 h-14 rounded-full object-cover" />
+                    ) : (
+                      <UserIcon className="w-7 h-7 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-lg">{user?.name || 'Admin'}</p>
+                    <p className="text-sky-200 text-sm">Super Admin — Sankalpa DMS</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                    <p className="text-xl font-extrabold text-white">{loading ? '—' : totalUsers}</p>
+                    <p className="text-[10px] text-sky-200 mt-0.5">Users</p>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                    <p className="text-xl font-extrabold text-white">{loading ? '—' : (stats?.total_reports || 0)}</p>
+                    <p className="text-[10px] text-sky-200 mt-0.5">Reports</p>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                    <p className="text-xl font-extrabold text-white">{loading ? '—' : (stats?.active_drones || 0)}</p>
+                    <p className="text-[10px] text-sky-200 mt-0.5">Drones</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-2 bg-emerald-400/15 border border-emerald-400/20 rounded-xl px-4 py-2.5">
+                  <PulseIcon className="w-4 h-4 text-emerald-300" />
+                  <span className="text-sm font-medium text-emerald-200">All systems operational</span>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
-      </nav>
 
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-red-600 via-pink-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Admin Control Center 👑
-            </h1>
-            <p className="text-xl text-white/90 mb-6">
-              Full system control. Manage users, monitor analytics, and configure system settings.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <button 
-                onClick={() => setActiveNav('analytics')}
-                className="px-6 py-3 bg-white text-red-600 rounded-lg font-semibold hover:bg-gray-100 transition"
-              >
-                📊 View Analytics
-              </button>
-              <button 
-                onClick={() => setActiveNav('users')}
-                className="px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-lg font-semibold hover:bg-white/30 transition"
-              >
-                👥 Manage Users
-              </button>
-            </div>
-          </motion.div>
+        {/* Wave */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 50" fill="none" className="w-full" preserveAspectRatio="none">
+            <path d="M0 50L60 44C120 38 240 26 360 21.7C480 17.3 600 20.7 720 25C840 29.3 960 34.7 1080 32.5C1200 30.3 1320 20.7 1380 15.8L1440 11V50H0Z" fill="white"/>
+          </svg>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-md p-6"
-          >
-            <div className="text-3xl mb-2">👥</div>
-            <h3 className="text-2xl font-bold text-blue-600">0</h3>
-            <p className="text-gray-600 text-sm">Total Users</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-md p-6"
-          >
-            <div className="text-3xl mb-2">👮</div>
-            <h3 className="text-2xl font-bold text-green-600">0</h3>
-            <p className="text-gray-600 text-sm">Active Officers</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl shadow-md p-6"
-          >
-            <div className="text-3xl mb-2">🚁</div>
-            <h3 className="text-2xl font-bold text-purple-600">0</h3>
-            <p className="text-gray-600 text-sm">Total Permits</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white rounded-xl shadow-md p-6"
-          >
-            <div className="text-3xl mb-2">⚡</div>
-            <h3 className="text-2xl font-bold text-green-600">Online</h3>
-            <p className="text-gray-600 text-sm">System Status</p>
-          </motion.div>
+      {/* ── Stats Cards ────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {statCards.map((card, i) => (
+            <motion.div
+              key={card.label}
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.06 * i }}
+              className={`${card.bg} rounded-2xl p-5 border border-gray-100 shadow-lg shadow-gray-100/80 hover:shadow-xl transition-shadow`}
+            >
+              <div className={`w-10 h-10 ${card.iconBg} rounded-xl flex items-center justify-center ${card.color} mb-3`}>
+                {card.icon}
+              </div>
+              <p className={`text-3xl font-extrabold ${card.color} leading-none`}>
+                {loading ? <span className="inline-block w-10 h-7 bg-gray-200/50 rounded animate-pulse" /> : card.value}
+              </p>
+              <p className="text-gray-500 text-xs font-semibold mt-1.5 tracking-wide">{card.label}</p>
+            </motion.div>
+          ))}
         </div>
+      </div>
 
-        {/* Features Grid */}
-        <div>
-          <h2 className="text-3xl font-bold text-gray-800 mb-8">Admin Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index }}
-                whileHover={{ scale: 1.03 }}
-                onClick={() => setActiveNav(feature.link)}
-                className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition-all"
-              >
-                <div className={`h-2 bg-gradient-to-r ${feature.color}`}></div>
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="text-4xl">{feature.icon}</div>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                      {feature.count}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    {feature.description}
-                  </p>
+      {/* ── Quick Actions ──────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex items-center justify-between mb-6"
+        >
+          <div>
+            <h2 className="text-2xl font-extrabold text-gray-900">Admin Tools</h2>
+            <p className="text-gray-500 text-sm mt-1">Access all system management tools and operations</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-sky-600 bg-sky-50 border border-sky-100 px-4 py-2 rounded-xl">
+            <ClockIcon className="w-4 h-4" />
+            <span className="text-sm font-medium">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {quickActions.map((action, i) => (
+            <motion.div
+              key={action.title}
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 * i + 0.35 }}
+              onClick={() => navigate(action.path)}
+              className="group bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl hover:border-sky-200 transition-all duration-300"
+            >
+              {/* Image */}
+              <div className="relative h-36 overflow-hidden">
+                <img
+                  src={action.image}
+                  alt={action.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                <div className={`absolute top-3 left-3 w-10 h-10 ${action.iconBg} rounded-xl flex items-center justify-center text-white shadow-lg`}>
+                  {action.icon}
                 </div>
-              </motion.div>
-            ))}
+                {action.badge && (
+                  <span className={`absolute top-3 right-3 px-2.5 py-0.5 text-[10px] font-bold rounded-full shadow-sm ${action.badgeColor || 'bg-sky-100 text-sky-700'}`}>
+                    {action.badge}
+                  </span>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-sky-600 transition-colors">
+                    {action.title}
+                  </h3>
+                  <div className="w-7 h-7 rounded-full bg-gray-100 group-hover:bg-sky-50 flex items-center justify-center text-gray-400 group-hover:text-sky-500 transition-all">
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed">{action.description}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Bottom Bar ─────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-sky-100 border border-sky-200 text-sky-500 flex items-center justify-center">
+              <ShieldIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Sankalpa Disaster Management System</p>
+              <p className="text-xs text-gray-500 mt-0.5">Super Admin access — full system control and oversight.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/analytics')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+          >
+            Open Analytics
+            <ArrowRightIcon className="w-4 h-4" />
+          </button>
+        </motion.div>
+      </div>
+
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <div className="border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-gray-400">Sankalpa DMS — Full system administration</p>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <MapPinIcon className="w-3.5 h-3.5" />
+            Nepal Emergency Operations
           </div>
         </div>
-
-        {/* Coming Soon Notice */}
-        {activeNav !== 'home' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="fixed bottom-8 right-8 bg-red-500 text-white px-6 py-4 rounded-lg shadow-2xl"
-          >
-            <p className="font-semibold">🚧 Under Development</p>
-            <p className="text-sm opacity-90">This feature is coming soon!</p>
-          </motion.div>
-        )}
       </div>
     </div>
   );

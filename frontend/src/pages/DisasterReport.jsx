@@ -368,7 +368,7 @@ export default function DisasterReport() {
 
             <button
               onClick={reset}
-              className="w-full px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold transition-all shadow-sm"
+              className="w-full px-8 py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-semibold transition-all shadow-sm"
             >
               Submit Another Report
             </button>
@@ -778,7 +778,7 @@ export default function DisasterReport() {
               disabled={status !== "idle" && status !== "error"}
               className={`w-full py-4 rounded-xl font-bold text-base transition-all duration-200 flex items-center justify-center gap-3 ${
                 status === "idle" || status === "error"
-                  ? "bg-slate-900 hover:bg-slate-800 text-white hover:-translate-y-0.5 hover:shadow-xl cursor-pointer"
+                  ? "bg-sky-500 hover:bg-sky-600 text-white hover:-translate-y-0.5 hover:shadow-xl cursor-pointer"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -830,7 +830,7 @@ export default function DisasterReport() {
 function SectionHeader({ num, title, required, optional }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex-shrink-0 w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center text-xs font-bold">
+      <span className="flex-shrink-0 w-8 h-8 bg-sky-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
         {num}
       </span>
       <h3 className="text-base font-bold text-gray-900">

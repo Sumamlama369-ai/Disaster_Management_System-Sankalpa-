@@ -12,6 +12,7 @@ import LoginProcess from './pages/LoginProcess';
 import CitizenDashboard from './pages/CitizenDashboard';
 import OfficerDashboard from './pages/OfficerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminAnalytics from './pages/AdminAnalytics';
 import DronePermitForm from './pages/DronePermitForm';
 import MyPermits from './pages/MyPermits';
 import PermitReview from './pages/PermitReview';
@@ -90,6 +91,16 @@ function App() {
             }
           />
           
+          {/* Admin Analytics */}
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminAnalytics />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Citizen Routes */}
           <Route
             path="/drone-permit-form"
