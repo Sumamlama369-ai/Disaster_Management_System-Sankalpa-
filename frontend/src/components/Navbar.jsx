@@ -189,6 +189,7 @@ export default function Navbar() {
         { id: 'permit-review', label: 'Permit Review', path: '/permit-review' },
         { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
         { id: 'command-center', label: 'Command Center', path: '/command-center' },
+        { id: 'live-surveillance', label: 'Live Surveillance', path: '/live-surveillance' },
       ];
     } else if (user?.role === 'admin') {
       return [

@@ -20,6 +20,7 @@ import NoFlyZone from './pages/NoFlyZone';
 
 import DisasterReport from './pages/DisasterReport';
 import CommandCenter from './pages/CommandCenter';
+import LiveSurveillance from './pages/LiveSurveillance';
 import MyDisasterReports from './pages/MyDisasterReports';
 
 
@@ -161,6 +162,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['officer', 'admin']}>
                 <CommandCenter />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Live Surveillance Route */}
+          <Route
+            path="/live-surveillance"
+            element={
+              <ProtectedRoute allowedRoles={['officer', 'admin']}>
+                <LiveSurveillance />
               </ProtectedRoute>
             }
           />

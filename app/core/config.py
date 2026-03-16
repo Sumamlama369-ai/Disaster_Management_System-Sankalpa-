@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     # Master Admin Code
     MASTER_ADMIN_CODE: str
     
+    # YOLO / Real-Time Detection
+    YOLO_MODEL_PATH: str = "yolov8n.pt"
+    YOLO_CONFIDENCE: float = 0.45
+    YOLO_TARGET_FPS: int = 15
+    IP_CAM_URL: str = "http://192.168.1.100:8080/video"
+
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
