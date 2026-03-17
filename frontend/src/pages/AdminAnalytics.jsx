@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import ReactECharts from 'echarts-for-react';
-import * as echarts from 'echarts';
+
+// Gradient helpers (plain objects work in all ECharts versions including v6)
+const lg = (x, y, x2, y2, stops) => ({ type: 'linear', x, y, x2, y2, colorStops: stops });
+const rg = (x, y, r, stops) => ({ type: 'radial', x, y, r, colorStops: stops });
 
 // ─── SVG Icons ────────────────────────────────────────────────
 const ChartBarIcon = ({ className = "w-5 h-5" }) => (
@@ -67,6 +70,9 @@ export default function AdminAnalytics() {
   const [activeView, setActiveView] = useState('overview');
   const [countdown, setCountdown] = useState(60);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [radarTooltip, setRadarTooltip] = useState(null); // { index, x, y }
+  const radarMetricInfoRef = useRef(null);
+  const radarContainerRef = useRef(null);
 
   // Data stores — each from a DIFFERENT API
   const [users, setUsers] = useState([]);
@@ -103,7 +109,7 @@ export default function AdminAnalytics() {
         api.get('/disasters/system/status'),
         api.get('/video/list?skip=0&limit=50'),
         api.get('/permits/pending'),
-        api.get('/disaster-reports/reports?page=1&page_size=200'),
+        api.get('/disaster-reports/reports?page=1&page_size=100'),
       ]);
 
       if (usersRes.status === 'fulfilled') { setUsers(usersRes.value.data.users || []); setTotalUsers(usersRes.value.data.total || 0); }
@@ -115,7 +121,7 @@ export default function AdminAnalytics() {
       if (hotspotsRes.status === 'fulfilled') setLocationHotspots(hotspotsRes.value.data || []);
       if (timelineRes.status === 'fulfilled') setTimeline(timelineRes.value.data || []);
       if (sysRes.status === 'fulfilled') setSystemStatus(sysRes.value.data);
-      if (videosRes.status === 'fulfilled') setVideos(videosRes.value.data || []);
+      if (videosRes.status === 'fulfilled') setVideos(videosRes.value.data?.videos || videosRes.value.data || []);
       if (permitsRes.status === 'fulfilled') setPermits(permitsRes.value.data || []);
       if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.data?.reports || reportsRes.value.data || []);
 
@@ -131,36 +137,101 @@ export default function AdminAnalytics() {
     return () => clearInterval(t);
   }, []);
 
+  // Radar chart mouse handler: detect closest point and show per-metric tooltip
+  const handleRadarMouseMove = useCallback((e) => {
+    const info = radarMetricInfoRef.current;
+    if (!info || !radarContainerRef.current) return;
+    const rect = radarContainerRef.current.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const cx = rect.width * 0.5;
+    const cy = rect.height * 0.5;
+    // Label positions are at the outer edge beyond the radar (radius ~80% of half-height for labels)
+    const labelR = rect.height * 0.82 * 0.5;
+    const n = info.vals.length;
+    let closest = -1, minDist = Infinity;
+    for (let i = 0; i < n; i++) {
+      const angle = (Math.PI / 2) - (2 * Math.PI * i / n);
+      const lx = cx + labelR * Math.cos(angle);
+      const ly = cy - labelR * Math.sin(angle);
+      const dist = Math.sqrt((mx - lx) ** 2 + (my - ly) ** 2);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    }
+    if (minDist < 55 && closest >= 0) {
+      // Position tooltip near the label
+      const angle = (Math.PI / 2) - (2 * Math.PI * closest / n);
+      const lx = cx + labelR * Math.cos(angle);
+      const ly = cy - labelR * Math.sin(angle);
+      setRadarTooltip({ index: closest, x: lx, y: ly });
+    } else {
+      setRadarTooltip(null);
+    }
+  }, []);
+
+  const handleRadarMouseLeave = useCallback(() => setRadarTooltip(null), []);
+
   // ═══════════════════════════════════════════════════════════════
   // OVERVIEW CHARTS — System-wide bird's eye view
   // ═══════════════════════════════════════════════════════════════
 
-  // 1. System Health Radar (5-axis)
+  // 1. System Health Radar (7-axis, interactive with detailed hover tooltips)
   const getRadarOption = () => {
     const t = reportStats?.total_reports || 1;
-    const vals = [
-      Math.min(100, ((reportStats?.resolved_reports || 0) / t) * 100),
-      reportStats?.avg_response_time_hours ? Math.max(0, 100 - reportStats.avg_response_time_hours * 4) : 85,
-      Math.min(100, totalUsers * 4),
-      Math.min(100, (reportStats?.active_drones || 0) * 25),
-      Math.max(0, 100 - ((reportStats?.pending_reports || 0) / t) * 100),
+    const resolvedPct = Math.min(100, ((reportStats?.resolved_reports || 0) / t) * 100);
+    const speedPct = reportStats?.avg_response_time_hours ? Math.max(0, 100 - reportStats.avg_response_time_hours * 4) : 85;
+    const userPct = Math.min(100, totalUsers * 4);
+    const dronePct = Math.min(100, (reportStats?.active_drones || 0) * 25);
+    const clearPct = Math.max(0, 100 - ((reportStats?.pending_reports || 0) / t) * 100);
+    const nlpPct = Math.min(100, (nlpStats?.total_incidents || recentDisasters.length) * 2);
+    const permitPct = permits.length > 0 ? Math.max(20, 100 - permits.length * 15) : 95;
+    const vals = [resolvedPct, speedPct, userPct, dronePct, clearPct, nlpPct, permitPct].map(v => +v.toFixed(0));
+
+    const metricInfo = [
+      { label: 'Resolution Rate', desc: 'Percentage of disaster reports that have been resolved', detail: `${reportStats?.resolved_reports||0} of ${reportStats?.total_reports||0} reports resolved`, status: vals[0] >= 70 ? 'Good' : vals[0] >= 40 ? 'Needs Attention' : 'Critical' },
+      { label: 'Response Speed', desc: 'How quickly reports are being responded to by officers', detail: `Avg response: ${reportStats?.avg_response_time_hours?.toFixed(1)||'N/A'} hours`, status: vals[1] >= 70 ? 'Fast' : vals[1] >= 40 ? 'Moderate' : 'Slow' },
+      { label: 'User Adoption', desc: 'Platform user registration and growth rate', detail: `${totalUsers} total users (${citizens.length} citizens, ${officers.length} officers)`, status: vals[2] >= 70 ? 'Strong' : vals[2] >= 40 ? 'Growing' : 'Low' },
+      { label: 'Drone Readiness', desc: 'Active surveillance drones currently deployed', detail: `${reportStats?.active_drones||0} drones currently in flight`, status: vals[3] >= 70 ? 'Operational' : vals[3] >= 40 ? 'Limited' : 'Insufficient' },
+      { label: 'Report Clearance', desc: 'Rate at which incoming reports are processed', detail: `${reportStats?.pending_reports||0} reports still pending out of ${reportStats?.total_reports||0}`, status: vals[4] >= 70 ? 'Efficient' : vals[4] >= 40 ? 'Backlogged' : 'Overloaded' },
+      { label: 'NLP Coverage', desc: 'Reddit disaster monitoring pipeline detection rate', detail: `${nlpStats?.total_incidents||recentDisasters.length} disasters detected via NLP`, status: vals[5] >= 70 ? 'Strong' : vals[5] >= 40 ? 'Moderate' : 'Low' },
+      { label: 'Permit Efficiency', desc: 'Speed of drone permit review and processing', detail: `${permits.length} permits awaiting review`, status: vals[6] >= 70 ? 'Efficient' : vals[6] >= 40 ? 'Delayed' : 'Backlogged' },
     ];
+
+    const indicators = metricInfo.map(m => ({ name: m.label.replace(' ', '\n'), max: 100 }));
+    const statusColor = (s) => ['Good','Fast','Strong','Operational','Efficient'].includes(s) ? '#10b981' : ['Needs Attention','Moderate','Growing','Limited','Backlogged','Delayed'].includes(s) ? '#f59e0b' : '#ef4444';
+
+    // Build per-point tooltip: store metricInfo & vals so onEvents can use them
+    radarMetricInfoRef.current = { metricInfo, vals, statusColor, indicators };
+
     return {
       backgroundColor: 'transparent',
+      tooltip: { show: false },
       radar: {
-        indicator: [{ name: 'Resolution', max: 100 }, { name: 'Speed', max: 100 }, { name: 'Users', max: 100 }, { name: 'Drones', max: 100 }, { name: 'Clearance', max: 100 }],
-        shape: 'polygon', radius: '70%', center: ['50%', '52%'],
-        axisName: { color: '#374151', fontSize: 12, fontWeight: '700' },
-        splitArea: { areaStyle: { color: ['rgba(14,165,233,0.02)', 'rgba(14,165,233,0.06)', 'rgba(14,165,233,0.10)', 'rgba(14,165,233,0.14)'] } },
-        splitLine: { lineStyle: { color: 'rgba(14,165,233,0.15)', width: 2 } },
-        axisLine: { lineStyle: { color: 'rgba(14,165,233,0.2)' } },
+        indicator: indicators, shape: 'polygon', radius: '65%', center: ['50%', '50%'],
+        axisName: {
+          color: '#374151', fontSize: 10, fontWeight: '700', lineHeight: 14,
+          rich: {
+            a: { color: '#374151', fontSize: 11, fontWeight: 'bold', lineHeight: 18 },
+            v: { color: '#0ea5e9', fontSize: 12, fontWeight: 'bold', padding: [2, 0, 0, 0] },
+          },
+          formatter: (name) => {
+            const i = indicators.findIndex(ind => ind.name === name);
+            if (i === -1) return name;
+            return `{a|${metricInfo[i].label}}\n{v|${vals[i]}%}`;
+          },
+        },
+        splitArea: { areaStyle: { color: ['rgba(14,165,233,0.01)', 'rgba(14,165,233,0.04)', 'rgba(14,165,233,0.07)', 'rgba(14,165,233,0.10)', 'rgba(14,165,233,0.14)'] } },
+        splitLine: { lineStyle: { color: 'rgba(14,165,233,0.12)', width: 1 } },
+        axisLine: { lineStyle: { color: 'rgba(14,165,233,0.15)' } },
       },
-      series: [{ type: 'radar', data: [{
-        value: vals.map(v => +v.toFixed(0)),
-        areaStyle: { color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [{ offset: 0, color: 'rgba(14,165,233,0.55)' }, { offset: 1, color: 'rgba(14,165,233,0.08)' }]) },
-        lineStyle: { color: '#0ea5e9', width: 3, shadowBlur: 10, shadowColor: 'rgba(14,165,233,0.4)' },
-        symbol: 'circle', symbolSize: 10, itemStyle: { color: '#0ea5e9', borderColor: '#fff', borderWidth: 3 },
-      }] }],
+      series: [{ type: 'radar', emphasis: { lineStyle: { width: 4 }, areaStyle: { opacity: 0.65 } }, data: [
+        {
+          name: 'System Health', value: vals,
+          areaStyle: { color: rg(0.5, 0.5, 1, [{ offset: 0, color: 'rgba(14,165,233,0.45)' }, { offset: 1, color: 'rgba(14,165,233,0.03)' }]) },
+          lineStyle: { color: '#0ea5e9', width: 3, shadowBlur: 12, shadowColor: 'rgba(14,165,233,0.5)' },
+          symbol: 'circle', symbolSize: 12, itemStyle: { color: '#0ea5e9', borderColor: '#fff', borderWidth: 3, shadowBlur: 6, shadowColor: 'rgba(14,165,233,0.4)' },
+        },
+      ] }],
+      animationDuration: 1500, animationEasing: 'elasticOut',
     };
   };
 
@@ -176,8 +247,8 @@ export default function AdminAnalytics() {
       yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6', type: 'dashed' } }, axisLine: { show: false } },
       series: [{
         type: 'line', data: counts, smooth: 0.4, showSymbol: false,
-        lineStyle: { width: 3, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#38bdf8' }, { offset: 1, color: '#0ea5e9' }]) },
-        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(14,165,233,0.35)' }, { offset: 1, color: 'rgba(14,165,233,0.02)' }]) },
+        lineStyle: { width: 3, color: lg(0, 0, 1, 0, [{ offset: 0, color: '#38bdf8' }, { offset: 1, color: '#0ea5e9' }]) },
+        areaStyle: { color: lg(0, 0, 0, 1, [{ offset: 0, color: 'rgba(14,165,233,0.35)' }, { offset: 1, color: 'rgba(14,165,233,0.02)' }]) },
         markPoint: { data: [{ type: 'max', name: 'Peak' }], symbol: 'pin', symbolSize: 40, itemStyle: { color: '#ef4444' }, label: { color: '#fff', fontWeight: 'bold', fontSize: 10 } },
       }],
     };
@@ -210,7 +281,7 @@ export default function AdminAnalytics() {
       series: [{
         type: 'gauge', startAngle: 200, endAngle: -20, min: 0, max: 100, radius: '88%',
         pointer: { show: true, length: '48%', width: 5, itemStyle: { color } },
-        progress: { show: true, width: 22, roundCap: true, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: color + '99' }, { offset: 1, color }]) } },
+        progress: { show: true, width: 22, roundCap: true, itemStyle: { color: lg(0, 0, 1, 0, [{ offset: 0, color: color + '99' }, { offset: 1, color }]) } },
         axisLine: { lineStyle: { width: 22, color: [[1, '#f1f5f9']] } },
         axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
         title: { show: true, offsetCenter: [0, '72%'], fontSize: 12, fontWeight: '600', color: '#6b7280' },
@@ -232,7 +303,7 @@ export default function AdminAnalytics() {
     const labels = months.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleString('en',{month:'short',year:'2-digit'}); });
     let cc=0,co=0,ca=0;
     const cum = months.map(m => { cc+=mMap[m].citizen; co+=mMap[m].officer; ca+=mMap[m].admin; return {c:cc,o:co,a:ca}; });
-    const mkSeries = (name, data, c1, c2) => ({ name, type:'line', stack:'T', smooth:0.5, showSymbol:false, data, lineStyle:{width:0}, areaStyle:{ opacity:0.85, color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:c1},{offset:1,color:c2}]) }, emphasis:{focus:'series'} });
+    const mkSeries = (name, data, c1, c2) => ({ name, type:'line', stack:'T', smooth:0.5, showSymbol:false, data, lineStyle:{width:0}, areaStyle:{ opacity:0.85, color: lg(0,0,0,1,[{offset:0,color:c1},{offset:1,color:c2}]) }, emphasis:{focus:'series'} });
     return {
       backgroundColor:'transparent',
       tooltip:{ trigger:'axis', backgroundColor:'rgba(255,255,255,0.98)', borderColor:'#e5e7eb', borderWidth:1, textStyle:{color:'#1f2937'}, axisPointer:{type:'cross',label:{backgroundColor:'#0ea5e9'}} },
@@ -244,52 +315,152 @@ export default function AdminAnalytics() {
     };
   };
 
-  // 6. User Registration Heatmap (day × hour)
+  // 6. Platform Activity Heatmap (Registrations + Report Submissions with month/year in tooltip)
   const getHeatmapOption = () => {
-    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const hours = Array.from({length:24},(_,i)=>`${String(i).padStart(2,'0')}:00`);
-    const agg = {};
-    users.forEach(u => { if(!u.created_at) return; const d=new Date(u.created_at); agg[`${d.getHours()}-${d.getDay()}`]=(agg[`${d.getHours()}-${d.getDay()}`]||0)+1; });
-    const data = Object.entries(agg).map(([k,v])=>{const[h,d]=k.split('-').map(Number);return[h,d,v];});
-    const max = Math.max(...data.map(d=>d[2]),1);
+
+    // Collect individual timestamps per day+hour slot for month/year detail in tooltip
+    const regDetails = {}; // key: "hour-day" -> array of {month, year}
+    const rptDetails = {};
+    const regAgg = {};
+    const rptAgg = {};
+
+    users.forEach(u => {
+      if(!u.created_at) return;
+      const d = new Date(u.created_at);
+      const key = `${d.getHours()}-${d.getDay()}`;
+      regAgg[key] = (regAgg[key] || 0) + 1;
+      if(!regDetails[key]) regDetails[key] = {};
+      const mk = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      regDetails[key][mk] = (regDetails[key][mk] || 0) + 1;
+    });
+
+    reports.forEach(r => {
+      const ts = r.created_at || r.timestamp;
+      if(!ts) return;
+      const d = new Date(ts);
+      const key = `${d.getHours()}-${d.getDay()}`;
+      rptAgg[key] = (rptAgg[key] || 0) + 1;
+      if(!rptDetails[key]) rptDetails[key] = {};
+      const mk = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      rptDetails[key][mk] = (rptDetails[key][mk] || 0) + 1;
+    });
+
+    recentDisasters.forEach(rd => {
+      if(!rd.timestamp) return;
+      const d = new Date(rd.timestamp);
+      const key = `${d.getHours()}-${d.getDay()}`;
+      rptAgg[key] = (rptAgg[key] || 0) + 1;
+      if(!rptDetails[key]) rptDetails[key] = {};
+      const mk = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      rptDetails[key][mk] = (rptDetails[key][mk] || 0) + 1;
+    });
+
+    const regData = Object.entries(regAgg).map(([k,v])=>{const[h,d]=k.split('-').map(Number);return[h,d,v];});
+    const rptData = Object.entries(rptAgg).map(([k,v])=>{const[h,d]=k.split('-').map(Number);return[h,d,v];});
+    const allVals = [...regData.map(d=>d[2]), ...rptData.map(d=>d[2])];
+    const max = Math.max(...allVals, 1);
+
     return {
       backgroundColor:'transparent',
-      tooltip:{ backgroundColor:'rgba(255,255,255,0.98)', borderColor:'#e5e7eb', borderWidth:1, textStyle:{color:'#1f2937',fontSize:12}, formatter:(p)=>`<b>${days[p.value[1]]}</b> at <b>${hours[p.value[0]]}</b><br/>Signups: <b>${p.value[2]}</b>` },
-      grid:{left:'10%',right:'8%',bottom:'18%',top:'5%'},
-      xAxis:{type:'category',data:hours,splitArea:{show:true},axisLabel:{fontSize:9,color:'#6b7280',interval:2}},
-      yAxis:{type:'category',data:days,splitArea:{show:true},axisLabel:{fontSize:11,color:'#374151',fontWeight:'600'}},
-      visualMap:{min:0,max,calculable:true,orient:'horizontal',left:'center',bottom:0,inRange:{color:['#f0f9ff','#bae6fd','#38bdf8','#0284c7','#0c4a6e']},textStyle:{color:'#6b7280',fontSize:10},itemWidth:18,itemHeight:10},
-      series:[{type:'heatmap',data,emphasis:{itemStyle:{shadowBlur:12,shadowColor:'rgba(0,0,0,0.2)'}},itemStyle:{borderColor:'#fff',borderWidth:2,borderRadius:5}}],
+      tooltip:{ backgroundColor:'rgba(255,255,255,0.98)', borderColor:'#e5e7eb', borderWidth:1, textStyle:{color:'#1f2937',fontSize:12},
+        formatter:(p)=>{
+          const dayName = dayNames[p.value[1]];
+          const hour = hours[p.value[0]];
+          const key = `${p.value[0]}-${p.value[1]}`;
+          const isReg = p.seriesIndex === 0;
+          const label = isReg ? 'Registrations' : 'Reports & NLP';
+          const details = isReg ? regDetails[key] : rptDetails[key];
+          let monthBreakdown = '';
+          if (details) {
+            const entries = Object.entries(details).sort((a,b) => b[1]-a[1]);
+            monthBreakdown = '<br/><div style="margin-top:4px;border-top:1px solid #e5e7eb;padding-top:4px;font-size:11px">' +
+              entries.map(([m,c]) => `<span style="color:#6b7280">${m}:</span> <b>${c}</b>`).join('<br/>') + '</div>';
+          }
+          return `<div style="padding:2px"><b>${dayName}</b> at <b>${hour}</b><br/><span style="color:${isReg?'#0ea5e9':'#f59e0b'}">${label}</span>: <b>${p.value[2]}</b>${monthBreakdown}</div>`;
+        }
+      },
+      legend:{ data:['Registrations','Reports & NLP'], bottom:0, textStyle:{fontSize:10,fontWeight:'600'}, itemWidth:16, itemHeight:10, icon:'roundRect' },
+      grid:[{left:'10%',right:'52%',bottom:'14%',top:'5%'},{left:'55%',right:'5%',bottom:'14%',top:'5%'}],
+      xAxis:[
+        {type:'category',data:hours,gridIndex:0,splitArea:{show:true},axisLabel:{fontSize:8,color:'#6b7280',interval:3},name:'Registrations (Day x Hour)',nameLocation:'center',nameGap:25,nameTextStyle:{fontSize:10,fontWeight:'bold',color:'#0ea5e9'}},
+        {type:'category',data:hours,gridIndex:1,splitArea:{show:true},axisLabel:{fontSize:8,color:'#6b7280',interval:3},name:'Reports & NLP (Day x Hour)',nameLocation:'center',nameGap:25,nameTextStyle:{fontSize:10,fontWeight:'bold',color:'#f59e0b'}},
+      ],
+      yAxis:[
+        {type:'category',data:dayNames,gridIndex:0,splitArea:{show:true},axisLabel:{fontSize:10,color:'#374151',fontWeight:'600'}},
+        {type:'category',data:dayNames,gridIndex:1,splitArea:{show:true},axisLabel:{show:false}},
+      ],
+      visualMap:[
+        {min:0,max,calculable:false,show:false,seriesIndex:0,inRange:{color:['#f0f9ff','#bae6fd','#38bdf8','#0284c7','#0c4a6e']}},
+        {min:0,max,calculable:false,show:false,seriesIndex:1,inRange:{color:['#fffbeb','#fde68a','#fbbf24','#f59e0b','#d97706']}},
+      ],
+      series:[
+        {name:'Registrations',type:'heatmap',data:regData,xAxisIndex:0,yAxisIndex:0,emphasis:{itemStyle:{shadowBlur:12,shadowColor:'rgba(0,0,0,0.2)'}},itemStyle:{borderColor:'#fff',borderWidth:2,borderRadius:4}},
+        {name:'Reports & NLP',type:'heatmap',data:rptData,xAxisIndex:1,yAxisIndex:1,emphasis:{itemStyle:{shadowBlur:12,shadowColor:'rgba(0,0,0,0.2)'}},itemStyle:{borderColor:'#fff',borderWidth:2,borderRadius:4}},
+      ],
     };
   };
 
-  // 7. Permit Status Breakdown (stacked horizontal bar)
+  // 7. Permit Insights (drone type breakdown + wait time gauge)
   const getPermitBarOption = () => {
-    // Count by status from all permits if we have data
-    const pending = permits.length; // permits endpoint returns only pending
-    const totalPermitsByMonth = {};
-    // Group permits by month if created_at available
-    permits.forEach(p => {
-      if (!p.created_at) return;
-      const d = new Date(p.created_at);
-      const k = d.toLocaleString('en',{month:'short'});
-      totalPermitsByMonth[k] = (totalPermitsByMonth[k] || 0) + 1;
-    });
-    const labels = Object.keys(totalPermitsByMonth);
-    const values = Object.values(totalPermitsByMonth);
-    if (labels.length === 0) {
+    const pending = permits.length;
+    if (pending === 0) {
       return {
         backgroundColor:'transparent',
-        graphic: { type:'text', left:'center', top:'center', style:{ text: `${pending} Pending Permits`, fontSize:22, fontWeight:'bold', fill:'#f59e0b' } },
+        graphic: [
+          { type:'text', left:'center', top:'38%', style:{ text:'No Pending Permits', fontSize:18, fontWeight:'bold', fill:'#10b981' } },
+          { type:'text', left:'center', top:'52%', style:{ text:'All permits have been reviewed', fontSize:12, fill:'#6b7280' } },
+        ],
       };
     }
+    // Group by drone_type
+    const byType = {};
+    const byManufacturer = {};
+    let totalWaitDays = 0;
+    let oldestWait = 0;
+    permits.forEach(p => {
+      const dt = p.drone_type || 'Unknown';
+      const mf = p.manufacturer || 'Unknown';
+      byType[dt] = (byType[dt] || 0) + 1;
+      byManufacturer[mf] = (byManufacturer[mf] || 0) + 1;
+      if (p.created_at) {
+        const waitDays = Math.max(0, (Date.now() - new Date(p.created_at).getTime()) / 86400000);
+        totalWaitDays += waitDays;
+        if (waitDays > oldestWait) oldestWait = waitDays;
+      }
+    });
+    const avgWait = pending > 0 ? (totalWaitDays / pending) : 0;
+    const typeLabels = Object.keys(byType);
+    const mfLabels = Object.keys(byManufacturer);
+    const droneColors = ['#0ea5e9','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#6b7280'];
     return {
       backgroundColor:'transparent',
-      tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-      grid:{left:'12%',right:'5%',bottom:'5%',top:'5%',containLabel:true},
-      xAxis:{type:'value',axisLabel:{fontSize:10,color:'#6b7280'},splitLine:{lineStyle:{type:'dashed',color:'#f3f4f6'}}},
-      yAxis:{type:'category',data:labels,axisLabel:{fontSize:12,fontWeight:'600',color:'#374151'}},
-      series:[{type:'bar',data:values.map((v,i)=>({value:v,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#fbbf24'},{offset:1,color:'#f59e0b'}]),borderRadius:[0,6,6,0]}})),barWidth:'60%',label:{show:true,position:'right',formatter:'{c}',fontSize:11,fontWeight:'bold',color:'#374151'}}],
+      tooltip:{ trigger:'item', backgroundColor:'rgba(255,255,255,0.98)', borderColor:'#e5e7eb', borderWidth:1, textStyle:{color:'#1f2937',fontSize:12} },
+      title:[
+        { text:`${pending} Pending`, subtext:`Avg wait: ${avgWait.toFixed(1)}d | Oldest: ${oldestWait.toFixed(0)}d`, left:'center', top:'2%', textStyle:{fontSize:16,fontWeight:'bold',color:'#f59e0b'}, subtextStyle:{fontSize:11,color:'#6b7280'} },
+      ],
+      series:[
+        {
+          name:'By Drone Type', type:'pie', radius:['30%','52%'], center:['30%','60%'],
+          itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:3},
+          label:{show:true,formatter:'{b}\n{c}',fontSize:10,fontWeight:'bold',color:'#374151'},
+          labelLine:{length:8,length2:6},
+          data:typeLabels.map((t,i)=>({value:byType[t],name:t,itemStyle:{color:droneColors[i%droneColors.length]}})),
+        },
+        {
+          name:'By Manufacturer', type:'pie', radius:['30%','52%'], center:['72%','60%'],
+          itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:3},
+          label:{show:true,formatter:'{b}\n{c}',fontSize:10,fontWeight:'bold',color:'#374151'},
+          labelLine:{length:8,length2:6},
+          data:mfLabels.map((m,i)=>({value:byManufacturer[m],name:m,itemStyle:{color:droneColors[(i+3)%droneColors.length]}})),
+        },
+      ],
+      graphic:[
+        { type:'text', left:'18%', top:'35%', style:{text:'Drone Type',fontSize:10,fontWeight:'bold',fill:'#6b7280',textAlign:'center'} },
+        { type:'text', left:'62%', top:'35%', style:{text:'Manufacturer',fontSize:10,fontWeight:'bold',fill:'#6b7280',textAlign:'center'} },
+      ],
     };
   };
 
@@ -311,7 +482,7 @@ export default function AdminAnalytics() {
   // 9. Severity Polar Bar
   const getSeverityPolarOption = () => {
     const sev = reportStats?.reports_by_severity || {};
-    const data = ['LOW','MEDIUM','HIGH','CRITICAL'].map(k=>({ value:sev[k]||0, name:k, itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:SEVERITY_COLORS[k]+'cc'},{offset:1,color:SEVERITY_COLORS[k]}])} }));
+    const data = ['LOW','MEDIUM','HIGH','CRITICAL'].map(k=>({ value:sev[k]||0, name:k, itemStyle:{color:lg(0,0,1,0,[{offset:0,color:SEVERITY_COLORS[k]+'cc'},{offset:1,color:SEVERITY_COLORS[k]}])} }));
     return {
       backgroundColor:'transparent',
       tooltip:{trigger:'item',backgroundColor:'rgba(255,255,255,0.98)',borderColor:'#e5e7eb',borderWidth:1,textStyle:{color:'#1f2937'}},
@@ -329,7 +500,7 @@ export default function AdminAnalytics() {
     grid:{left:'22%',right:'8%',bottom:'5%',top:'5%',containLabel:true},
     xAxis:{type:'value',axisLabel:{fontSize:10,color:'#6b7280'},splitLine:{lineStyle:{type:'dashed',color:'#f3f4f6'}}},
     yAxis:{type:'category',data:locationHotspots.map(l=>l.location),inverse:true,axisLabel:{fontSize:11,fontWeight:'600',color:'#374151'},axisTick:{show:false}},
-    series:[{type:'bar',data:locationHotspots.map((l,i)=>({value:l.count,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:['#ef4444','#f97316','#fbbf24','#10b981','#3b82f6','#0ea5e9','#8b5cf6'][i%7]},{offset:1,color:['#dc2626','#ea580c','#f59e0b','#059669','#2563eb','#0284c7','#7c3aed'][i%7]}]),borderRadius:[0,8,8,0]}})),barWidth:'65%',label:{show:true,position:'right',formatter:'{c}',fontSize:11,fontWeight:'bold',color:'#374151'}}],
+    series:[{type:'bar',data:locationHotspots.map((l,i)=>({value:l.count,itemStyle:{color:lg(0,0,1,0,[{offset:0,color:['#ef4444','#f97316','#fbbf24','#10b981','#3b82f6','#0ea5e9','#8b5cf6'][i%7]},{offset:1,color:['#dc2626','#ea580c','#f59e0b','#059669','#2563eb','#0284c7','#7c3aed'][i%7]}]),borderRadius:[0,8,8,0]}})),barWidth:'65%',label:{show:true,position:'right',formatter:'{c}',fontSize:11,fontWeight:'bold',color:'#374151'}}],
   });
 
   // 11. NLP Disaster Type Distribution (Nightingale Rose from Reddit)
@@ -345,7 +516,7 @@ export default function AdminAnalytics() {
       data: disasterTypes.map(t=>({
         value:t.count,
         name:t.disaster_type?.charAt(0).toUpperCase()+t.disaster_type?.slice(1),
-        itemStyle:{color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:TYPE_COLORS[t.disaster_type]||'#6b7280'},{offset:1,color:(TYPE_COLORS[t.disaster_type]||'#6b7280')+'bb'}])}
+        itemStyle:{color: lg(0,0,0,1,[{offset:0,color:TYPE_COLORS[t.disaster_type]||'#6b7280'},{offset:1,color:(TYPE_COLORS[t.disaster_type]||'#6b7280')+'bb'}])}
       })),
     }],
   });
@@ -368,7 +539,7 @@ export default function AdminAnalytics() {
       yAxis:{type:'value',axisLabel:{fontSize:10,color:'#6b7280'},splitLine:{lineStyle:{color:'#f3f4f6',type:'dashed'}},axisLine:{show:false}},
       series: Object.keys(series).map(type=>({
         name:type.charAt(0).toUpperCase()+type.slice(1), type:'line', stack:'T', smooth:0.4, emphasis:{focus:'series'},
-        areaStyle:{opacity:0.75,color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:(TYPE_COLORS[type]||'#6b7280')+'cc'},{offset:1,color:(TYPE_COLORS[type]||'#6b7280')+'22'}])},
+        areaStyle:{opacity:0.75,color:lg(0,0,0,1,[{offset:0,color:(TYPE_COLORS[type]||'#6b7280')+'cc'},{offset:1,color:(TYPE_COLORS[type]||'#6b7280')+'22'}])},
         lineStyle:{width:0}, showSymbol:false, data:series[type], color:TYPE_COLORS[type]||'#6b7280',
       })),
     };
@@ -397,9 +568,10 @@ export default function AdminAnalytics() {
   // 14. Video Analysis Risk Level Distribution
   const getVideoRiskOption = () => {
     const riskMap = { low:0, medium:0, high:0, critical:0 };
-    videos.forEach(v => { if(v.risk_level) riskMap[v.risk_level]++; });
+    (Array.isArray(videos) ? videos : []).forEach(v => { if(v.risk_level) riskMap[v.risk_level]++; });
     const data = Object.entries(riskMap).filter(([_,v])=>v>0).map(([k,v])=>({value:v,name:k.charAt(0).toUpperCase()+k.slice(1),itemStyle:{color:URGENCY_COLORS[k]||'#6b7280'}}));
-    if (data.length === 0) return { backgroundColor:'transparent', graphic:{type:'text',left:'center',top:'center',style:{text:`${videos.length} Videos Analyzed`,fontSize:18,fontWeight:'bold',fill:'#0ea5e9'}} };
+    const vLen = Array.isArray(videos) ? videos.length : 0;
+    if (data.length === 0) return { backgroundColor:'transparent', graphic:{type:'text',left:'center',top:'center',style:{text:`${vLen} Videos Analyzed`,fontSize:18,fontWeight:'bold',fill:'#0ea5e9'}} };
     return {
       backgroundColor:'transparent',
       tooltip:{trigger:'item',backgroundColor:'rgba(255,255,255,0.98)',borderColor:'#e5e7eb',borderWidth:1,textStyle:{color:'#1f2937'}},
@@ -501,7 +673,7 @@ export default function AdminAnalytics() {
             {l:'NLP Insights',v:nlpStats?.total_incidents||recentDisasters.length,s:`${nlpStats?.urgent_incidents||0} urgent`,g:'from-cyan-500 to-teal-500',ic:<GlobeIcon className="w-5 h-5"/>},
             {l:'Critical',v:reportStats?.critical_reports||0,s:'Immediate action',g:'from-red-500 to-rose-500',ic:<AlertIcon className="w-5 h-5"/>},
             {l:'Active Drones',v:reportStats?.active_drones||0,s:'In flight now',g:'from-emerald-500 to-teal-500',ic:<DroneIcon className="w-5 h-5"/>},
-            {l:'Videos',v:videos.length,s:`${videos.filter(v=>v.risk_level==='high'||v.risk_level==='critical').length} high risk`,g:'from-sky-600 to-blue-600',ic:<VideoIcon className="w-5 h-5"/>},
+            {l:'Videos',v:Array.isArray(videos)?videos.length:0,s:`${Array.isArray(videos)?videos.filter(v=>v.risk_level==='high'||v.risk_level==='critical').length:0} high risk`,g:'from-sky-600 to-blue-600',ic:<VideoIcon className="w-5 h-5"/>},
           ].map((c,i)=>(
             <motion.div key={c.l} initial={{opacity:0,y:25}} animate={{opacity:1,y:0}} transition={{delay:0.05*i}} className={`bg-gradient-to-br ${c.g} text-white rounded-2xl p-4 shadow-xl relative overflow-hidden`}>
               <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8"/>
@@ -534,8 +706,45 @@ export default function AdminAnalytics() {
         {activeView === 'overview' && (
           <motion.div key="ov" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0}} className="grid grid-cols-12 gap-5 pb-16">
             <div className="col-span-12 lg:col-span-5">
-              <CC t="System Health Radar" s="Multi-dimensional health assessment" ic={<TargetIcon/>} b="Live">
-                <ReactECharts option={getRadarOption()} style={{height:'380px'}} opts={{renderer:'svg'}}/>
+              <CC t="System Health Radar" s="Hover on each point to see detailed metric info" ic={<TargetIcon/>} b="Live">
+                <div ref={radarContainerRef} className="relative" onMouseMove={handleRadarMouseMove} onMouseLeave={handleRadarMouseLeave}>
+                  <ReactECharts option={getRadarOption()} style={{height:'420px'}} opts={{renderer:'svg'}}/>
+                  {radarTooltip && radarMetricInfoRef.current && (() => {
+                    const { metricInfo, vals, statusColor } = radarMetricInfoRef.current;
+                    const i = radarTooltip.index;
+                    const m = metricInfo[i];
+                    const v = vals[i];
+                    const sc = statusColor(m.status);
+                    const containerW = radarContainerRef.current?.offsetWidth || 400;
+                    // Anchor tooltip near the label, shift left if on right half
+                    const onRight = radarTooltip.x > containerW * 0.55;
+                    const left = onRight ? radarTooltip.x - 270 : radarTooltip.x + 12;
+                    const top = Math.max(8, Math.min(radarTooltip.y - 30, 340));
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15 }}
+                        className="absolute pointer-events-none z-50"
+                        style={{ left: `${Math.max(4, left)}px`, top: `${top}px`, width: '250px' }}>
+                        <div className="bg-white border border-gray-200 rounded-xl shadow-2xl p-4" style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }}>
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: sc }}/>
+                            <span className="text-[13px] font-bold text-gray-900">{m.label}</span>
+                            <span className="ml-auto text-xl font-extrabold text-sky-500">{v}%</span>
+                          </div>
+                          <div className="w-full bg-gray-100 rounded-full h-2 mb-2.5">
+                            <div className="h-2 rounded-full transition-all" style={{ width: `${v}%`, backgroundColor: sc }}/>
+                          </div>
+                          <p className="text-[11px] text-gray-500 mb-1.5 leading-relaxed">{m.desc}</p>
+                          <p className="text-[11px] text-gray-800 font-semibold mb-2">{m.detail}</p>
+                          <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sc }}/>
+                            <span className="text-[10px] font-bold" style={{ color: sc }}>Status: {m.status}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })()}
+                </div>
               </CC>
             </div>
             <div className="col-span-12 lg:col-span-7">
@@ -567,31 +776,89 @@ export default function AdminAnalytics() {
                 <ReactECharts option={getUserGrowthOption()} style={{height:'340px'}} opts={{renderer:'svg'}}/>
               </CC>
             </div>
-            <div className="col-span-12 lg:col-span-8">
-              <CC t="Registration Activity Heatmap" s="User signups by day of week and hour" ic={<ActivityIcon/>} b="Heatmap">
+            <div className="col-span-12">
+              <CC t="Platform Activity Heatmap" s="Registrations vs Report submissions & NLP detections by day and hour" ic={<ActivityIcon/>} b="Dual Heatmap">
                 <ReactECharts option={getHeatmapOption()} style={{height:'340px'}} opts={{renderer:'svg'}}/>
               </CC>
             </div>
-            <div className="col-span-12 lg:col-span-4">
-              <CC t="Permit Queue" s="Pending drone permit applications" ic={<DroneIcon/>} b={`${permits.length} pending`}>
-                <ReactECharts option={getPermitBarOption()} style={{height:'340px'}} opts={{renderer:'svg'}}/>
-              </CC>
+            <div className="col-span-12 lg:col-span-6">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full">
+                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-xl flex items-center justify-center text-amber-500"><DroneIcon/></div>
+                    <div><h3 className="text-sm font-bold text-gray-900">Permit Queue Insights</h3><p className="text-[11px] text-gray-400">Pending drone permit applications details</p></div>
+                  </div>
+                  <span className={`px-3 py-1 ${permits.length > 0 ? 'bg-amber-50 border border-amber-100 text-amber-600' : 'bg-emerald-50 border border-emerald-100 text-emerald-600'} text-[10px] font-bold rounded-full uppercase tracking-wide`}>{permits.length} pending</span>
+                </div>
+                <div className="p-4">
+                  {permits.length === 0 ? (
+                    <div className="text-center py-10">
+                      <div className="w-14 h-14 mx-auto mb-3 bg-emerald-50 rounded-full flex items-center justify-center"><ShieldIcon className="w-7 h-7 text-emerald-500"/></div>
+                      <p className="text-base font-bold text-emerald-600 mb-1">All Clear</p>
+                      <p className="text-xs text-gray-400">No pending permits to review</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[340px] overflow-y-auto">
+                      {/* Summary Stats Row */}
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        {[
+                          { l:'Total Pending', v:permits.length, c:'text-amber-600 bg-amber-50' },
+                          { l:'Avg Wait', v:`${permits.length > 0 ? (permits.reduce((a,p) => a + (p.created_at ? Math.max(0,(Date.now()-new Date(p.created_at).getTime())/86400000) : 0), 0) / permits.length).toFixed(0) : 0}d`, c:'text-sky-600 bg-sky-50' },
+                          { l:'Oldest', v:`${permits.length > 0 ? Math.max(...permits.map(p => p.created_at ? Math.max(0,(Date.now()-new Date(p.created_at).getTime())/86400000) : 0)).toFixed(0) : 0}d`, c:'text-red-600 bg-red-50' },
+                        ].map(s => (
+                          <div key={s.l} className={`${s.c} rounded-xl p-2.5 text-center`}>
+                            <p className="text-lg font-extrabold">{s.v}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-wide opacity-70">{s.l}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Permit Cards */}
+                      {permits.map((p, i) => {
+                        const waitDays = p.created_at ? Math.max(0, (Date.now() - new Date(p.created_at).getTime()) / 86400000) : 0;
+                        const urgency = waitDays > 30 ? 'critical' : waitDays > 14 ? 'high' : waitDays > 7 ? 'medium' : 'low';
+                        const urgencyColor = { critical:'border-red-400 bg-red-50', high:'border-orange-300 bg-orange-50', medium:'border-amber-300 bg-amber-50', low:'border-sky-200 bg-sky-50' };
+                        const urgencyBadge = { critical:'bg-red-100 text-red-700', high:'bg-orange-100 text-orange-700', medium:'bg-amber-100 text-amber-700', low:'bg-sky-100 text-sky-700' };
+                        return (
+                          <motion.div key={p.id||i} initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:i*0.05}}
+                            className={`border-l-4 ${urgencyColor[urgency]} rounded-xl p-3.5`}>
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm"><DroneIcon className="w-4 h-4 text-gray-600"/></div>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-800">{p.manufacturer || 'Unknown'} {p.model || ''}</p>
+                                  <p className="text-[10px] text-gray-500">{p.drone_type || 'Drone'} — SN: {p.serial_number || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${urgencyBadge[urgency]}`}>{waitDays.toFixed(0)}d wait</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-[10px]">
+                              <div><span className="text-gray-400 block">Applicant</span><span className="font-bold text-gray-700 truncate block">{p.full_name || p.user_email || 'Unknown'}</span></div>
+                              <div><span className="text-gray-400 block">Type</span><span className="font-bold text-gray-700">{p.registration_type || 'Individual'}</span></div>
+                              <div><span className="text-gray-400 block">Payload</span><span className="font-bold text-gray-700">{p.max_payload ? `${p.max_payload}kg` : 'N/A'}</span></div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             {/* Recent Users List */}
-            <div className="col-span-12">
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="col-span-12 lg:col-span-6">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-9 h-9 bg-sky-50 border border-sky-100 rounded-xl flex items-center justify-center text-sky-500"><UsersIcon/></div>
-                  <div><h3 className="text-sm font-bold text-gray-900">All Users</h3><p className="text-[11px] text-gray-400">{totalUsers} total across all roles</p></div>
+                  <div><h3 className="text-sm font-bold text-gray-900">Recent Users</h3><p className="text-[11px] text-gray-400">{totalUsers} total — {citizens.length} citizens, {officers.length} officers, {admins.length} admins</p></div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {users.slice(0,12).map((u,i)=>(
-                    <motion.div key={u.id||i} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.03}} className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${u.role==='admin'?'bg-gradient-to-br from-red-500 to-rose-500':u.role==='officer'?'bg-gradient-to-br from-emerald-500 to-teal-500':'bg-gradient-to-br from-sky-500 to-cyan-500'}`}>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[320px] overflow-y-auto">
+                  {users.slice(0,18).map((u,i)=>(
+                    <motion.div key={u.id||i} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.03}} className="bg-gray-50 rounded-xl p-2.5 flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0 ${u.role==='admin'?'bg-gradient-to-br from-red-500 to-rose-500':u.role==='officer'?'bg-gradient-to-br from-emerald-500 to-teal-500':'bg-gradient-to-br from-sky-500 to-cyan-500'}`}>
                         {u.name?.charAt(0)?.toUpperCase()||'?'}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-gray-800 truncate">{u.name||'Unknown'}</p>
+                        <p className="text-[11px] font-bold text-gray-800 truncate">{u.name||'Unknown'}</p>
                         <p className={`text-[9px] font-bold uppercase ${u.role==='admin'?'text-red-500':u.role==='officer'?'text-emerald-500':'text-sky-500'}`}>{u.role}</p>
                       </div>
                     </motion.div>
@@ -699,7 +966,7 @@ export default function AdminAnalytics() {
 // ─── Sub-components ───────────────────────────────────────────
 function CC({ t, s, ic, b, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm h-full">
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-xl flex items-center justify-center text-sky-500">{ic}</div>
