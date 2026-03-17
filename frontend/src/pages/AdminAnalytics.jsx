@@ -151,7 +151,7 @@ export default function AdminAnalytics() {
     const n = info.vals.length;
     let closest = -1, minDist = Infinity;
     for (let i = 0; i < n; i++) {
-      const angle = (Math.PI / 2) - (2 * Math.PI * i / n);
+      const angle = (Math.PI / 2) + (2 * Math.PI * i / n);
       const lx = cx + labelR * Math.cos(angle);
       const ly = cy - labelR * Math.sin(angle);
       const dist = Math.sqrt((mx - lx) ** 2 + (my - ly) ** 2);
@@ -159,7 +159,7 @@ export default function AdminAnalytics() {
     }
     if (minDist < 55 && closest >= 0) {
       // Position tooltip near the label
-      const angle = (Math.PI / 2) - (2 * Math.PI * closest / n);
+      const angle = (Math.PI / 2) + (2 * Math.PI * closest / n);
       const lx = cx + labelR * Math.cos(angle);
       const ly = cy - labelR * Math.sin(angle);
       setRadarTooltip({ index: closest, x: lx, y: ly });

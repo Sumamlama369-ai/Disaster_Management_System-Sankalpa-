@@ -195,6 +195,7 @@ export default function Navbar() {
       return [
         { id: 'home', label: 'Home', path: '/admin-dashboard' },
         { id: 'analytics', label: 'Analytics', path: '/analytics' },
+        { id: 'sms-alerts', label: 'SMS Alerts', path: '/sms-alerts' },
         { id: 'users', label: 'User Management', path: '/user-management' },
         { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
         { id: 'reports', label: 'Reports', path: '/reports' },

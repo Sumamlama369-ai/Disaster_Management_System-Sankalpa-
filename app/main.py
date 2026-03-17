@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 
-from app.api.v1.endpoints import auth, users, drone_permit, disaster, video, disaster_reports, realtime
+from app.api.v1.endpoints import auth, users, drone_permit, disaster, video, disaster_reports, realtime, sms
 from app.database.database import engine, Base
 
 # Import models for table creation
@@ -76,6 +76,7 @@ app.include_router(disaster.router, prefix="/api/v1/disasters", tags=["Disasters
 app.include_router(video.router, prefix="/api/v1/video", tags=["Video Analysis"])
 app.include_router(disaster_reports.router, prefix="/api/v1/disaster-reports", tags=["Disaster Reports"])
 app.include_router(realtime.router, prefix="/api/v1/realtime", tags=["Real-Time Detection"])
+app.include_router(sms.router, prefix="/api/v1/sms", tags=["SMS Alerts"])
 
 @app.get("/")
 async def root():

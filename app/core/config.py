@@ -35,7 +35,10 @@ class Settings(BaseSettings):
     
     # Master Admin Code
     MASTER_ADMIN_CODE: str
-    
+
+    # Aakash SMS API
+    AAKASH_SMS_AUTH_TOKEN: str = ""
+
     # YOLO / Real-Time Detection
     YOLO_MODEL_PATH: str = "yolov8n.pt"
     YOLO_CONFIDENCE: float = 0.45

@@ -13,6 +13,7 @@ import CitizenDashboard from './pages/CitizenDashboard';
 import OfficerDashboard from './pages/OfficerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminAnalytics from './pages/AdminAnalytics';
+import DisasterAlertSMS from './pages/DisasterAlertSMS';
 import DronePermitForm from './pages/DronePermitForm';
 import MyPermits from './pages/MyPermits';
 import PermitReview from './pages/PermitReview';
@@ -97,6 +98,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminAnalytics />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin SMS Alerts */}
+          <Route
+            path="/sms-alerts"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DisasterAlertSMS />
               </ProtectedRoute>
             }
           />
