@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DroneOps — Live Telemetry</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
+
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════════════════ */
+:root {
+  --bg:        #f0f2f5;
+  --bg2:       #e8ecf0;
+  --panel:     rgba(255,255,255,0.92);
+  --border:    rgba(0,80,160,0.12);
+  --border2:   rgba(0,80,160,0.22);
+  --cyan:      #0078d4;
+  --cyan2:     #005a9e;
+  --green:     #00a86b;
+  --red:       #d93025;
+  --amber:     #e67e00;
+  --purple:    #6b3fa0;
+  --text:      #1a1a2e;
+  --text2:     #4a5568;
+  --text3:     #718096;
+  --glow-c:    0 0 12px rgba(0,120,212,0.2);
+  --glow-g:    0 0 12px rgba(0,168,107,0.2);
+  --glow-r:    0 0 12px rgba(217,48,37,0.2);
+  --font-hud:  'Rajdhani', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-big:  'Bebas Neue', cursive;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-hud); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,80,160,0.2); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════
+   BACKGROUND GRID
+═══════════════════════════════════════════════ */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,80,160,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,80,160,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.bg-radial {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,80,180,0.04) 0%, transparent 70%);
+}
+.scan-line {
+  position: fixed; left: 0; right: 0; height: 2px; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0,80,160,0.08), transparent);
+  animation: scan 8s linear infinite;
+}
+@keyframes scan { 0% { top: -2px; } 100% { top: 100vh; } }
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+.app {
+  position: relative; z-index: 2;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 56px 1fr;
+  grid-template-columns: 280px 1fr 280px;
+  grid-template-areas:
+    "header header header"
+    "left   center right";
+  gap: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+.header {
+  grid-area: header;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: rgba(255,255,255,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.header-brand {
+  display: flex; align-items: center; gap: 12px;
+}
+.brand-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #fff;
+  animation: hexSpin 8s linear infinite;
+}
+@keyframes hexSpin { to { filter: hue-rotate(360deg); } }
+.brand-name {
+  font-family: var(--font-big);
+  font-size: 26px;
+  letter-spacing: 4px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.brand-sub {
+  font-size: 10px; font-weight: 500;
+  color: var(--text3); letter-spacing: 3px; text-transform: uppercase;
+  margin-left: -4px;
+}
+.header-status {
+  display: flex; align-items: center; gap: 20px;
+}
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+  font-family: var(--font-mono);
+  background: rgba(0,80,160,0.04);
+  color: var(--text2);
+}
+.status-pill.online  { border-color: rgba(0,168,107,0.4); color: var(--green); background: rgba(0,168,107,0.06); }
+.status-pill.offline { border-color: rgba(217,48,37,0.4);  color: var(--red); background: rgba(217,48,37,0.06); }
+.pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  animation: pulseDot 1.5s infinite;
+}
+.pulse-dot.red { background: var(--red); animation: none; }
+@keyframes pulseDot {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,255,157,0.6); }
+  50%      { box-shadow: 0 0 0 5px rgba(0,255,157,0); }
+}
+.live-clock {
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 500;
+  color: var(--cyan); letter-spacing: 2px;
+}
+.header-title {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   PANELS
+═══════════════════════════════════════════════ */
+.panel {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 1px 0 4px rgba(0,0,0,0.04);
+}
+.panel.right { border-right: none; border-left: 1px solid var(--border); box-shadow: -1px 0 4px rgba(0,0,0,0.04); }
+
+.panel-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--text3);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.section-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border2), transparent);
+}
+
+/* Metric rows */
+.metric {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; border-bottom: 1px solid rgba(0,80,160,0.06);
+}
+.metric:last-child { border-bottom: none; }
+.metric-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text3);
+}
+.metric-value {
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 500; color: var(--cyan);
+  transition: color 0.3s;
+}
+.metric-value.green  { color: var(--green); }
+.metric-value.red    { color: var(--red); }
+.metric-value.amber  { color: var(--amber); }
+.metric-value.white  { color: var(--text); }
+
+/* Big value display */
+.big-metric {
+  text-align: center; padding: 12px 0;
+}
+.big-value {
+  font-family: var(--font-big);
+  font-size: 48px; line-height: 1;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 6px rgba(0,120,212,0.15));
+}
+.big-unit {
+  font-size: 11px; letter-spacing: 2px; color: var(--text3);
+  text-transform: uppercase; margin-top: 2px;
+}
+
+/* Gauge bars */
+.gauge-wrap { margin: 6px 0; }
+.gauge-label-row {
+  display: flex; justify-content: space-between;
+  font-size: 10px; margin-bottom: 4px;
+}
+.gauge-label-row span:first-child { color: var(--text3); letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
+.gauge-label-row span:last-child  { font-family: var(--font-mono); color: var(--cyan); font-size: 11px; }
+.gauge-track {
+  height: 4px; background: rgba(0,80,160,0.08);
+  border-radius: 2px; overflow: hidden; position: relative;
+}
+.gauge-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--cyan2));
+  transition: width 0.4s ease;
+}
+.gauge-fill.green { background: linear-gradient(90deg, #00c874, var(--green)); }
+.gauge-fill.red   { background: linear-gradient(90deg, #cc1533, var(--red)); }
+.gauge-fill.amber { background: linear-gradient(90deg, #cc8800, var(--amber)); }
+
+/* Attitude indicator */
+.attitude-wrap {
+  display: flex; justify-content: center; padding: 10px 0;
+}
+.attitude-ring {
+  width: 120px; height: 120px; border-radius: 50%;
+  border: 2px solid var(--border2);
+  position: relative; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1), inset 0 0 10px rgba(0,0,0,0.08);
+}
+.attitude-horizon {
+  position: absolute; width: 200%; height: 200%;
+  top: 50%; left: 50%;
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+.horizon-sky  {
+  position: absolute; width: 100%; height: 50%; top: 0;
+  background: linear-gradient(180deg, #5b9bd5, #87ceeb);
+}
+.horizon-ground {
+  position: absolute; width: 100%; height: 50%; bottom: 0;
+  background: linear-gradient(180deg, #8B6914, #c4a35a);
+}
+.horizon-line {
+  position: absolute; width: 100%; height: 2px;
+  top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.6);
+}
+.attitude-cross {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.cross-h, .cross-v {
+  position: absolute; background: var(--amber);
+}
+.cross-h { width: 40px; height: 2px; box-shadow: 0 0 6px var(--amber); }
+.cross-v { width: 2px; height: 12px; top: 50%; transform: translateY(-50%); box-shadow: 0 0 6px var(--amber); }
+.attitude-labels {
+  display: flex; justify-content: space-between; padding: 4px 8px;
+  font-family: var(--font-mono); font-size: 10px;
+}
+.att-label { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.att-label span:first-child { color: var(--text3); font-size: 9px; letter-spacing: 1px; }
+.att-label span:last-child  { color: var(--amber); font-size: 12px; font-weight: 700; }
+
+/* Compass */
+.compass-wrap { display: flex; justify-content: center; padding: 10px 0; }
+.compass {
+  width: 100px; height: 100px; border-radius: 50%;
+  border: 2px solid var(--border2);
+  position: relative;
+  background: radial-gradient(circle, #ffffff, #e8ecf0);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.compass-needle {
+  position: absolute; width: 3px; height: 84px;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  transition: transform 0.3s ease;
+}
+.needle-n { background: linear-gradient(180deg, var(--red), rgba(255,61,90,0.3)); border-radius: 2px 2px 0 0; position: absolute; width: 100%; top: 0; height: 50%; }
+.needle-s { background: linear-gradient(0deg, var(--text2), rgba(120,160,200,0.3)); border-radius: 0 0 2px 2px; position: absolute; width: 100%; bottom: 0; height: 50%; }
+.compass-center {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--cyan); box-shadow: var(--glow-c);
+}
+.compass-label {
+  position: absolute; font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+}
+.compass-label.n { top: 4px;  left: 50%; transform: translateX(-50%); color: var(--red); }
+.compass-label.s { bottom: 4px; left: 50%; transform: translateX(-50%); color: var(--text2); }
+.compass-label.e { right: 5px; top: 50%; transform: translateY(-50%); color: var(--text2); }
+.compass-label.w { left: 5px;  top: 50%; transform: translateY(-50%); color: var(--text2); }
+.compass-heading {
+  text-align: center; font-family: var(--font-mono); font-size: 16px;
+  font-weight: 700; color: var(--cyan); margin-top: 6px;
+}
+
+/* Heading offset control */
+.heading-offset-wrap {
+  margin-top: 10px; padding: 8px 10px;
+  background: rgba(0,80,160,0.03); border: 1px solid var(--border); border-radius: 4px;
+}
+.heading-offset-label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; letter-spacing: 1px; color: var(--text3); margin-bottom: 6px;
+}
+.heading-offset-val { color: var(--cyan); font-family: var(--font-mono); font-size: 12px; font-weight: 700; }
+.heading-offset-slider {
+  width: 100%; -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: 2px; background: var(--border); outline: none;
+}
+.heading-offset-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--cyan); cursor: pointer; border: 2px solid var(--bg);
+}
+.heading-offset-btns {
+  display: flex; gap: 4px; margin-top: 6px; justify-content: center;
+}
+.heading-offset-btns button {
+  padding: 2px 8px; font-size: 10px; font-family: var(--font-mono);
+  background: rgba(0,80,160,0.08); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text2); cursor: pointer; transition: all 0.15s;
+}
+.heading-offset-btns button:hover { background: rgba(0,168,233,0.15); color: var(--cyan); }
+
+/* Sensor Calibration panel */
+.cal-panel {
+  margin-top: 10px; padding: 8px 10px;
+  background: rgba(0,80,160,0.03); border: 1px solid var(--border); border-radius: 4px;
+}
+.cal-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 6px;
+}
+.cal-label { font-size: 10px; letter-spacing: 1px; color: var(--text3); }
+.cal-value { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); font-weight: 700; }
+.cal-btn {
+  width: 100%; padding: 6px 0; font-size: 11px; font-family: var(--font-mono); font-weight: 700;
+  border: 1px solid var(--cyan); border-radius: 4px; cursor: pointer;
+  color: var(--cyan); background: rgba(0,168,233,0.08); transition: all 0.15s;
+  letter-spacing: 1px;
+}
+.cal-btn:hover { background: rgba(0,168,233,0.2); }
+.cal-btn.active { background: rgba(0,168,233,0.25); border-color: var(--green); color: var(--green); }
+.cal-axis-row {
+  display: flex; gap: 4px; margin-top: 6px;
+}
+.cal-axis-btn {
+  flex: 1; padding: 3px 0; font-size: 9px; font-family: var(--font-mono);
+  background: rgba(0,80,160,0.06); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text3); cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.cal-axis-btn:hover { background: rgba(0,168,233,0.15); color: var(--cyan); }
+.cal-axis-btn.active { border-color: var(--green); color: var(--green); background: rgba(0,168,107,0.1); }
+.cal-raw {
+  font-family: var(--font-mono); font-size: 9px; color: var(--text3);
+  margin-top: 6px; padding: 4px 6px; background: rgba(0,0,0,0.02);
+  border-radius: 3px; line-height: 1.6;
+}
+.cal-sign-row {
+  display: flex; gap: 4px; margin-top: 4px;
+}
+.cal-sign-btn {
+  flex: 1; padding: 2px 0; font-size: 9px; font-family: var(--font-mono);
+  background: rgba(0,80,160,0.06); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text3); cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.cal-sign-btn:hover { background: rgba(0,168,233,0.15); color: var(--cyan); }
+.cal-sign-btn.active { border-color: var(--green); color: var(--green); background: rgba(0,168,107,0.1); }
+
+/* GPS coords */
+.coord-box {
+  background: rgba(0,80,160,0.03);
+  border: 1px solid var(--border);
+  border-radius: 4px; padding: 10px;
+  font-family: var(--font-mono); font-size: 12px;
+  line-height: 1.8;
+}
+.coord-row { display: flex; justify-content: space-between; }
+.coord-label { color: var(--text3); font-size: 10px; letter-spacing: 1px; }
+.coord-val   { color: var(--green); font-size: 12px; }
+
+/* Activity log */
+.log-wrap {
+  max-height: 140px; overflow-y: auto;
+  font-family: var(--font-mono); font-size: 10px;
+  line-height: 1.8;
+}
+.log-entry {
+  display: flex; gap: 8px; padding: 2px 0;
+  border-bottom: 1px solid rgba(0,80,160,0.05);
+  animation: logIn 0.3s ease;
+}
+@keyframes logIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.log-time  { color: var(--text3); flex-shrink: 0; }
+.log-msg   { color: var(--text2); }
+.log-msg.ok  { color: var(--green); }
+.log-msg.err { color: var(--red); }
+.log-msg.warn{ color: var(--amber); }
+
+/* ═══════════════════════════════════════════════
+   CENTER — THREE.JS
+═══════════════════════════════════════════════ */
+.center {
+  grid-area: center;
+  position: relative; overflow: hidden;
+  background: radial-gradient(ellipse 80% 70% at 50% 60%, rgba(0,60,120,0.04) 0%, transparent 70%);
+}
+#three-canvas {
+  width: 100%; height: 100%; display: block;
+}
+
+/* HUD overlays on canvas */
+.hud-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.hud-corner {
+  position: absolute; width: 40px; height: 40px;
+  border-color: var(--border2); border-style: solid;
+  border-width: 0;
+}
+.hud-corner.tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }
+.hud-corner.tr { top: 16px; right: 16px; border-top-width: 1px; border-right-width: 1px; }
+.hud-corner.bl { bottom: 16px; left: 16px; border-bottom-width: 1px; border-left-width: 1px; }
+.hud-corner.br { bottom: 16px; right: 16px; border-bottom-width: 1px; border-right-width: 1px; }
+
+.hud-center-ring {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 60px; height: 60px; border-radius: 50%;
+  border: 1px solid rgba(0,80,160,0.15);
+}
+.hud-crosshair {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.hud-crosshair::before, .hud-crosshair::after {
+  content: ''; position: absolute; background: rgba(0,80,160,0.2);
+}
+.hud-crosshair::before { width: 20px; height: 1px; top: 0; left: -10px; }
+.hud-crosshair::after  { width: 1px; height: 20px; top: -10px; left: 0; }
+
+.hud-bottom {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 20px; align-items: center;
+}
+.hud-badge {
+  padding: 5px 14px; background: rgba(255,255,255,0.85);
+  border: 1px solid var(--border2); border-radius: 4px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  color: var(--cyan); letter-spacing: 2px; text-transform: uppercase;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.hud-badge.green { border-color: rgba(0,168,107,0.4); color: var(--green); background: rgba(255,255,255,0.9); }
+.hud-badge.red   { border-color: rgba(217,48,37,0.4);  color: var(--red);   background: rgba(255,255,255,0.9); }
+
+.hud-top {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-big); font-size: 13px; letter-spacing: 6px;
+  color: rgba(0,200,255,0.3); text-transform: uppercase;
+}
+
+/* Vertical speed tape */
+.vspeed-tape {
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 140px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.85);
+  border-radius: 4px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.vspeed-center {
+  position: absolute; top: 50%; width: 100%; height: 1px;
+  background: var(--cyan); opacity: 0.4;
+}
+.vspeed-indicator {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: var(--green); box-shadow: 0 0 6px var(--green);
+  transition: top 0.3s ease;
+  top: 50%;
+}
+.vspeed-label {
+  position: absolute; bottom: 4px; left: 0; right: 0;
+  text-align: center; font-family: var(--font-mono);
+  font-size: 8px; color: var(--text3); letter-spacing: 1px;
+}
+
+/* Alt tape */
+.alt-tape {
+  position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+  width: 48px; height: 140px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.85);
+  border-radius: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.alt-value {
+  font-family: var(--font-big); font-size: 22px; color: var(--cyan);
+  line-height: 1;
+}
+.alt-unit {
+  font-family: var(--font-mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 2px; margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE SPARKLINES
+═══════════════════════════════════════════════ */
+.sparkline-wrap { padding: 4px 0; }
+canvas.spark {
+  width: 100%; height: 36px; display: block;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   STATUS INDICATORS
+═══════════════════════════════════════════════ */
+.sensor-status {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;
+}
+.sensor-pill {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 2px;
+  font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid;
+}
+.sensor-pill.ok  { border-color: rgba(0,168,107,0.4); color: var(--green); background: rgba(0,168,107,0.06); }
+.sensor-pill.err { border-color: rgba(217,48,37,0.4);  color: var(--red);   background: rgba(217,48,37,0.06); }
+.sensor-pill.warn{ border-color: rgba(230,126,0,0.4);  color: var(--amber); background: rgba(230,126,0,0.06); }
+.s-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* ═══════════════════════════════════════════════
+   LOADING SCREEN
+═══════════════════════════════════════════════ */
+#loading {
+  position: fixed; inset: 0; z-index: 1000;
+  background: #ffffff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 24px;
+}
+.loading-logo {
+  font-family: var(--font-big); font-size: 64px; letter-spacing: 12px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: loadPulse 2s ease-in-out infinite;
+}
+@keyframes loadPulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+.loading-bar {
+  width: 300px; height: 2px; background: rgba(0,80,160,0.1);
+  border-radius: 1px; overflow: hidden;
+}
+.loading-fill {
+  height: 100%; background: linear-gradient(90deg, var(--cyan), var(--purple));
+  animation: loadBar 2s ease-in-out forwards;
+}
+@keyframes loadBar { 0%{width:0%} 100%{width:100%} }
+.loading-text {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text3);
+  letter-spacing: 3px; text-transform: uppercase;
+  animation: loadText 0.5s ease infinite alternate;
+}
+@keyframes loadText { from{opacity:0.4} to{opacity:1} }
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════ */
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+.panel-section { animation: fadeIn 0.5s ease both; }
+
+/* ═══════════════════════════════════════════════
+   DARK THEME
+═══════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --bg:        #050810;
+  --bg2:       #080d1a;
+  --panel:     rgba(8,15,35,0.85);
+  --border:    rgba(0,200,255,0.12);
+  --border2:   rgba(0,200,255,0.25);
+  --cyan:      #00c8ff;
+  --cyan2:     #00e5ff;
+  --green:     #00ff9d;
+  --red:       #ff3d5a;
+  --amber:     #ffb300;
+  --purple:    #8b5cf6;
+  --text:      #e2f0ff;
+  --text2:     #7ba8cc;
+  --text3:     #3d6080;
+  --glow-c:    0 0 20px rgba(0,200,255,0.4);
+  --glow-g:    0 0 20px rgba(0,255,157,0.4);
+  --glow-r:    0 0 20px rgba(255,61,90,0.4);
+}
+[data-theme="dark"] .header {
+  background: rgba(5,8,16,0.9);
+  box-shadow: none;
+}
+[data-theme="dark"] .panel {
+  box-shadow: none;
+}
+[data-theme="dark"] .panel.right { box-shadow: none; }
+[data-theme="dark"] .bg-grid {
+  background-image:
+    linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+}
+[data-theme="dark"] .bg-radial {
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,100,200,0.08) 0%, transparent 70%);
+}
+[data-theme="dark"] .scan-line {
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.15), transparent);
+}
+[data-theme="dark"] .center {
+  background: radial-gradient(ellipse 80% 70% at 50% 60%, rgba(0,40,100,0.15) 0%, transparent 70%);
+}
+[data-theme="dark"] .horizon-sky {
+  background: linear-gradient(180deg, #001833, #003366);
+}
+[data-theme="dark"] .horizon-ground {
+  background: linear-gradient(180deg, #1a0f00, #332200);
+}
+[data-theme="dark"] .compass {
+  background: radial-gradient(circle, rgba(0,30,60,0.8), rgba(0,10,20,0.95));
+  box-shadow: 0 0 20px rgba(0,200,255,0.15);
+}
+[data-theme="dark"] .attitude-ring {
+  box-shadow: 0 0 20px rgba(0,200,255,0.15), inset 0 0 20px rgba(0,0,0,0.5);
+}
+[data-theme="dark"] .hud-badge {
+  background: rgba(0,200,255,0.06);
+  box-shadow: none;
+}
+[data-theme="dark"] .hud-badge.green { background: rgba(0,255,157,0.04); }
+[data-theme="dark"] .hud-badge.red   { background: rgba(255,61,90,0.04); }
+[data-theme="dark"] .status-pill { background: rgba(0,200,255,0.04); }
+[data-theme="dark"] .alt-tape, [data-theme="dark"] .vspeed-tape {
+  background: rgba(0,10,30,0.7);
+  box-shadow: none;
+}
+[data-theme="dark"] #loading { background: #050810; }
+[data-theme="dark"] .gauge-fill { box-shadow: 0 0 8px rgba(0,200,255,0.5); }
+[data-theme="dark"] .gauge-fill.green { box-shadow: 0 0 8px rgba(0,255,157,0.5); }
+[data-theme="dark"] .gauge-fill.red   { box-shadow: 0 0 8px rgba(255,61,90,0.5); }
+[data-theme="dark"] .gauge-fill.amber { box-shadow: 0 0 8px rgba(255,179,0,0.5); }
+[data-theme="dark"] .big-value { filter: drop-shadow(0 0 12px rgba(0,200,255,0.4)); }
+
+/* ── Theme toggle button ── */
+.theme-toggle {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text2);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s ease;
+}
+.theme-toggle:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-logo">DRONEOPS</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+  <div class="loading-text">Initializing telemetry systems...</div>
+</div>
+
+<div class="bg-grid"></div>
+<div class="bg-radial"></div>
+<div class="scan-line"></div>
+
+<div class="app" id="app" style="opacity:0">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-icon">⬡</div>
+      <div>
+        <div class="brand-name">DRONEOPS</div>
+        <div class="brand-sub">Live Telemetry System</div>
+      </div>
+    </div>
+    <div class="header-title">DISASTER MANAGEMENT · NEPAL</div>
+    <div class="header-status">
+      <button class="theme-toggle" id="theme-toggle" title="Toggle Dark/Light Mode">&#9789;</button>
+      <div class="live-clock" id="clock">00:00:00</div>
+      <div class="status-pill" id="firebase-status">
+        <div class="pulse-dot red" id="fb-dot"></div>
+        <span id="fb-text">CONNECTING</span>
+      </div>
+      <div class="status-pill" id="drone-status">
+        <div class="pulse-dot red" id="drone-dot"></div>
+        <span id="drone-text">OFFLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- LEFT PANEL -->
+  <aside class="panel left">
+
+    <!-- GPS Position -->
+    <div class="panel-section">
+      <div class="section-title">GPS Position</div>
+      <div class="coord-box">
+        <div class="coord-row">
+          <span class="coord-label">LAT</span>
+          <span class="coord-val" id="gps-lat">---.------</span>
+        </div>
+        <div class="coord-row">
+          <span class="coord-label">LNG</span>
+          <span class="coord-val" id="gps-lng">---.------</span>
+        </div>
+        <div class="coord-row">
+          <span class="coord-label">ALT GPS</span>
+          <span class="coord-val" id="gps-alt">--- m</span>
+        </div>
+        <div class="coord-row">
+          <span class="coord-label">STATUS</span>
+          <span class="coord-val" id="gps-status">SEARCHING</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GPS Metrics -->
+    <div class="panel-section">
+      <div class="section-title">GPS Metrics</div>
+      <div class="gauge-wrap">
+        <div class="gauge-label-row"><span>Ground Speed</span><span id="spd-val">0.00 km/h</span></div>
+        <div class="gauge-track"><div class="gauge-fill" id="spd-bar" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-wrap" style="margin-top:10px">
+        <div class="gauge-label-row"><span>Satellites</span><span id="sat-val">0 / 12</span></div>
+        <div class="gauge-track"><div class="gauge-fill green" id="sat-bar" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-wrap" style="margin-top:10px">
+        <div class="gauge-label-row"><span>HDOP Accuracy</span><span id="hdop-val">99.99</span></div>
+        <div class="gauge-track"><div class="gauge-fill amber" id="hdop-bar" style="width:0%"></div></div>
+      </div>
+      <div class="metric" style="margin-top:8px">
+        <span class="metric-label">Last Fix</span>
+        <span class="metric-value" id="gps-time">--:--:--</span>
+      </div>
+    </div>
+
+    <!-- Altitude -->
+    <div class="panel-section">
+      <div class="section-title">Altitude</div>
+      <div class="big-metric">
+        <div class="big-value" id="baro-alt-big">----</div>
+        <div class="big-unit">meters ASL · barometric</div>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Pressure</span>
+        <span class="metric-value" id="pressure-val">--- hPa</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Temperature</span>
+        <span class="metric-value amber" id="temp-val">--.- °C</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Vertical Speed</span>
+        <span class="metric-value" id="vspeed-val">0.000 m/s</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Status</span>
+        <span class="metric-value green" id="vstatus-val">HOVERING</span>
+      </div>
+    </div>
+
+    <!-- Sensor Calibration -->
+    <div class="panel-section">
+      <div class="section-title">Sensor Calibration</div>
+      <div class="cal-panel">
+        <div class="cal-row">
+          <span class="cal-label">RAW ROLL</span>
+          <span class="cal-value" id="cal-raw-roll">--</span>
+        </div>
+        <div class="cal-row">
+          <span class="cal-label">RAW PITCH</span>
+          <span class="cal-value" id="cal-raw-pitch">--</span>
+        </div>
+        <div class="cal-row">
+          <span class="cal-label">OFFSET ROLL</span>
+          <span class="cal-value" id="cal-off-roll">0°</span>
+        </div>
+        <div class="cal-row">
+          <span class="cal-label">OFFSET PITCH</span>
+          <span class="cal-value" id="cal-off-pitch">0°</span>
+        </div>
+        <button class="cal-btn" id="cal-level-btn" onclick="calibrateLevel()">
+          ▸ SET CURRENT AS LEVEL
+        </button>
+        <div style="margin-top:8px;">
+          <span class="cal-label">AXIS MAPPING</span>
+          <div class="cal-axis-row">
+            <button class="cal-axis-btn active" id="axis-normal" onclick="setAxisMapping('normal')">NORMAL</button>
+            <button class="cal-axis-btn" id="axis-swap" onclick="setAxisMapping('swap')">SWAP R↔P</button>
+          </div>
+          <span class="cal-label" style="margin-top:6px;display:block">SIGN INVERSION</span>
+          <div class="cal-sign-row">
+            <button class="cal-sign-btn" id="sign-roll" onclick="toggleSign('roll')">FLIP ROLL</button>
+            <button class="cal-sign-btn" id="sign-pitch" onclick="toggleSign('pitch')">FLIP PITCH</button>
+          </div>
+        </div>
+        <button class="cal-btn" style="margin-top:8px; border-color:var(--red); color:var(--red); background:rgba(217,48,37,0.05);" onclick="resetCalibration()">
+          ✕ RESET CALIBRATION
+        </button>
+      </div>
+    </div>
+
+    <!-- Sensor status -->
+    <div class="panel-section">
+      <div class="section-title">Sensor Health</div>
+      <div class="sensor-status">
+        <div class="sensor-pill ok"><div class="s-dot"></div>GPS</div>
+        <div class="sensor-pill" id="pill-mpu"><div class="s-dot"></div>MPU9250</div>
+        <div class="sensor-pill ok" id="pill-bmp"><div class="s-dot"></div>BMP280</div>
+        <div class="sensor-pill ok"><div class="s-dot"></div>FIREBASE</div>
+        <div class="sensor-pill ok"><div class="s-dot"></div>WIFI</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CENTER — 3D VISUALIZATION -->
+  <main class="center">
+    <canvas id="three-canvas"></canvas>
+
+    <div class="hud-overlay">
+      <div class="hud-corner tl"></div>
+      <div class="hud-corner tr"></div>
+      <div class="hud-corner bl"></div>
+      <div class="hud-corner br"></div>
+      <div class="hud-center-ring"></div>
+      <div class="hud-crosshair"></div>
+      <div class="hud-top">DRONE · ORIENTATION · LIVE</div>
+
+      <!-- Alt tape left -->
+      <div class="alt-tape">
+        <div class="alt-value" id="alt-tape-val">0</div>
+        <div class="alt-unit">ALT M</div>
+      </div>
+
+      <!-- Vspeed tape right -->
+      <div class="vspeed-tape">
+        <div class="vspeed-center"></div>
+        <div class="vspeed-indicator" id="vspeed-ind"></div>
+        <div class="vspeed-label">V/S</div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="hud-badge" id="hud-roll">ROLL: 0.0°</div>
+        <div class="hud-badge green" id="hud-pitch">PITCH: 0.0°</div>
+        <div class="hud-badge" id="hud-alt">ALT: ---- m</div>
+        <div class="hud-badge red" id="hud-gps">GPS: SEARCHING</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="panel right">
+
+    <!-- Attitude -->
+    <div class="panel-section">
+      <div class="section-title">Attitude Indicator</div>
+      <div class="attitude-wrap">
+        <div>
+          <div class="attitude-ring">
+            <div class="attitude-horizon" id="att-horizon">
+              <div class="horizon-sky"></div>
+              <div class="horizon-ground"></div>
+              <div class="horizon-line"></div>
+            </div>
+            <div class="attitude-cross">
+              <div class="cross-h"></div>
+              <div class="cross-v"></div>
+            </div>
+          </div>
+          <div class="attitude-labels">
+            <div class="att-label">
+              <span>ROLL</span>
+              <span id="att-roll">0.0°</span>
+            </div>
+            <div class="att-label">
+              <span>PITCH</span>
+              <span id="att-pitch">0.0°</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compass -->
+    <div class="panel-section">
+      <div class="section-title">Compass</div>
+      <div class="compass-wrap">
+        <div>
+          <div class="compass">
+            <div class="compass-needle" id="compass-needle">
+              <div class="needle-n"></div>
+              <div class="needle-s"></div>
+            </div>
+            <div class="compass-center"></div>
+            <span class="compass-label n">N</span>
+            <span class="compass-label s">S</span>
+            <span class="compass-label e">E</span>
+            <span class="compass-label w">W</span>
+          </div>
+          <div class="compass-heading" id="compass-hdg">--- ° ---</div>
+        </div>
+      </div>
+      <!-- Heading Offset Calibration -->
+      <div class="heading-offset-wrap">
+        <div class="heading-offset-label">
+          <span>MOUNTING OFFSET</span>
+          <span class="heading-offset-val" id="hdg-offset-val">0°</span>
+        </div>
+        <input type="range" class="heading-offset-slider" id="hdg-offset-slider"
+               min="-180" max="180" step="1" value="0">
+        <div class="heading-offset-btns">
+          <button onclick="setHeadingOffset(0)">0°</button>
+          <button onclick="setHeadingOffset(90)">+90°</button>
+          <button onclick="setHeadingOffset(180)">180°</button>
+          <button onclick="setHeadingOffset(-90)">-90°</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMU Data -->
+    <div class="panel-section">
+      <div class="section-title">Accelerometer</div>
+      <div class="gauge-wrap">
+        <div class="gauge-label-row"><span>Accel X</span><span id="ax-val">0.000</span></div>
+        <div class="gauge-track"><div class="gauge-fill" id="ax-bar" style="width:50%"></div></div>
+      </div>
+      <div class="gauge-wrap" style="margin-top:8px">
+        <div class="gauge-label-row"><span>Accel Y</span><span id="ay-val">0.000</span></div>
+        <div class="gauge-track"><div class="gauge-fill" id="ay-bar" style="width:50%"></div></div>
+      </div>
+      <div class="gauge-wrap" style="margin-top:8px">
+        <div class="gauge-label-row"><span>Accel Z</span><span id="az-val">0.000</span></div>
+        <div class="gauge-track"><div class="gauge-fill green" id="az-bar" style="width:50%"></div></div>
+      </div>
+    </div>
+
+    <!-- Gyroscope -->
+    <div class="panel-section">
+      <div class="section-title">Gyroscope</div>
+      <div class="metric">
+        <span class="metric-label">Gyro X</span>
+        <span class="metric-value" id="gx-val">0.000 °/s</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Gyro Y</span>
+        <span class="metric-value" id="gy-val">0.000 °/s</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Gyro Z</span>
+        <span class="metric-value" id="gz-val">0.000 °/s</span>
+      </div>
+      <!-- Sparkline canvas -->
+      <div class="sparkline-wrap" style="margin-top:8px">
+        <canvas class="spark" id="spark-gyro" height="36"></canvas>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel-section">
+      <div class="section-title">Activity Log</div>
+      <div class="log-wrap" id="log-wrap"></div>
+    </div>
+
+  </aside>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// FIREBASE CONFIG
+// ══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDjNWoMOSZIXGgKSpLxIhpKfaAMLxSDaXA",
+  authDomain: "disaster-management-4c3f6.firebaseapp.com",
+  databaseURL: "https://disaster-management-4c3f6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "disaster-management-4c3f6",
+  storageBucket: "disaster-management-4c3f6.firebasestorage.app",
+  messagingSenderId: "267393059356",
+  appId: "1:267393059356:web:ec2c2cc65db72a49fd6dd9"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let droneData = {
+  roll: 0, pitch: 0, yaw: 0,
+  accelX: 0, accelY: 0, accelZ: -1,
+  gyroX: 0, gyroY: 0, gyroZ: 0,
+  altitude_baro: 0, pressure: 0, temperature: 0,
+  vertical_speed: 0, vertical_status: 'Hovering',
+  heading: 0, direction: 'N'
+};
+let gpsData = {
+  latitude: null, longitude: null, altitude: 0,
+  speed: 0, satellites: 0, hdop: 99.99,
+  status: 'Searching...', time: ''
+};
+let gyroHistory = Array(60).fill(0);
+let lastUpdate = 0;
+
+// ══════════════════════════════════════════════
+// THREE.JS SETUP
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef2f7);
+scene.fog = new THREE.FogExp2(0xeef2f7, 0.025);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+camera.position.set(3, 3, -6);   // behind the drone — front faces away from viewer
+camera.lookAt(0, 0, 0);
+
+// Resize handler
+function resizeThree() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resizeThree).observe(canvas);
+resizeThree();
+
+// ── LIGHTING ──────────────────────────────────
+const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambLight);
+
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+keyLight.position.set(5, 10, 5);
+keyLight.castShadow = true;
+scene.add(keyLight);
+
+const rimLight = new THREE.DirectionalLight(0x8ba5d6, 0.8);
+rimLight.position.set(-5, 3, -5);
+scene.add(rimLight);
+
+const fillLight = new THREE.PointLight(0xccddff, 0.6, 15);
+fillLight.position.set(0, -2, 3);
+scene.add(fillLight);
+
+// ── ENVIRONMENT ───────────────────────────────
+// Ground grid
+const gridHelper = new THREE.GridHelper(30, 30, 0xc0d0e0, 0xd8e0ea);
+gridHelper.position.y = -3;
+scene.add(gridHelper);
+
+// Background particles (subtle)
+const partGeo = new THREE.BufferGeometry();
+const partPos = new Float32Array(1000 * 3);
+for (let i = 0; i < 1000; i++) {
+  partPos[i*3]   = (Math.random()-0.5)*60;
+  partPos[i*3+1] = (Math.random()-0.5)*60;
+  partPos[i*3+2] = (Math.random()-0.5)*60;
+}
+partGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
+const partMat = new THREE.PointsMaterial({ color: 0x8899aa, size: 0.06, transparent: true, opacity: 0.3 });
+scene.add(new THREE.Points(partGeo, partMat));
+
+// ── DRONE MODEL ───────────────────────────────
+const droneGroup = new THREE.Group();
+scene.add(droneGroup);
+
+// Materials
+const bodyMat = new THREE.MeshPhysicalMaterial({
+  color: 0x1a1a2e, metalness: 0.85, roughness: 0.15,
+  reflectivity: 1, clearcoat: 1, clearcoatRoughness: 0.1
+});
+const frameMat = new THREE.MeshPhysicalMaterial({
+  color: 0x16213e, metalness: 0.9, roughness: 0.2
+});
+const armMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0f3460, metalness: 0.8, roughness: 0.25
+});
+const darkMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0a0a1a, metalness: 0.9, roughness: 0.3
+});
+const rotorMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0a1628, metalness: 0.5, roughness: 0.4,
+  transparent: true, opacity: 0.7
+});
+const glowMat = new THREE.MeshBasicMaterial({
+  color: 0x00c8ff, transparent: true, opacity: 0.6
+});
+const redGlowMat = new THREE.MeshBasicMaterial({
+  color: 0xff3d5a, transparent: true, opacity: 0.9
+});
+const greenGlowMat = new THREE.MeshBasicMaterial({
+  color: 0x00ff9d, transparent: true, opacity: 0.9
+});
+
+// ── Central body (flat wide hexagonal shape) ──
+const bodyShape = new THREE.Shape();
+const bodyR = 0.32, bodyCorners = 6;
+for (let i = 0; i <= bodyCorners; i++) {
+  const a = (i / bodyCorners) * Math.PI * 2 - Math.PI / 2;
+  const x = Math.cos(a) * bodyR;
+  const y = Math.sin(a) * bodyR;
+  i === 0 ? bodyShape.moveTo(x, y) : bodyShape.lineTo(x, y);
+}
+const bodyExtrudeSettings = { depth: 0.08, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 };
+const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, bodyExtrudeSettings);
+const body = new THREE.Mesh(bodyGeo, bodyMat);
+body.rotation.x = -Math.PI / 2;
+body.position.y = 0.06;
+body.castShadow = true;
+droneGroup.add(body);
+
+// Top plate (slightly smaller, layered look)
+const topPlateGeo = new THREE.CylinderGeometry(0.22, 0.25, 0.04, 6);
+const topPlate = new THREE.Mesh(topPlateGeo, frameMat);
+topPlate.position.y = 0.15;
+droneGroup.add(topPlate);
+
+// GPS module on top
+const gpsBaseGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.04, 16);
+const gpsBase = new THREE.Mesh(gpsBaseGeo, darkMat);
+gpsBase.position.y = 0.2;
+droneGroup.add(gpsBase);
+const gpsMastGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.18, 8);
+const gpsMast = new THREE.Mesh(gpsMastGeo, armMat);
+gpsMast.position.y = 0.29;
+droneGroup.add(gpsMast);
+const gpsAntGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.025, 16);
+const gpsAnt = new THREE.Mesh(gpsAntGeo, new THREE.MeshPhysicalMaterial({ color: 0x2a2a4e, metalness: 0.7, roughness: 0.3 }));
+gpsAnt.position.y = 0.39;
+droneGroup.add(gpsAnt);
+
+// Status LED on top
+const ledGeo = new THREE.SphereGeometry(0.03, 8, 8);
+const statusLed = new THREE.Mesh(ledGeo, glowMat);
+statusLed.position.set(0.12, 0.18, 0);
+droneGroup.add(statusLed);
+
+// Front direction indicator (small arrow/triangle on front)
+const frontMarkGeo = new THREE.ConeGeometry(0.04, 0.08, 4);
+const frontMark = new THREE.Mesh(frontMarkGeo, new THREE.MeshBasicMaterial({ color: 0xff3d5a }));
+frontMark.position.set(0, 0.16, 0.42);
+frontMark.rotation.x = Math.PI / 2;
+droneGroup.add(frontMark);
+
+// ── Camera Gimbal (underneath) ──
+const gimbalArmGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.15, 8);
+const gimbalArm = new THREE.Mesh(gimbalArmGeo, darkMat);
+gimbalArm.position.set(0, -0.08, 0.05);
+droneGroup.add(gimbalArm);
+
+const gimbalHousingGeo = new THREE.BoxGeometry(0.12, 0.08, 0.14);
+const gimbalHousing = new THREE.Mesh(gimbalHousingGeo, darkMat);
+gimbalHousing.position.set(0, -0.18, 0.05);
+droneGroup.add(gimbalHousing);
+
+const cameraLensGeo = new THREE.CylinderGeometry(0.035, 0.04, 0.06, 16);
+const cameraLens = new THREE.Mesh(cameraLensGeo, new THREE.MeshPhysicalMaterial({
+  color: 0x000811, metalness: 1, roughness: 0.1
+}));
+cameraLens.rotation.x = Math.PI / 2;
+cameraLens.position.set(0, -0.19, 0.12);
+droneGroup.add(cameraLens);
+
+// Camera lens glass
+const lensGlassGeo = new THREE.CircleGeometry(0.03, 16);
+const lensGlass = new THREE.Mesh(lensGlassGeo, new THREE.MeshBasicMaterial({ color: 0x1a0a3a }));
+lensGlass.position.set(0, -0.19, 0.153);
+droneGroup.add(lensGlass);
+
+// ── Landing skids ──
+const skidMat = new THREE.MeshPhysicalMaterial({ color: 0x222244, metalness: 0.7, roughness: 0.3 });
+[-0.25, 0.25].forEach(xOff => {
+  // Vertical legs
+  [-0.2, 0.2].forEach(zOff => {
+    const legGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.35, 8);
+    const leg = new THREE.Mesh(legGeo, skidMat);
+    leg.position.set(xOff, -0.28, zOff);
+    droneGroup.add(leg);
+  });
+  // Horizontal skid bar
+  const skidGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.6, 8);
+  const skid = new THREE.Mesh(skidGeo, skidMat);
+  skid.rotation.x = Math.PI / 2;
+  skid.position.set(xOff, -0.45, 0);
+  droneGroup.add(skid);
+});
+
+// ── Arms and Motors ──
+const armEndPositions = [
+  { x:  1.2, z:  1.2 },   // front-right
+  { x: -1.2, z:  1.2 },   // front-left
+  { x:  1.2, z: -1.2 },   // rear-right
+  { x: -1.2, z: -1.2 },   // rear-left
+];
+const rotorGroups = [];
+const rotorSpeeds = [1, -1, -1, 1];
+
+armEndPositions.forEach((ap, i) => {
+  const armLen = Math.sqrt(ap.x * ap.x + ap.z * ap.z);
+  const angle = Math.atan2(ap.x, ap.z);
+
+  // Arm tube from center to motor
+  const armGeo = new THREE.BoxGeometry(0.06, 0.045, armLen);
+  const armMesh = new THREE.Mesh(armGeo, armMat);
+  armMesh.position.set(ap.x / 2, 0.04, ap.z / 2);
+  armMesh.rotation.y = -angle;
+  armMesh.castShadow = true;
+  droneGroup.add(armMesh);
+
+  // Arm accent stripe (glowing line on top of arm)
+  const stripeGeo = new THREE.BoxGeometry(0.02, 0.005, armLen - 0.3);
+  const stripeMat = new THREE.MeshBasicMaterial({
+    color: i < 2 ? 0xff3d5a : 0x00ff9d,
+    transparent: true, opacity: 0.5
+  });
+  const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+  stripe.position.set(ap.x / 2, 0.068, ap.z / 2);
+  stripe.rotation.y = -angle;
+  droneGroup.add(stripe);
+
+  // Motor housing (cylinder at arm end)
+  const motorGeo = new THREE.CylinderGeometry(0.12, 0.1, 0.14, 16);
+  const motor = new THREE.Mesh(motorGeo, bodyMat);
+  motor.position.set(ap.x, 0.04, ap.z);
+  motor.castShadow = true;
+  droneGroup.add(motor);
+
+  // Motor top cap
+  const motorCapGeo = new THREE.CylinderGeometry(0.06, 0.1, 0.04, 16);
+  const motorCap = new THREE.Mesh(motorCapGeo, darkMat);
+  motorCap.position.set(ap.x, 0.13, ap.z);
+  droneGroup.add(motorCap);
+
+  // Motor accent ring (LED ring around motor base)
+  const ringGeo = new THREE.TorusGeometry(0.11, 0.012, 8, 24);
+  const ring = new THREE.Mesh(ringGeo, i < 2 ? redGlowMat : greenGlowMat);
+  ring.position.set(ap.x, -0.02, ap.z);
+  ring.rotation.x = Math.PI / 2;
+  droneGroup.add(ring);
+
+  // Prop guard (ring around each motor)
+  const guardGeo = new THREE.TorusGeometry(0.35, 0.01, 6, 32);
+  const guardMat = new THREE.MeshPhysicalMaterial({
+    color: 0x3a4a5e, metalness: 0.7, roughness: 0.3,
+    transparent: true, opacity: 0.4
+  });
+  const guard = new THREE.Mesh(guardGeo, guardMat);
+  guard.position.set(ap.x, 0.04, ap.z);
+  guard.rotation.x = Math.PI / 2;
+  droneGroup.add(guard);
+
+  // Rotor/propeller group
+  const rotorGroup = new THREE.Group();
+  rotorGroup.position.set(ap.x, 0.16, ap.z);
+
+  // Two-blade propeller
+  for (let b = 0; b < 2; b++) {
+    // Blade shape — tapered
+    const bladeShape = new THREE.Shape();
+    bladeShape.moveTo(0, -0.02);
+    bladeShape.lineTo(0.45, -0.015);
+    bladeShape.lineTo(0.5, 0);
+    bladeShape.lineTo(0.45, 0.015);
+    bladeShape.lineTo(0, 0.02);
+    bladeShape.lineTo(0, -0.02);
+    const bladeExtSettings = { depth: 0.008, bevelEnabled: false };
+    const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, bladeExtSettings);
+    const blade = new THREE.Mesh(bladeGeo, rotorMat);
+    blade.rotation.y = (b / 2) * Math.PI;
+    const pivot = new THREE.Group();
+    pivot.rotation.y = (b / 2) * Math.PI;
+    pivot.add(blade);
+    rotorGroup.add(pivot);
+  }
+
+  // Rotor hub
+  const hubGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.03, 12);
+  const hub = new THREE.Mesh(hubGeo, darkMat);
+  rotorGroup.add(hub);
+
+  droneGroup.add(rotorGroup);
+  rotorGroups.push({ group: rotorGroup, speed: rotorSpeeds[i] });
+});
+
+// ── Battery pack (underneath body) ──
+const battGeo = new THREE.BoxGeometry(0.22, 0.08, 0.35);
+const batt = new THREE.Mesh(battGeo, new THREE.MeshPhysicalMaterial({
+  color: 0x1a1a3e, metalness: 0.6, roughness: 0.4
+}));
+batt.position.set(0, -0.06, -0.05);
+droneGroup.add(batt);
+
+// Battery label
+const battLabelGeo = new THREE.PlaneGeometry(0.1, 0.04);
+const battLabel = new THREE.Mesh(battLabelGeo, new THREE.MeshBasicMaterial({
+  color: 0x00ff9d, transparent: true, opacity: 0.3
+}));
+battLabel.position.set(0.112, -0.06, -0.05);
+battLabel.rotation.y = Math.PI / 2;
+droneGroup.add(battLabel);
+
+// ── Antenna stubs on rear ──
+[-0.15, 0.15].forEach(xOff => {
+  const antGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.14, 6);
+  const ant = new THREE.Mesh(antGeo, darkMat);
+  ant.position.set(xOff, 0.25, -0.35);
+  ant.rotation.x = -0.2;
+  droneGroup.add(ant);
+  // Antenna tip
+  const tipGeo = new THREE.SphereGeometry(0.015, 6, 6);
+  const tip = new THREE.Mesh(tipGeo, redGlowMat);
+  tip.position.set(xOff, 0.32, -0.38);
+  droneGroup.add(tip);
+});
+
+// ── GLOW EFFECT (holographic disc below drone) ──
+const glowRingGeo = new THREE.TorusGeometry(1.6, 0.02, 8, 80);
+const glowRing = new THREE.Mesh(glowRingGeo, new THREE.MeshBasicMaterial({
+  color: 0x0078d4, transparent: true, opacity: 0.15
+}));
+glowRing.rotation.x = Math.PI/2;
+glowRing.position.y = -0.5;
+scene.add(glowRing);
+
+// Secondary inner glow ring
+const glowRing2Geo = new THREE.TorusGeometry(0.9, 0.015, 8, 64);
+const glowRing2 = new THREE.Mesh(glowRing2Geo, new THREE.MeshBasicMaterial({
+  color: 0x6b3fa0, transparent: true, opacity: 0.1
+}));
+glowRing2.rotation.x = Math.PI/2;
+glowRing2.position.y = -0.5;
+scene.add(glowRing2);
+
+// ── SHADOW BLOB ───────────────────────────────
+const shadowGeo = new THREE.CircleGeometry(1.2, 32);
+const shadowMat = new THREE.MeshBasicMaterial({
+  color: 0x334455, transparent: true, opacity: 0.12, side: THREE.DoubleSide
+});
+const shadowBlob = new THREE.Mesh(shadowGeo, shadowMat);
+shadowBlob.rotation.x = -Math.PI/2;
+shadowBlob.position.y = -2.8;
+scene.add(shadowBlob);
+
+// ── TELEMETRY LINES (vertical data viz) ───────
+const lineGroup = new THREE.Group();
+scene.add(lineGroup);
+const lineMat2 = new THREE.LineBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.08 });
+for (let i = 0; i < 8; i++) {
+  const angle = (i/8) * Math.PI*2;
+  const pts = [
+    new THREE.Vector3(Math.cos(angle)*2.2, -3, Math.sin(angle)*2.2),
+    new THREE.Vector3(Math.cos(angle)*2.2,  0.5, Math.sin(angle)*2.2)
+  ];
+  lineGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat2));
+}
+
+// ── ORBIT RINGS ───────────────────────────────
+const orbitRings = [];
+[1.8, 2.5, 3.4].forEach((r, i) => {
+  const geo = new THREE.TorusGeometry(r, 0.008, 8, 80);
+  const mat = new THREE.MeshBasicMaterial({
+    color: [0x0078d4, 0x6b3fa0, 0x00a86b][i],
+    transparent: true, opacity: [0.1, 0.07, 0.05][i]
+  });
+  const ring = new THREE.Mesh(geo, mat);
+  ring.rotation.x = [0.3, 0.8, 0.5][i];
+  ring.rotation.z = [0.1, 0.4, 0.2][i];
+  scene.add(ring);
+  orbitRings.push(ring);
+});
+
+// ══════════════════════════════════════════════
+// HEADING OFFSET — corrects for sensor mounting orientation on breadboard
+// ══════════════════════════════════════════════
+let headingOffset = parseInt(localStorage.getItem('headingOffset') || '0');
+
+// Initialize slider on load
+(function initHeadingOffset() {
+  const slider = document.getElementById('hdg-offset-slider');
+  const valEl = document.getElementById('hdg-offset-val');
+  if (slider) {
+    slider.value = headingOffset;
+    if (valEl) valEl.textContent = headingOffset + '°';
+    slider.addEventListener('input', function() {
+      headingOffset = parseInt(this.value);
+      if (valEl) valEl.textContent = headingOffset + '°';
+      localStorage.setItem('headingOffset', headingOffset);
+    });
+  }
+})();
+
+function setHeadingOffset(deg) {
+  headingOffset = deg;
+  const slider = document.getElementById('hdg-offset-slider');
+  const valEl = document.getElementById('hdg-offset-val');
+  if (slider) slider.value = deg;
+  if (valEl) valEl.textContent = deg + '°';
+  localStorage.setItem('headingOffset', deg);
+}
+
+function applyHeadingOffset(rawHeading) {
+  let corrected = (rawHeading + headingOffset) % 360;
+  if (corrected < 0) corrected += 360;
+  return corrected;
+}
+
+// ══════════════════════════════════════════════
+// CALIBRATION — flexible sensor mounting correction
+// Works with ANY sensor orientation on breadboard
+//
+// "Set as Level" captures current raw values as zero reference
+// Axis swap handles roll↔pitch if sensor is rotated 90°
+// Sign flip handles inverted axes
+// ══════════════════════════════════════════════
+
+// Load saved calibration from localStorage
+let calOffsetRoll  = parseFloat(localStorage.getItem('calOffsetRoll')  || '0');
+let calOffsetPitch = parseFloat(localStorage.getItem('calOffsetPitch') || '0');
+let calAxisSwap    = localStorage.getItem('calAxisSwap') === 'true';
+let calFlipRoll    = localStorage.getItem('calFlipRoll') === 'true';
+let calFlipPitch   = localStorage.getItem('calFlipPitch') === 'true';
+
+// Initialize UI buttons on load
+(function initCalUI() {
+  if (calAxisSwap) {
+    const el = document.getElementById('axis-swap');
+    const norm = document.getElementById('axis-normal');
+    if (el) el.classList.add('active');
+    if (norm) norm.classList.remove('active');
+  }
+  if (calFlipRoll) {
+    const el = document.getElementById('sign-roll');
+    if (el) el.classList.add('active');
+  }
+  if (calFlipPitch) {
+    const el = document.getElementById('sign-pitch');
+    if (el) el.classList.add('active');
+  }
+  setText('cal-off-roll',  calOffsetRoll.toFixed(1) + '°');
+  setText('cal-off-pitch', calOffsetPitch.toFixed(1) + '°');
+})();
+
+// Normalize angle to -180..+180 range
+function normalizeAngle(deg) {
+  while (deg > 180)  deg -= 360;
+  while (deg < -180) deg += 360;
+  return deg;
+}
+
+// "Set as Level" — capture current raw readings as zero reference
+function calibrateLevel() {
+  calOffsetRoll  = droneData.roll;
+  calOffsetPitch = droneData.pitch;
+  localStorage.setItem('calOffsetRoll',  calOffsetRoll);
+  localStorage.setItem('calOffsetPitch', calOffsetPitch);
+  setText('cal-off-roll',  calOffsetRoll.toFixed(1) + '°');
+  setText('cal-off-pitch', calOffsetPitch.toFixed(1) + '°');
+  const btn = document.getElementById('cal-level-btn');
+  if (btn) { btn.classList.add('active'); btn.textContent = '✓ LEVEL SET'; }
+  setTimeout(() => { if (btn) { btn.classList.remove('active'); btn.textContent = '▸ SET CURRENT AS LEVEL'; } }, 2000);
+  addLog(`Calibrated: roll offset=${calOffsetRoll.toFixed(1)}° pitch offset=${calOffsetPitch.toFixed(1)}°`, 'ok');
+}
+
+// Swap roll ↔ pitch axes
+function setAxisMapping(mode) {
+  calAxisSwap = (mode === 'swap');
+  localStorage.setItem('calAxisSwap', calAxisSwap);
+  document.getElementById('axis-normal').classList.toggle('active', !calAxisSwap);
+  document.getElementById('axis-swap').classList.toggle('active', calAxisSwap);
+  addLog(`Axis mapping: ${calAxisSwap ? 'SWAPPED (roll↔pitch)' : 'NORMAL'}`, 'ok');
+}
+
+// Toggle sign inversion for an axis
+function toggleSign(axis) {
+  if (axis === 'roll') {
+    calFlipRoll = !calFlipRoll;
+    localStorage.setItem('calFlipRoll', calFlipRoll);
+    document.getElementById('sign-roll').classList.toggle('active', calFlipRoll);
+    addLog(`Roll sign: ${calFlipRoll ? 'INVERTED' : 'NORMAL'}`, 'ok');
+  } else {
+    calFlipPitch = !calFlipPitch;
+    localStorage.setItem('calFlipPitch', calFlipPitch);
+    document.getElementById('sign-pitch').classList.toggle('active', calFlipPitch);
+    addLog(`Pitch sign: ${calFlipPitch ? 'INVERTED' : 'NORMAL'}`, 'ok');
+  }
+}
+
+// Reset all calibration to defaults
+function resetCalibration() {
+  calOffsetRoll = 0; calOffsetPitch = 0;
+  calAxisSwap = false; calFlipRoll = false; calFlipPitch = false;
+  localStorage.removeItem('calOffsetRoll');
+  localStorage.removeItem('calOffsetPitch');
+  localStorage.removeItem('calAxisSwap');
+  localStorage.removeItem('calFlipRoll');
+  localStorage.removeItem('calFlipPitch');
+  setText('cal-off-roll', '0°');
+  setText('cal-off-pitch', '0°');
+  document.getElementById('axis-normal').classList.add('active');
+  document.getElementById('axis-swap').classList.remove('active');
+  document.getElementById('sign-roll').classList.remove('active');
+  document.getElementById('sign-pitch').classList.remove('active');
+  addLog('Calibration reset to defaults', 'warn');
+}
+
+// Apply full calibration pipeline to raw sensor data
+function calibrateSensor(rawRoll, rawPitch) {
+  // Step 1: Subtract level offset (zero reference)
+  let roll  = normalizeAngle(rawRoll  - calOffsetRoll);
+  let pitch = normalizeAngle(rawPitch - calOffsetPitch);
+
+  // Step 2: Swap axes if sensor is rotated 90° on breadboard
+  if (calAxisSwap) {
+    const temp = roll;
+    roll = pitch;
+    pitch = temp;
+  }
+
+  // Step 3: Invert sign if axis direction is reversed
+  if (calFlipRoll)  roll  = -roll;
+  if (calFlipPitch) pitch = -pitch;
+
+  return { roll, pitch };
+}
+
+// Tiered response: dead zone → gentle → normal → full
+// |angle| < 5°  → 0 (dead zone, sensor noise)
+// 5° - 15°      → 30% response (gentle movement)
+// 15° - 45°     → 60% response (moderate tilt)
+// > 45°         → 100% response (full tilt)
+function tieredResponse(angle) {
+  const abs = Math.abs(angle);
+  const sign = angle >= 0 ? 1 : -1;
+  if (abs < 5)  return 0;
+  if (abs < 15) return sign * (abs - 5) * 0.3;
+  if (abs < 45) return sign * (3 + (abs - 15) * 0.6);
+  return sign * (21 + (abs - 45) * 1.0);
+}
+
+// ══════════════════════════════════════════════
+// ANIMATION LOOP
+// ══════════════════════════════════════════════
+let frame = 0;
+let targetRoll = 0, targetPitch = 0, targetYaw = 0;
+let currentRoll = 0, currentPitch = 0, currentYaw = 0;
+
+function lerp(a, b, t) { return a + (b-a)*t; }
+
+function animate() {
+  requestAnimationFrame(animate);
+  frame++;
+
+  // Smooth drone rotation toward target (damped for less sensitivity)
+  currentRoll  = lerp(currentRoll,  targetRoll,  0.03);
+  currentPitch = lerp(currentPitch, targetPitch, 0.03);
+  currentYaw   = lerp(currentYaw,   targetYaw,   0.02);
+
+  // Apply rotation to drone (roll + pitch only, no yaw)
+  droneGroup.rotation.z = THREE.MathUtils.degToRad(-currentRoll);
+  droneGroup.rotation.x = THREE.MathUtils.degToRad(currentPitch);
+  droneGroup.rotation.y = 0;
+
+  // Hover animation
+  const hover = Math.sin(frame * 0.025) * 0.12;
+  droneGroup.position.y = hover;
+  glowRing.position.y = -0.5 + hover;
+  glowRing2.position.y = -0.5 + hover;
+
+  // Rotor spin (fast like real propellers)
+  rotorGroups.forEach(r => {
+    r.group.rotation.y += 0.4 * r.speed;
+  });
+
+  // Orbit rings (static, no rotation)
+
+  // Pulse glow rings
+  glowRing.material.opacity = 0.08 + Math.sin(frame * 0.04) * 0.04;
+  glowRing2.material.opacity = 0.06 + Math.sin(frame * 0.06 + 1) * 0.03;
+
+  // Status LED pulse
+  statusLed.material.opacity = 0.4 + Math.sin(frame * 0.08) * 0.4;
+
+  // Fixed camera position (no auto-orbit)
+  camera.lookAt(0, 0, 0);
+
+  // Shadow scale with altitude
+  const altScale = Math.max(0.3, 1 - (droneData.altitude_baro / 500));
+  shadowBlob.scale.set(altScale, altScale, altScale);
+  shadowBlob.material.opacity = altScale * 0.25;
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ══════════════════════════════════════════════
+// SPARKLINE
+// ══════════════════════════════════════════════
+const sparkCanvas = document.getElementById('spark-gyro');
+const sparkCtx = sparkCanvas.getContext('2d');
+
+function drawSparkline() {
+  const w = sparkCanvas.offsetWidth || 240;
+  const h = 36;
+  sparkCanvas.width = w;
+  sparkCanvas.height = h;
+  sparkCtx.clearRect(0, 0, w, h);
+
+  if (gyroHistory.length < 2) return;
+  const max = Math.max(...gyroHistory.map(Math.abs), 1);
+
+  sparkCtx.beginPath();
+  sparkCtx.strokeStyle = '#0078d4';
+  sparkCtx.lineWidth = 1.5;
+  sparkCtx.shadowColor = '#0078d4';
+  sparkCtx.shadowBlur = 2;
+
+  gyroHistory.forEach((v, i) => {
+    const x = (i / (gyroHistory.length-1)) * w;
+    const y = h/2 - (v / max) * (h/2 - 4);
+    i === 0 ? sparkCtx.moveTo(x, y) : sparkCtx.lineTo(x, y);
+  });
+  sparkCtx.stroke();
+
+  // Fill under line
+  sparkCtx.lineTo(w, h/2);
+  sparkCtx.lineTo(0, h/2);
+  sparkCtx.closePath();
+  const grad = sparkCtx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, 'rgba(0,120,212,0.12)');
+  grad.addColorStop(1, 'rgba(0,120,212,0)');
+  sparkCtx.fillStyle = grad;
+  sparkCtx.fill();
+}
+
+// ══════════════════════════════════════════════
+// UI UPDATE
+// ══════════════════════════════════════════════
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+function setClass(id, cls) {
+  const el = document.getElementById(id);
+  if (el) { el.className = el.className.replace(/\b(green|red|amber|white)\b/g,''); el.classList.add(cls); }
+}
+function setWidth(id, pct) {
+  const el = document.getElementById(id);
+  if (el) el.style.width = Math.min(100, Math.max(0, pct)) + '%';
+}
+
+function addLog(msg, type='') {
+  const wrap = document.getElementById('log-wrap');
+  if (!wrap) return;
+  const now = new Date();
+  const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
+  wrap.insertBefore(entry, wrap.firstChild);
+  if (wrap.children.length > 20) wrap.removeChild(wrap.lastChild);
+}
+
+function compassDirection(deg) {
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(deg/22.5) % 16];
+}
+
+function updateUI() {
+  const d = droneData;
+  const g = gpsData;
+
+  // ── Calibrated angles (flexible sensor mounting correction)
+  const { roll: calRoll, pitch: calPitch } = calibrateSensor(d.roll, d.pitch);
+
+  // ── Show raw values in calibration panel
+  setText('cal-raw-roll',  d.roll.toFixed(1) + '°');
+  setText('cal-raw-pitch', d.pitch.toFixed(1) + '°');
+
+  // ── Apply heading offset for sensor mounting correction
+  const correctedHeading = applyHeadingOffset(d.heading || 0);
+
+  // ── 3D drone target rotation with tiered response
+  targetRoll  = tieredResponse(calRoll);
+  targetPitch = tieredResponse(calPitch);
+  if (d.heading !== undefined) targetYaw = correctedHeading;
+
+  // ── Attitude indicator (uses calibrated values)
+  const attEl = document.getElementById('att-horizon');
+  if (attEl) attEl.style.transform = `rotate(${-calRoll}deg) translateY(${calPitch*0.8}px)`;
+  setText('att-roll',  `${calRoll.toFixed(1)}°`);
+  setText('att-pitch', `${calPitch.toFixed(1)}°`);
+
+  // ── Compass (uses corrected heading)
+  const needle = document.getElementById('compass-needle');
+  if (needle) needle.style.transform = `translate(-50%, -50%) rotate(${correctedHeading}deg)`;
+  setText('compass-hdg', `${correctedHeading.toFixed(1)}° ${compassDirection(correctedHeading)}`);
+
+  // ── HUD badges (show calibrated values)
+  setText('hud-roll',  `ROLL: ${calRoll.toFixed(1)}°`);
+  setText('hud-pitch', `PITCH: ${calPitch.toFixed(1)}°`);
+  setText('hud-alt',   `ALT: ${d.altitude_baro ? d.altitude_baro.toFixed(0)+'m' : '----'}`);
+
+  // ── Accel gauges
+  setText('ax-val', d.accelX.toFixed(3));
+  setText('ay-val', d.accelY.toFixed(3));
+  setText('az-val', d.accelZ.toFixed(3));
+  setWidth('ax-bar', 50 + d.accelX * 25);
+  setWidth('ay-bar', 50 + d.accelY * 25);
+  setWidth('az-bar', 50 + (d.accelZ + 1) * 25);
+
+  // ── Gyro
+  setText('gx-val', `${d.gyroX.toFixed(3)} °/s`);
+  setText('gy-val', `${d.gyroY.toFixed(3)} °/s`);
+  setText('gz-val', `${d.gyroZ.toFixed(3)} °/s`);
+  gyroHistory.push(d.gyroZ);
+  if (gyroHistory.length > 60) gyroHistory.shift();
+  drawSparkline();
+
+  // ── BMP280
+  setText('baro-alt-big', d.altitude_baro ? d.altitude_baro.toFixed(0) : '----');
+  setText('pressure-val', `${d.pressure.toFixed(2)} hPa`);
+  setText('temp-val', `${d.temperature.toFixed(1)} °C`);
+  setText('vspeed-val', `${d.vertical_speed.toFixed(3)} m/s`);
+  setText('vstatus-val', d.vertical_status.toUpperCase());
+  const vsEl = document.getElementById('vstatus-val');
+  if (vsEl) {
+    vsEl.className = 'metric-value';
+    if (d.vertical_status === 'Climbing')   vsEl.classList.add('green');
+    if (d.vertical_status === 'Descending') vsEl.classList.add('red');
+    if (d.vertical_status === 'Hovering')   vsEl.classList.add('amber');
+  }
+
+  // ── Alt tape
+  setText('alt-tape-val', d.altitude_baro ? d.altitude_baro.toFixed(0) : '0');
+
+  // ── Vspeed indicator
+  const vsInd = document.getElementById('vspeed-ind');
+  if (vsInd) {
+    const pct = 50 - (d.vertical_speed / 5) * 40;
+    vsInd.style.top = Math.min(90, Math.max(10, pct)) + '%';
+    vsInd.style.background = d.vertical_speed > 0 ? 'var(--green)' : d.vertical_speed < 0 ? 'var(--red)' : 'var(--cyan)';
+    vsInd.style.boxShadow = `0 0 6px ${d.vertical_speed > 0 ? 'var(--green)' : 'var(--red)'}`;
+  }
+
+  // ── GPS
+  setText('gps-lat',    g.latitude  ? g.latitude.toFixed(6)  : '---.------');
+  setText('gps-lng',    g.longitude ? g.longitude.toFixed(6) : '---.------');
+  setText('gps-alt',    g.altitude  ? `${g.altitude.toFixed(1)} m` : '--- m');
+  setText('gps-status', g.status === 'Fixed' ? 'FIXED ✓' : 'SEARCHING...');
+  setText('gps-time',   g.time || '--:--:--');
+
+  setWidth('spd-bar',  (g.speed / 50) * 100);
+  setText('spd-val',  `${g.speed.toFixed(2)} km/h`);
+  setWidth('sat-bar',  (g.satellites / 12) * 100);
+  setText('sat-val',  `${g.satellites} / 12`);
+  const hdopPct = g.hdop >= 99 ? 0 : Math.max(0, 100 - g.hdop * 20);
+  setWidth('hdop-bar', hdopPct);
+  setText('hdop-val',  g.hdop.toFixed(2));
+
+  // HUD GPS badge
+  const hudGps = document.getElementById('hud-gps');
+  if (hudGps) {
+    hudGps.textContent = g.status === 'Fixed' ? `GPS: ${g.satellites} SATS` : 'GPS: SEARCHING';
+    hudGps.className = g.status === 'Fixed' ? 'hud-badge green' : 'hud-badge red';
+  }
+
+  // Sensor health pills
+  const mpuPill = document.getElementById('pill-mpu');
+  if (mpuPill) {
+    const hasMpu = d.accelX !== 0 || d.accelY !== 0;
+    mpuPill.className = `sensor-pill ${hasMpu ? 'ok' : 'err'}`;
+  }
+}
+
+// ══════════════════════════════════════════════
+// FIREBASE LISTENERS
+// ══════════════════════════════════════════════
+db.ref('drone_imu').on('value', snap => {
+  const data = snap.val();
+  if (!data) return;
+
+  const prev = { ...droneData };
+  droneData = {
+    roll:            data.roll            || 0,
+    pitch:           data.pitch           || 0,
+    yaw:             data.gyroZ           || 0,
+    accelX:          data.accelX          || 0,
+    accelY:          data.accelY          || 0,
+    accelZ:          data.accelZ          || -1,
+    gyroX:           data.gyroX           || 0,
+    gyroY:           data.gyroY           || 0,
+    gyroZ:           data.gyroZ           || 0,
+    altitude_baro:   data.altitude_baro   || 0,
+    pressure:        data.pressure        || 0,
+    temperature:     data.temperature     || 0,
+    vertical_speed:  data.vertical_speed  || 0,
+    vertical_status: data.vertical_status || 'Hovering',
+    heading:         data.heading         || 0,
+    direction:       data.direction       || 'N',
+  };
+
+  lastUpdate = Date.now();
+
+  // Update drone status indicator
+  document.getElementById('drone-dot').className = 'pulse-dot';
+  document.getElementById('drone-text').textContent = 'ONLINE';
+  document.getElementById('drone-status').className = 'status-pill online';
+
+  // Log significant changes
+  if (Math.abs(droneData.roll - prev.roll) > 5)
+    addLog(`Roll changed: ${droneData.roll.toFixed(1)}°`, 'warn');
+  if (droneData.vertical_status !== prev.vertical_status)
+    addLog(`Status: ${droneData.vertical_status}`, droneData.vertical_status === 'Climbing' ? 'ok' : '');
+
+  updateUI();
+}, err => {
+  addLog('Firebase IMU error: ' + err.message, 'err');
+});
+
+db.ref('drone').on('value', snap => {
+  const data = snap.val();
+  if (!data) return;
+
+  gpsData = {
+    latitude:   parseFloat(data.latitude)  || null,
+    longitude:  parseFloat(data.longitude) || null,
+    altitude:   parseFloat(data.altitude)  || 0,
+    speed:      parseFloat(data.speed)     || 0,
+    satellites: parseInt(data.satellites)  || 0,
+    hdop:       parseFloat(data.hdop)      || 99.99,
+    status:     data.status                || 'Searching...',
+    time:       data.time                  || '',
+  };
+
+  // Firebase connected indicator
+  document.getElementById('fb-dot').className = 'pulse-dot';
+  document.getElementById('fb-text').textContent = 'FIREBASE';
+  document.getElementById('firebase-status').className = 'status-pill online';
+
+  if (gpsData.status === 'Fixed')
+    addLog(`GPS Fixed: ${gpsData.satellites} sats, HDOP ${gpsData.hdop}`, 'ok');
+
+  updateUI();
+});
+
+// ══════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════
+setInterval(() => {
+  const now = new Date();
+  const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  setText('clock', t);
+
+  // Check drone offline
+  if (lastUpdate && Date.now() - lastUpdate > 10000) {
+    document.getElementById('drone-dot').className = 'pulse-dot red';
+    document.getElementById('drone-text').textContent = 'TIMEOUT';
+    document.getElementById('drone-status').className = 'status-pill offline';
+  }
+}, 1000);
+
+// ══════════════════════════════════════════════
+// INITIAL LOG
+// ══════════════════════════════════════════════
+addLog('System initialized', 'ok');
+addLog('Connecting to Firebase...', '');
+addLog('Three.js renderer active', 'ok');
+addLog('Waiting for drone telemetry...', 'warn');
+
+// ══════════════════════════════════════════════
+// THEME TOGGLE (Dark / Light)
+// ══════════════════════════════════════════════
+const LIGHT_SCENE = { bg: 0xeef2f7, fog: 0xeef2f7, grid1: 0xc0d0e0, grid2: 0xd8e0ea, particles: 0x8899aa, amb: 0xffffff, ambI: 0.7, key: 0xffffff, keyI: 1.2, rim: 0x8ba5d6, rimI: 0.8, shadow: 0.12 };
+const DARK_SCENE  = { bg: 0x000a1a, fog: 0x000a1a, grid1: 0x001833, grid2: 0x001433, particles: 0x003366, amb: 0x112244, ambI: 0.8, key: 0x00c8ff, keyI: 2.5, rim: 0x8b5cf6, rimI: 1.2, shadow: 0.25 };
+
+let isDark = false;
+const toggleBtn = document.getElementById('theme-toggle');
+
+function applyTheme(dark) {
+  isDark = dark;
+  const t = dark ? DARK_SCENE : LIGHT_SCENE;
+
+  // CSS theme
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+
+  // Button icon
+  toggleBtn.innerHTML = dark ? '&#9788;' : '&#9789;';
+  toggleBtn.title = dark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+
+  // Three.js scene
+  scene.background = new THREE.Color(t.bg);
+  scene.fog = new THREE.FogExp2(t.fog, dark ? 0.035 : 0.025);
+  gridHelper.colorCenterLine.set(t.grid1);
+  gridHelper.colorGrid.set(t.grid2);
+  partMat.color.set(t.particles);
+  partMat.opacity = dark ? 0.6 : 0.3;
+  ambLight.color.set(t.amb);
+  ambLight.intensity = t.ambI;
+  keyLight.color.set(t.key);
+  keyLight.intensity = t.keyI;
+  rimLight.color.set(t.rim);
+  rimLight.intensity = t.rimI;
+  shadowBlob.material.opacity = t.shadow;
+
+  // Save preference
+  localStorage.setItem('droneops-theme', dark ? 'dark' : 'light');
+}
+
+toggleBtn.addEventListener('click', () => applyTheme(!isDark));
+
+// Restore saved preference
+if (localStorage.getItem('droneops-theme') === 'dark') {
+  applyTheme(true);
+}
+
+// ══════════════════════════════════════════════
+// LOADING SCREEN DISMISS
+// ══════════════════════════════════════════════
+setTimeout(() => {
+  const loading = document.getElementById('loading');
+  loading.style.transition = 'opacity 0.8s ease';
+  loading.style.opacity = '0';
+  setTimeout(() => {
+    loading.style.display = 'none';
+    const app = document.getElementById('app');
+    app.style.transition = 'opacity 0.8s ease';
+    app.style.opacity = '1';
+    addLog('Telemetry display online', 'ok');
+  }, 800);
+}, 2500);
+</script>
+</body>
+</html>

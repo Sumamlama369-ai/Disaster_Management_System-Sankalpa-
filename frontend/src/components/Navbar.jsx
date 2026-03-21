@@ -181,6 +181,7 @@ export default function Navbar() {
         { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
         { id: 'disaster-dashboard', label: 'Live Dashboard', path: '/disaster-dashboard' },
         { id: 'no-fly-zone', label: 'No-Fly Zone', path: '/no-fly-zone' },
+        { id: 'nepal-weather', label: 'Weather', path: '/nepal-weather' },
         { id: 'report-disaster', label: 'Report Disaster', path: '/report-disaster' },
       ];
     } else if (user?.role === 'officer') {

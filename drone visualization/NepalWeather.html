@@ -1,0 +1,2860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nepal Weather — DisasterAlert</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<style>
+:root {
+  --sky:    #f5f7fa;
+  --sky2:   #eef1f6;
+  --panel:  #ffffff;
+  --card:   #ffffff;
+  --card2:  #f8f9fc;
+  --border: rgba(0,0,0,0.06);
+  --border2:rgba(0,0,0,0.10);
+  --blue:   #2d7cf6;
+  --blue2:  #1a65d6;
+  --teal:   #0fa0b0;
+  --green:  #16a06a;
+  --amber:  #e68a00;
+  --red:    #dc3545;
+  --white:  #1a2332;
+  --text:   #334155;
+  --text2:  #64748b;
+  --text3:  #94a3b8;
+  --font-s: 'Instrument Serif', serif;
+  --font-m: 'DM Mono', monospace;
+  --font-b: 'Outfit', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--sky);color:var(--text);font-family:var(--font-b);-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.12);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* LOADING */
+#loading{
+  position:fixed;inset:0;z-index:9999;background:#ffffff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+}
+.load-title{font-family:var(--font-s);font-size:52px;color:#1a2332;letter-spacing:-1px;opacity:0;animation:fadeUp .8s .2s forwards}
+.load-sub{font-family:var(--font-m);font-size:12px;color:#64748b;letter-spacing:3px;text-transform:uppercase;opacity:0;animation:fadeUp .8s .5s forwards}
+.load-bar{width:280px;height:2px;background:rgba(0,0,0,.06);border-radius:1px;overflow:hidden;opacity:0;animation:fadeUp .5s .6s forwards}
+.load-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));animation:loadBar 2.2s ease forwards}
+@keyframes loadBar{0%{width:0}100%{width:100%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* HEADER */
+.header{
+  height:64px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;background:#ffffff;
+  border-bottom:1px solid var(--border);position:relative;z-index:100;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+.header-left{display:flex;align-items:center;gap:16px}
+.h-brand{display:flex;flex-direction:column}
+.h-brand-name{font-size:15px;font-weight:700;color:#1a2332;letter-spacing:-.2px}
+.h-brand-sub{font-family:var(--font-m);font-size:9px;color:var(--blue);letter-spacing:2px;text-transform:uppercase}
+.h-divider{width:1px;height:28px;background:var(--border2)}
+.h-page-title{font-family:var(--font-s);font-size:20px;color:var(--text);font-style:italic}
+.header-right{display:flex;align-items:center;gap:14px}
+.h-update{font-family:var(--font-m);font-size:11px;color:var(--text3)}
+.h-update span{color:var(--green)}
+.h-badge{
+  padding:5px 14px 5px 24px;background:rgba(34,201,131,.08);
+  border:1px solid rgba(34,201,131,.25);border-radius:20px;
+  font-family:var(--font-m);font-size:10px;font-weight:600;
+  color:var(--green);letter-spacing:1.5px;text-transform:uppercase;
+  position:relative;overflow:hidden;
+}
+.h-badge::before{
+  content:'';position:absolute;top:50%;left:10px;width:7px;height:7px;
+  border-radius:50%;background:var(--green);transform:translateY(-50%);
+  animation:livePulse 2s ease infinite;
+}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,201,131,0.4)}50%{opacity:0.6;box-shadow:0 0 0 4px rgba(34,201,131,0)}}
+.h-model-badge{
+  padding:4px 10px;background:rgba(45,124,246,0.08);
+  border:1px solid rgba(45,124,246,0.2);border-radius:12px;
+  font-family:var(--font-m);font-size:9px;font-weight:600;
+  color:var(--blue);letter-spacing:1px;text-transform:uppercase;
+}
+.data-source-bar{
+  display:flex;align-items:center;justify-content:center;gap:24px;
+  padding:6px 28px;background:var(--card2);
+  border-bottom:1px solid var(--border);
+  font-family:var(--font-m);font-size:10px;color:var(--text3);
+  letter-spacing:0.3px;
+}
+.data-source-bar .ds-item{display:flex;align-items:center;gap:5px}
+.data-source-bar .ds-dot{width:4px;height:4px;border-radius:50%;background:var(--text3);opacity:0.4}
+.data-source-bar .ds-label{color:var(--text2);font-weight:500}
+
+/* TABS */
+.tabs{
+  display:flex;gap:0;background:#ffffff;
+  border-bottom:1px solid var(--border);padding:0 28px;
+}
+.tab{
+  padding:12px 24px;font-size:12px;font-weight:600;
+  letter-spacing:.5px;text-transform:uppercase;color:var(--text3);
+  border-bottom:2px solid transparent;cursor:pointer;
+  transition:all .2s;font-family:var(--font-m);
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* MAIN LAYOUT */
+.main{display:flex;height:calc(100vh - 137px);overflow:hidden}
+
+/* LEFT SIDEBAR */
+.sidebar{
+  width:340px;flex-shrink:0;background:#ffffff;
+  border-right:1px solid var(--border);overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+
+/* HERO WEATHER CARD */
+.hero-card{
+  padding:24px;background:linear-gradient(135deg,#2d7cf6,#1a65d6);
+  border-bottom:1px solid var(--border);position:relative;overflow:hidden;
+}
+.hero-card::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.15),transparent 70%);
+}
+.hero-location{
+  font-family:var(--font-m);font-size:10px;color:rgba(255,255,255,.75);
+  letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;
+}
+.hero-temp{
+  font-family:var(--font-s);font-size:72px;color:#ffffff;
+  line-height:1;margin-bottom:4px;font-weight:400;
+}
+.hero-temp sup{font-size:32px;vertical-align:super;color:rgba(255,255,255,.6)}
+.hero-desc{font-size:16px;font-weight:500;color:rgba(255,255,255,.9);margin-bottom:16px}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.hero-item{display:flex;flex-direction:column;gap:2px}
+.hero-item-val{font-family:var(--font-m);font-size:14px;font-weight:500;color:#ffffff}
+.hero-item-lbl{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:.5px;text-transform:uppercase}
+
+/* METRIC GRID */
+.metric-section{padding:16px 20px;border-bottom:1px solid var(--border)}
+.section-hdr{
+  font-family:var(--font-m);font-size:9px;font-weight:500;
+  color:var(--text3);letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+.section-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric-card{
+  background:#f8f9fc;border:1px solid var(--border);
+  border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:4px;
+  transition:all .2s;
+}
+.metric-card:hover{border-color:rgba(45,124,246,.2);box-shadow:0 2px 8px rgba(45,124,246,.06);transform:translateY(-1px)}
+.mc-label{font-family:var(--font-m);font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.mc-value{font-size:18px;font-weight:700;color:#1a2332;letter-spacing:-.5px}
+.mc-unit{font-family:var(--font-m);font-size:10px;color:var(--text2);margin-left:2px}
+.mc-sub{font-size:11px;color:var(--text2)}
+
+/* GAUGE BAR */
+.gauge-row{margin-bottom:10px}
+.gauge-label-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px}
+.gauge-label-row span:first-child{color:var(--text2)}
+.gauge-label-row span:last-child{font-family:var(--font-m);font-weight:600;color:#1a2332}
+.gauge-track{height:4px;background:rgba(0,0,0,.06);border-radius:2px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.gauge-blue  {background:linear-gradient(90deg,#2d7cf6,#0fb8c9)}
+.gauge-green {background:linear-gradient(90deg,#16a06a,#22c983)}
+.gauge-amber {background:linear-gradient(90deg,#e68a00,#f5a623)}
+.gauge-red   {background:linear-gradient(90deg,#dc3545,#e94b4b)}
+
+/* HOURLY FORECAST */
+.hourly-scroll{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}
+.hourly-scroll::-webkit-scrollbar{display:none}
+.hourly-item{
+  flex-shrink:0;width:60px;background:#f8f9fc;
+  border:1px solid var(--border);border-radius:8px;
+  padding:10px 6px;text-align:center;display:flex;flex-direction:column;gap:4px;
+  transition:all .2s;
+}
+.hourly-item:hover{border-color:rgba(45,124,246,.2);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.hourly-item.now{border-color:rgba(45,124,246,.4);background:rgba(45,124,246,.06)}
+.hourly-time{font-family:var(--font-m);font-size:9px;color:var(--text3)}
+.hourly-wc{font-size:8px;color:var(--text2);font-weight:600}
+.hourly-temp{font-size:14px;font-weight:700;color:#1a2332}
+.hourly-rain{font-family:var(--font-m);font-size:9px;color:var(--blue)}
+
+/* 7-DAY FORECAST — White card design */
+.forecast-card{
+  background:#ffffff;border-radius:10px;padding:2px 0;
+  border:1px solid rgba(0,0,0,0.06);
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);
+}
+.forecast-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.06);
+  transition:background 0.15s;
+}
+.forecast-item:hover{background:rgba(45,124,246,0.03)}
+.forecast-item:last-child{border-bottom:none}
+.forecast-day{font-size:12px;font-weight:700;color:#1a2332;width:70px;letter-spacing:0.2px}
+.forecast-wc{font-size:11px;color:#5a6a7e;flex:1;padding:0 10px;font-weight:500}
+.forecast-rain{font-family:var(--font-m);font-size:11px;color:#3a7df6;width:40px;text-align:center;font-weight:600}
+.forecast-temps{font-family:var(--font-m);font-size:13px;font-weight:600;display:flex;gap:6px}
+.forecast-max{color:#e67e00}
+.forecast-min{color:#8a9bb0}
+
+/* SUN TIMES */
+.sun-row{display:flex;gap:12px}
+.sun-item{flex:1;background:#f8f9fc;border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;transition:all .2s}
+.sun-item:hover{border-color:rgba(45,124,246,.2);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.sun-label{font-family:var(--font-m);font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.sun-time{font-size:18px;font-weight:700;color:#1a2332}
+
+/* WIND DIRECTION VISUAL */
+.wind-vis{display:flex;align-items:center;gap:16px;padding:8px 0}
+.wind-compass{
+  width:72px;height:72px;border-radius:50%;
+  border:2px solid var(--border2);
+  position:relative;flex-shrink:0;
+  background:radial-gradient(circle,rgba(45,124,246,.06),#f8f9fc);
+}
+.wind-arrow{
+  position:absolute;top:50%;left:50%;
+  width:2px;height:28px;background:linear-gradient(to top,var(--blue),transparent);
+  transform-origin:bottom center;transform:translateX(-50%) translateY(-100%);
+  border-radius:1px;transition:transform .5s ease;
+}
+.wind-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:6px;height:6px;border-radius:50%;background:var(--blue);
+}
+.wind-n,.wind-s,.wind-e,.wind-w{
+  position:absolute;font-family:var(--font-m);font-size:9px;
+  color:var(--text3);font-weight:600;
+}
+.wind-n{top:3px;left:50%;transform:translateX(-50%)}
+.wind-s{bottom:3px;left:50%;transform:translateX(-50%)}
+.wind-e{right:4px;top:50%;transform:translateY(-50%)}
+.wind-w{left:4px;top:50%;transform:translateY(-50%)}
+.wind-details{display:flex;flex-direction:column;gap:6px;flex:1}
+.wind-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,.03)}
+.wind-row:last-child{border-bottom:none}
+.wind-row-lbl{color:var(--text2)}
+.wind-row-val{font-family:var(--font-m);font-weight:600;color:#1a2332}
+
+/* PROVINCE TAB — LIST + MAP LAYOUT */
+.province-list{
+  width:260px;flex-shrink:0;border-right:1px solid var(--border);
+  overflow-y:auto;background:#ffffff;
+}
+.province-list-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:#ffffff;z-index:10;
+}
+.province-list-title{font-family:var(--font-s);font-size:18px;color:#1a2332}
+.province-list-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.prov-item{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:all .15s;display:flex;
+  justify-content:space-between;align-items:center;
+}
+.prov-item:hover{background:#f8f9fc}
+.prov-item.selected{background:rgba(45,124,246,.06);border-left:3px solid var(--blue)}
+.prov-item-color{width:4px;height:36px;border-radius:2px;flex-shrink:0;margin-right:10px}
+.prov-item-info{display:flex;flex-direction:column;flex:1}
+.prov-item-name{font-size:13px;font-weight:600;color:#1a2332}
+.prov-item-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.prov-item-temp{font-family:var(--font-m);font-size:14px;font-weight:600;color:#1a2332}
+/* Province right area — same as district */
+.prov-wrap{flex:1;overflow-y:auto;overflow-x:hidden;background:#f0f2f7}
+.prov-wrap::-webkit-scrollbar{width:5px}
+.prov-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:3px}
+#prov-map{width:100%;height:420px}
+.prov-map-section{position:relative}
+.prov-map-section #prov-map{height:420px}
+.spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* DISTRICT VIEW */
+.district-wrap{display:flex;height:100%;overflow:hidden}
+.district-list{
+  width:260px;flex-shrink:0;border-right:1px solid var(--border);
+  overflow-y:auto;background:#ffffff;
+}
+.district-search{
+  padding:12px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:#ffffff;z-index:10;
+}
+.search-input{
+  width:100%;background:#f8f9fc;border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;color:#1a2332;
+  font-family:var(--font-b);font-size:13px;outline:none;
+  transition:all .2s;
+}
+.search-input:focus{border-color:rgba(45,124,246,.4);box-shadow:0 0 0 3px rgba(45,124,246,.1)}
+.search-input::placeholder{color:var(--text3)}
+.district-item{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:all .15s;display:flex;
+  justify-content:space-between;align-items:center;
+}
+.district-item:hover{background:#f8f9fc}
+.district-item.selected{background:rgba(45,124,246,.06);border-left:3px solid var(--blue)}
+.di-name{font-size:12px;font-weight:600;color:#1a2332}
+.di-province{font-size:9px;color:var(--text3);margin-top:1px}
+.di-temp{font-family:var(--font-m);font-size:13px;font-weight:600;color:#1a2332}
+
+/* MAP & DISTRICT CONTENT AREA */
+.map-wrap{flex:1;overflow-y:auto;overflow-x:hidden;background:#f0f2f7}
+.map-wrap::-webkit-scrollbar{width:5px}
+.map-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:3px}
+#map{width:100%;height:420px;position:relative}
+
+/* ── DISTRICT HEADER BAR ── */
+.dd-header-bar{
+  display:none;
+  align-items:center;justify-content:space-between;
+  padding:10px 20px;
+  background:#ffffff;border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:20;
+}
+.dd-hb-left{display:flex;align-items:center;gap:14px}
+.dd-hb-name{font-size:17px;font-weight:700;color:#1a2332;letter-spacing:-.3px}
+.dd-hb-province{font-family:var(--font-m);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
+.dd-hb-temp{font-family:var(--font-s);font-size:36px;color:#1a2332;line-height:1}
+.dd-hb-temp sup{font-size:16px;color:var(--text2)}
+.dd-hb-desc{font-size:12px;color:var(--text2);font-weight:500}
+.dd-hb-close{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
+  background:#f8f9fc;color:var(--text2);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.dd-hb-close:hover{background:#eef1f6;color:#1a2332}
+
+/* ── BOX METRIC CARDS ── */
+.dd-cards{display:none;padding:16px 20px;background:#f0f2f7}
+.dd-cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.dd-box{
+  background:#ffffff;border:1px solid rgba(0,0,0,.06);
+  border-radius:14px;padding:16px 18px;
+  position:relative;overflow:hidden;
+  transition:all .25s;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.dd-box:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08);border-color:rgba(0,0,0,.1)}
+.dd-box-title{font-family:var(--font-m);font-size:9px;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px}
+.dd-box-val{font-family:var(--font-s);font-size:34px;color:#1a2332;line-height:1;margin-bottom:4px}
+.dd-box-val span{font-size:16px;color:var(--text2);font-family:var(--font-b)}
+.dd-box-sub{font-size:11px;color:var(--text2);margin-top:2px}
+/* Visual gauge bar inside box */
+.dd-box-gauge{height:4px;background:rgba(0,0,0,.06);border-radius:2px;margin-top:10px;overflow:hidden}
+.dd-box-gauge-fill{height:100%;border-radius:2px;transition:width .6s ease}
+/* Colored accent line at top of box */
+.dd-box.accent-blue::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#2d7cf6,#0fb8c9)}
+.dd-box.accent-green::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#16a06a,#22c983)}
+.dd-box.accent-amber::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#e68a00,#f5a623)}
+.dd-box.accent-red::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#dc3545,#e94b4b)}
+.dd-box.accent-teal::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0fa0b0,#22c9d6)}
+.dd-box.accent-purple::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c5cfc,#a78bfa)}
+/* Mini wind compass inside box */
+.dd-box-wind{display:flex;align-items:center;gap:14px}
+.dd-box-wind-compass{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  border:2px solid var(--border2);position:relative;
+  background:radial-gradient(circle,rgba(45,124,246,.05),#f8f9fc);
+}
+.dd-box-wind-arrow{
+  position:absolute;top:50%;left:50%;
+  width:2px;height:20px;background:linear-gradient(to top,var(--blue),transparent);
+  transform-origin:bottom center;transform:translateX(-50%) translateY(-100%);
+  border-radius:1px;transition:transform .5s ease;
+}
+.dd-box-wind-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:var(--blue)}
+.dd-box-wind-info{display:flex;flex-direction:column;gap:2px}
+.dd-box-wind-speed{font-family:var(--font-s);font-size:28px;color:#1a2332;line-height:1}
+.dd-box-wind-speed span{font-size:13px;color:var(--text2);font-family:var(--font-b)}
+.dd-box-wind-dir{font-family:var(--font-m);font-size:11px;color:var(--text2)}
+.dd-box-wind-gust{font-size:10px;color:var(--text3)}
+/* Sun times box */
+.dd-box-sun{display:flex;gap:16px;align-items:center}
+.dd-box-sun-item{display:flex;flex-direction:column;gap:1px}
+.dd-box-sun-lbl{font-family:var(--font-m);font-size:8px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase}
+.dd-box-sun-val{font-size:18px;font-weight:700;color:#1a2332}
+.dd-box-sun-mid{width:1px;height:30px;background:var(--border);flex-shrink:0}
+
+/* ── MAP CONTAINER ── */
+.dd-map-section{position:relative}
+.dd-map-section #map{height:420px}
+
+/* ── BELOW-MAP BOX CARDS (row 2) ── */
+.dd-cards-below{display:none;padding:16px 20px 0;background:#f0f2f7}
+.dd-cards-below .dd-cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* ── BELOW-MAP DATA ── */
+.dd-below{display:none;background:#ffffff}
+
+/* Below sections */
+.dd-section{padding:18px 24px;border-bottom:1px solid var(--border)}
+.dd-sections-row{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.dd-sections-row > .dd-section{flex:1;border-bottom:none;border-right:1px solid var(--border)}
+.dd-sections-row > .dd-section:last-child{border-right:none}
+
+/* Stats grid */
+.dd-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dd-stat-card{
+  background:#f8f9fc;border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;transition:all .2s;
+}
+.dd-stat-card:hover{border-color:rgba(45,124,246,.2);box-shadow:0 2px 8px rgba(45,124,246,.06);transform:translateY(-1px)}
+.dd-stat-title{font-family:var(--font-m);font-size:8px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.dd-stat-values{display:flex;gap:6px;align-items:baseline}
+.dd-stat-max{font-family:var(--font-s);font-size:26px;color:#e67e00;line-height:1}
+.dd-stat-min{font-family:var(--font-s);font-size:26px;color:#8a9bb0;line-height:1}
+.dd-stat-big{font-family:var(--font-s);font-size:28px;color:#1a2332;line-height:1}
+.dd-stat-big span{font-size:12px;color:var(--text2);font-family:var(--font-b)}
+.dd-stat-sub{font-size:10px;color:var(--text2);margin-top:3px}
+
+/* ── HOURLY VISUAL ── */
+.dd-hourly-scroll{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;margin-top:6px}
+.dd-hourly-scroll::-webkit-scrollbar{display:none}
+.dd-hour-col{
+  flex-shrink:0;width:60px;display:flex;flex-direction:column;
+  align-items:center;gap:4px;padding:8px 0;
+  border-right:1px solid rgba(0,0,0,.03);transition:background .15s;cursor:default;
+}
+.dd-hour-col:hover{background:rgba(45,124,246,.03)}
+.dd-hour-col.now{background:rgba(45,124,246,.06);border-radius:8px}
+.dd-hour-time{font-family:var(--font-m);font-size:10px;color:var(--text3);font-weight:500}
+.dd-hour-bar-wrap{width:6px;height:50px;background:rgba(0,0,0,.04);border-radius:3px;position:relative;overflow:hidden}
+.dd-hour-bar{position:absolute;bottom:0;width:100%;border-radius:3px;transition:height .5s ease}
+.dd-hour-temp{font-family:var(--font-m);font-size:13px;font-weight:700;color:#1a2332}
+.dd-hour-rain{font-family:var(--font-m);font-size:9px;color:var(--blue);font-weight:600}
+.dd-hour-wc{font-size:8px;color:var(--text3);text-align:center;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── 7-DAY FORECAST VISUAL ── */
+.dd-forecast-rows{display:flex;flex-direction:column;gap:0}
+.dd-fc-row{
+  display:flex;align-items:center;gap:14px;padding:10px 0;
+  border-bottom:1px solid rgba(0,0,0,.04);transition:background .15s;
+}
+.dd-fc-row:last-child{border-bottom:none}
+.dd-fc-row:hover{background:rgba(45,124,246,.02)}
+.dd-fc-day{font-size:12px;font-weight:700;color:#1a2332;width:65px;flex-shrink:0}
+.dd-fc-desc{font-size:10px;width:75px;flex-shrink:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dd-fc-rain{font-family:var(--font-m);font-size:10px;color:var(--blue);width:32px;text-align:center;flex-shrink:0;font-weight:600}
+.dd-fc-bar-wrap{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
+.dd-fc-min{font-family:var(--font-m);font-size:11px;color:#8a9bb0;width:28px;text-align:right;flex-shrink:0}
+.dd-fc-bar-track{flex:1;height:6px;background:rgba(0,0,0,.04);border-radius:3px;position:relative;overflow:hidden;min-width:40px}
+.dd-fc-bar-fill{position:absolute;height:100%;border-radius:3px;transition:all .5s ease}
+.dd-fc-max{font-family:var(--font-m);font-size:11px;color:#e67e00;width:28px;flex-shrink:0;font-weight:600}
+
+/* ── MAP SELECTION EFFECTS ── */
+@keyframes districtPulse{
+  0%{stroke-opacity:1;stroke-width:3}
+  50%{stroke-opacity:.5;stroke-width:5}
+  100%{stroke-opacity:1;stroke-width:3}
+}
+
+/* Loading state */
+.dd-loading{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:600;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(8px);
+  padding:30px 40px;border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.12);
+}
+.dd-loading-text{font-family:var(--font-m);font-size:11px;color:var(--text3);letter-spacing:1px}
+.dd-load-bar{width:120px;height:2px;background:rgba(0,0,0,.06);border-radius:1px;overflow:hidden}
+.dd-load-fill{height:100%;width:60%;background:linear-gradient(90deg,var(--blue),var(--teal));animation:ddLoadAnim 1.2s ease infinite}
+@keyframes ddLoadAnim{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+
+/* CONTENT AREAS */
+.tab-content{display:none;flex:1;overflow:hidden}
+.tab-content.active{display:flex}
+#tab-national.active{flex-direction:column;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+#tab-province.active{flex-direction:row}
+#tab-district.active{flex-direction:row}
+
+/* ═══════════════════════════════════════════════════
+   NATIONAL TAB — PREMIUM REDESIGN
+   ═══════════════════════════════════════════════════ */
+
+/* Section reveal animation */
+.nat-section{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.4,0,.2,1),transform .7s cubic-bezier(.4,0,.2,1)}
+.nat-section.visible{opacity:1;transform:none}
+.nat-section:nth-child(2){transition-delay:.06s}
+.nat-section:nth-child(3){transition-delay:.12s}
+.nat-section:nth-child(4){transition-delay:.15s}
+
+/* ── HERO BANNER ── */
+.nat-hero{
+  position:relative;padding:40px 48px 36px;overflow:hidden;
+  background:linear-gradient(135deg,#0f1923 0%,#152742 30%,#1a3a6e 60%,#2d6dd6 100%);
+  min-height:280px;
+}
+.nat-hero::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 600px 400px at 75% 20%,rgba(45,124,246,.2),transparent),
+    radial-gradient(ellipse 400px 300px at 20% 80%,rgba(15,184,201,.1),transparent),
+    radial-gradient(ellipse 200px 200px at 90% 90%,rgba(165,85,247,.08),transparent);
+  animation:heroShift 20s ease-in-out infinite alternate;
+}
+@keyframes heroShift{
+  0%{opacity:.8;transform:translate(0,0) scale(1)}
+  100%{opacity:1;transform:translate(-30px,10px) scale(1.05)}
+}
+.nat-hero::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:80px;
+  background:linear-gradient(to top,rgba(15,25,35,.4),transparent);pointer-events:none;
+}
+.nat-hero-content{
+  position:relative;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:32px;
+}
+.nat-hero-left{flex:1}
+.nat-hero-loc{
+  font-family:var(--font-m);font-size:11px;color:rgba(255,255,255,.55);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;
+}
+.nat-hero-temp{
+  font-family:var(--font-s);font-size:108px;color:#ffffff;
+  line-height:.9;font-weight:400;letter-spacing:-3px;margin-bottom:4px;
+}
+.nat-hero-temp sup{font-size:36px;vertical-align:super;color:rgba(255,255,255,.45);letter-spacing:0}
+.nat-hero-desc{
+  font-size:20px;font-weight:500;color:rgba(255,255,255,.85);
+  margin-bottom:24px;letter-spacing:.3px;
+}
+.nat-hero-stats{display:flex;gap:10px;flex-wrap:wrap}
+.nat-hero-pill{
+  display:flex;flex-direction:column;gap:2px;
+  padding:10px 16px;border-radius:12px;
+  background:rgba(255,255,255,.08);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.1);
+  transition:all .25s;min-width:90px;
+}
+.nat-hero-pill:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.2);transform:translateY(-1px)}
+.nat-hero-pill-val{font-family:var(--font-m);font-size:15px;font-weight:600;color:#ffffff}
+.nat-hero-pill-lbl{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:1px;text-transform:uppercase}
+
+/* Sun arc */
+.nat-hero-right{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:240px}
+.nat-sun-arc{position:relative;width:220px;height:120px}
+.sun-arc-svg{width:100%;height:100%}
+.nat-sun-times{
+  display:flex;justify-content:space-between;width:100%;padding:0 10px;
+  font-family:var(--font-m);font-size:12px;color:rgba(255,255,255,.6);
+}
+.nat-sun-meta{
+  display:flex;gap:16px;font-size:11px;color:rgba(255,255,255,.45);
+  font-family:var(--font-m);
+}
+.nat-sun-meta b{color:rgba(255,255,255,.7);font-weight:600}
+
+/* ── HOURLY RIBBON ── */
+.nat-hourly{
+  padding:20px 48px;background:#ffffff;
+  border-bottom:1px solid var(--border);position:relative;
+}
+.nat-hourly .section-hdr{margin-bottom:14px}
+.nat-hourly-scroll{
+  display:flex;gap:0;overflow-x:auto;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;position:relative;
+}
+.nat-hourly-scroll::-webkit-scrollbar{display:none}
+.nat-hourly::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;width:60px;
+  background:linear-gradient(to left,#ffffff,transparent);pointer-events:none;z-index:2;
+}
+.nat-h-col{
+  flex-shrink:0;width:72px;padding:12px 8px;text-align:center;
+  scroll-snap-align:start;border-right:1px solid rgba(0,0,0,.03);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  transition:background .2s;cursor:default;
+}
+.nat-h-col:hover{background:rgba(45,124,246,.03)}
+.nat-h-col.now{background:rgba(45,124,246,.05);border-top:2px solid var(--blue)}
+.nat-h-time{font-family:var(--font-m);font-size:10px;color:var(--text3);font-weight:500}
+.nat-h-temp{font-size:16px;font-weight:700;color:#1a2332;letter-spacing:-.3px}
+.nat-h-bar-wrap{width:6px;height:44px;border-radius:3px;background:rgba(0,0,0,.04);overflow:hidden;display:flex;align-items:flex-end}
+.nat-h-bar{width:100%;border-radius:3px;transition:height .4s ease}
+.nat-h-rain{font-family:var(--font-m);font-size:9px;color:var(--blue);font-weight:500}
+.nat-h-wc{font-size:8px;color:var(--text3);font-weight:500;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── CITY CARDS ── */
+.nat-cities{padding:24px 48px;background:var(--sky)}
+.nat-cities .section-hdr{margin-bottom:16px}
+.nat-cities-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.nat-city-card{
+  background:#ffffff;border:1px solid var(--border);border-radius:14px;
+  padding:20px;position:relative;overflow:hidden;transition:all .3s;
+  cursor:default;
+}
+.nat-city-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--accent,var(--blue));transition:height .3s;
+}
+.nat-city-card:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.08)}
+.nat-city-card:hover::before{height:4px}
+.nat-city-name{font-size:14px;font-weight:700;color:#1a2332;margin-bottom:2px}
+.nat-city-province{font-family:var(--font-m);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+.nat-city-temp{font-family:var(--font-s);font-size:44px;color:#1a2332;line-height:1;margin-bottom:6px;font-weight:400}
+.nat-city-temp span{font-size:18px;color:var(--text3);font-family:var(--font-b)}
+.nat-city-desc{font-size:12px;font-weight:500;color:var(--text2)}
+
+/* ── MAP SECTION ── */
+.nat-map-section{padding:0 48px 24px;background:var(--sky)}
+.nat-map-section .section-hdr{margin-bottom:14px;padding-top:8px}
+.nat-map-wrap{
+  border-radius:16px;overflow:hidden;border:1px solid var(--border);
+  position:relative;box-shadow:0 4px 20px rgba(0,0,0,.06);
+  height:480px;
+}
+.nat-map-wrap:hover{box-shadow:0 8px 32px rgba(0,0,0,.1)}
+#national-map{width:100%;height:100%;min-height:480px}
+
+/* ── BENTO METRICS ── */
+.nat-bento{padding:24px 48px;background:#ffffff;border-top:1px solid var(--border)}
+.nat-bento .section-hdr{margin-bottom:16px}
+.nat-bento-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  grid-auto-rows:auto;
+}
+.nat-bento-card{
+  background:var(--card2);border:1px solid var(--border);border-radius:14px;
+  padding:18px;display:flex;flex-direction:column;gap:8px;
+  position:relative;overflow:hidden;transition:all .25s;
+}
+.nat-bento-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0;
+  background:var(--card-accent,rgba(0,0,0,.06));
+}
+.nat-bento-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.06);border-color:rgba(45,124,246,.15)}
+.nat-bento-card.card-wind{grid-row:span 2}
+.nat-bento-card.card-wind .wind-compass{width:100px;height:100px;margin:4px auto 8px}
+.nat-bento-card .nb-title{
+  font-family:var(--font-m);font-size:9px;color:var(--text3);
+  letter-spacing:2px;text-transform:uppercase;
+}
+.nat-bento-card .nb-val{
+  font-size:28px;font-weight:700;color:#1a2332;letter-spacing:-.5px;line-height:1;
+}
+.nat-bento-card .nb-val span{font-size:13px;color:var(--text2);font-weight:500;margin-left:2px}
+.nat-bento-card .nb-sub{font-size:11px;color:var(--text2)}
+.nat-bento-card .nb-gauge{height:5px;border-radius:3px;background:rgba(0,0,0,.05);overflow:hidden;margin-top:auto}
+.nat-bento-card .nb-gauge-fill{height:100%;border-radius:3px;transition:width .6s ease}
+
+/* Bento accent colors */
+.nat-bento-card.card-wind::before{background:linear-gradient(90deg,#0fb8c9,#2d7cf6)}
+.nat-bento-card.card-pressure::before{background:linear-gradient(90deg,#a855f7,#6d28d9)}
+.nat-bento-card.card-cloud::before{background:linear-gradient(90deg,#2d7cf6,#0fb8c9)}
+.nat-bento-card.card-precip::before{background:linear-gradient(90deg,#2d7cf6,#3b82f6)}
+.nat-bento-card.card-humidity::before{background:linear-gradient(90deg,#16a06a,#22c983)}
+.nat-bento-card.card-uv::before{background:linear-gradient(90deg,#e68a00,#f5a623)}
+.nat-bento-card.card-dew::before{background:linear-gradient(90deg,#0fb8c9,#22c983)}
+.nat-bento-card.card-rain-prob::before{background:linear-gradient(90deg,#dc3545,#e94b4b)}
+
+/* ── TODAY OVERVIEW ── */
+.nat-today{padding:24px 48px;background:var(--sky);border-top:1px solid var(--border)}
+.nat-today .section-hdr{margin-bottom:16px}
+.nat-today-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.nat-today-card{
+  background:#ffffff;border:1px solid var(--border);border-radius:14px;
+  padding:20px;transition:all .25s;
+}
+.nat-today-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.06)}
+.nat-today-card .nb-title{font-family:var(--font-m);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.nat-today-card .nb-big{font-family:var(--font-s);font-size:36px;color:#1a2332;line-height:1;font-weight:400}
+.nat-today-card .nb-big span{font-size:16px;color:var(--text2);font-family:var(--font-b)}
+.nat-today-card .nb-sub{font-size:11px;color:var(--text2);margin-top:4px}
+.nat-today-card .temp-range{display:flex;align-items:baseline;gap:6px}
+.nat-today-card .temp-range .t-max{font-family:var(--font-s);font-size:36px;color:var(--amber);font-weight:400;line-height:1}
+.nat-today-card .temp-range .t-div{font-size:20px;color:var(--text3);margin:0 2px}
+.nat-today-card .temp-range .t-min{font-family:var(--font-s);font-size:36px;color:var(--blue);font-weight:400;line-height:1}
+
+/* ── 7-DAY FORECAST ── */
+.nat-forecast{padding:24px 48px 40px;background:#ffffff;border-top:1px solid var(--border)}
+.nat-forecast .section-hdr{margin-bottom:16px}
+.nat-fc-card{
+  background:var(--card2);border:1px solid var(--border);border-radius:14px;
+  overflow:hidden;
+}
+.nat-fc-row{
+  display:grid;grid-template-columns:80px 1fr 50px 1fr;align-items:center;
+  padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.04);
+  transition:background .15s;gap:12px;
+}
+.nat-fc-row:last-child{border-bottom:none}
+.nat-fc-row:hover{background:rgba(45,124,246,.03)}
+.nat-fc-day{font-size:13px;font-weight:700;color:#1a2332}
+.nat-fc-desc{font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nat-fc-rain{font-family:var(--font-m);font-size:11px;color:var(--blue);font-weight:600;text-align:center}
+.nat-fc-bar-area{display:flex;align-items:center;gap:8px}
+.nat-fc-min{font-family:var(--font-m);font-size:12px;font-weight:600;color:var(--blue);width:30px;text-align:right}
+.nat-fc-max{font-family:var(--font-m);font-size:12px;font-weight:600;color:var(--amber);width:30px}
+.nat-fc-track{flex:1;height:6px;border-radius:3px;background:rgba(0,0,0,.06);position:relative;overflow:hidden}
+.nat-fc-fill{position:absolute;top:0;height:100%;border-radius:3px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1200px){
+  .nat-hero{padding:32px 32px 28px}
+  .nat-hourly,.nat-cities,.nat-bento,.nat-today,.nat-forecast,.nat-map-section{padding-left:32px;padding-right:32px}
+  .nat-cities-grid,.nat-bento-grid,.nat-today-grid{grid-template-columns:repeat(2,1fr)}
+  .nat-bento-card.card-wind{grid-row:span 1}
+  .nat-hero-temp{font-size:80px}
+}
+@media(max-width:768px){
+  .nat-hero{padding:24px 20px}
+  .nat-hero-content{flex-direction:column}
+  .nat-hero-right{width:100%;min-width:unset}
+  .nat-hero-temp{font-size:64px}
+  .nat-hourly,.nat-cities,.nat-bento,.nat-today,.nat-forecast,.nat-map-section{padding-left:20px;padding-right:20px}
+  .nat-cities-grid,.nat-today-grid{grid-template-columns:1fr 1fr}
+  .nat-bento-grid{grid-template-columns:1fr 1fr}
+  .nat-map-wrap{height:360px}
+  .nat-fc-row{grid-template-columns:60px 1fr 40px 1fr;padding:10px 14px}
+}
+
+/* WEATHER CODE COLORS */
+.wc-clear{color:#d4a017}
+.wc-cloud{color:#6b82a0}
+.wc-rain{color:#2d7cf6}
+.wc-storm{color:#dc3545}
+.wc-snow{color:#5b9dff}
+.wc-fog{color:#7a8fa5}
+
+/* SKELETON LOADER */
+.skeleton{background:linear-gradient(90deg,rgba(0,0,0,.03) 25%,rgba(0,0,0,.06) 50%,rgba(0,0,0,.03) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* PROVINCE HEADER */
+.province-header{
+  padding:20px 24px 16px;border-bottom:1px solid var(--border);
+  background:#ffffff;position:sticky;top:0;z-index:10;
+}
+.ph-title{font-family:var(--font-s);font-size:28px;color:#1a2332;margin-bottom:4px}
+.ph-sub{font-size:13px;color:var(--text2)}
+
+/* LEAFLET OVERRIDES */
+.leaflet-container{background:#e8ecf0}
+.leaflet-popup-content-wrapper{
+  background:rgba(255,255,255,.97);border:1px solid rgba(0,0,0,.08);
+  border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.12);
+  color:#1a2332;
+}
+.leaflet-popup-tip{background:rgba(255,255,255,.97)}
+.leaflet-popup-content{margin:14px 16px;font-family:var(--font-b)}
+.leaflet-popup-content b{color:#1a2332}
+.leaflet-popup-content span{color:#5a6a7e !important}
+.leaflet-control-zoom{
+  border:none !important;box-shadow:0 2px 8px rgba(0,0,0,.1) !important;
+  border-radius:8px !important;overflow:hidden;
+}
+.leaflet-control-zoom a{
+  background:#fff !important;color:#3d4f63 !important;
+  border:none !important;border-bottom:1px solid rgba(0,0,0,.06) !important;
+  width:34px !important;height:34px !important;line-height:34px !important;
+  font-size:16px !important;
+}
+.leaflet-control-zoom a:last-child{border-bottom:none !important}
+.leaflet-control-zoom a:hover{background:#f0f4ff !important}
+/* Move zoom to bottom-left to avoid overlap with layer switcher */
+.leaflet-top.leaflet-left .leaflet-control-zoom{margin-top:8px;margin-left:8px}
+.leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.7) !important}
+/* District tooltip */
+.district-tooltip{
+  background:rgba(255,255,255,.96) !important;border:1px solid rgba(0,0,0,.08) !important;
+  border-radius:8px !important;padding:8px 12px !important;
+  box-shadow:0 4px 12px rgba(0,0,0,.1) !important;
+  font-family:var(--font-b) !important;
+}
+.district-tooltip::before{border-top-color:rgba(255,255,255,.96) !important}
+.province-label{background:none !important;border:none !important}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fade-in{animation:fadeIn .4s ease both}
+
+/* MAP LAYER SWITCHER */
+.map-layer-ctrl{
+  position:absolute;top:12px;left:12px;z-index:500;
+  background:#ffffff;border-radius:10px;padding:10px 0;
+  box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.08);
+  min-width:160px;
+}
+.map-layer-title{
+  font-family:var(--font-m);font-size:9px;font-weight:600;
+  color:#8a9bb0;letter-spacing:2px;text-transform:uppercase;
+  padding:2px 16px 10px;border-bottom:1px solid rgba(0,0,0,0.06);
+}
+.map-layer-opt{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 16px;cursor:pointer;transition:background 0.15s;
+}
+.map-layer-opt:hover{background:rgba(45,124,246,0.04)}
+.map-layer-opt.active .ml-radio{border-color:#2d7cf6;background:#2d7cf6}
+.map-layer-opt.active .ml-radio::after{opacity:1}
+.map-layer-opt.active .ml-label{color:#2d7cf6;font-weight:600}
+.ml-radio{
+  width:16px;height:16px;border-radius:50%;border:2px solid #c0c8d4;
+  position:relative;flex-shrink:0;transition:all 0.15s;background:#fff;
+}
+.ml-radio::after{
+  content:'';position:absolute;top:3px;left:3px;width:6px;height:6px;
+  border-radius:50%;background:#fff;opacity:0;transition:opacity 0.15s;
+}
+.ml-label{font-size:13px;color:#3d4f63;font-weight:500;transition:color 0.15s}
+
+/* MAP COMPASS */
+.map-compass{
+  position:absolute;bottom:24px;right:16px;z-index:500;
+  width:72px;height:72px;border-radius:50%;
+  background:rgba(255,255,255,0.97);border:2px solid rgba(0,0,0,0.08);
+  box-shadow:0 4px 16px rgba(0,0,0,0.12);
+  display:flex;align-items:center;justify-content:center;
+}
+.map-compass-inner{
+  width:62px;height:62px;border-radius:50%;position:relative;
+  background:radial-gradient(circle,#f8faff,#edf2f8);
+  border:1px solid rgba(0,0,0,0.04);
+}
+.mc-needle{
+  position:absolute;left:50%;top:50%;width:3px;height:48px;
+  transform:translate(-50%,-50%);transform-origin:center center;
+}
+.mc-needle-n{
+  position:absolute;top:0;width:0;height:0;left:50%;transform:translateX(-50%);
+  border-left:5px solid transparent;border-right:5px solid transparent;
+  border-bottom:22px solid #e94b4b;
+}
+.mc-needle-s{
+  position:absolute;bottom:0;width:0;height:0;left:50%;transform:translateX(-50%);
+  border-left:4px solid transparent;border-right:4px solid transparent;
+  border-top:20px solid #8a9bb0;
+}
+.mc-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:8px;height:8px;border-radius:50%;background:#fff;
+  border:2px solid #2d7cf6;z-index:2;
+}
+.mc-dir{position:absolute;font-family:var(--font-m);font-size:8px;font-weight:700}
+.mc-dir.n{top:2px;left:50%;transform:translateX(-50%);color:#e94b4b}
+.mc-dir.s{bottom:2px;left:50%;transform:translateX(-50%);color:#8a9bb0}
+.mc-dir.e{right:3px;top:50%;transform:translateY(-50%);color:#8a9bb0}
+.mc-dir.w{left:3px;top:50%;transform:translateY(-50%);color:#8a9bb0}
+
+/* ENHANCED HERO CARD */
+.hero-card{transition:all 0.3s}
+.hero-item{
+  background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 10px;
+  border:1px solid rgba(255,255,255,0.12);transition:all 0.2s;
+}
+.hero-item:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.2)}
+
+/* ENHANCED HOURLY ITEMS */
+.hourly-item{position:relative;overflow:hidden}
+.hourly-item.now::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--blue),var(--teal));
+}
+
+/* NATIONAL MAP ENHANCED */
+.national-map-wrap{transition:all 0.3s}
+.national-map-wrap:hover{box-shadow:0 8px 24px rgba(0,0,0,.08)}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .sidebar{width:280px}
+  .metric-grid{grid-template-columns:1fr}
+  .map-layer-ctrl{min-width:140px}
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-title">Nepal Weather</div>
+  <div class="load-sub">DisasterAlert · Fetching live data</div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+</div>
+
+<div id="app" style="opacity:0;height:100vh;display:flex;flex-direction:column">
+
+  <header class="header">
+    <div class="header-left">
+      <div class="h-brand">
+        <div class="h-brand-name">DisasterAlert Nepal</div>
+        <div class="h-brand-sub">Citizen Portal</div>
+      </div>
+      <div class="h-divider"></div>
+      <div class="h-page-title">Weather Intelligence</div>
+    </div>
+    <div class="header-right">
+      <div class="h-update">Last updated: <span id="last-updated">--:--:--</span></div>
+      <div class="h-model-badge">ECMWF IFS</div>
+      <div class="h-badge">Live Data</div>
+    </div>
+  </header>
+
+  <div class="data-source-bar">
+    <div class="ds-item"><span class="ds-label">Model:</span> ECMWF IFS 0.25°</div>
+    <div class="ds-dot"></div>
+    <div class="ds-item"><span class="ds-label">Model runs:</span> 00, 06, 12, 18 UTC (every 6h)</div>
+    <div class="ds-dot"></div>
+    <div class="ds-item"><span class="ds-label">Current data:</span> Updated every 15 min</div>
+    <div class="ds-dot"></div>
+    <div class="ds-item"><span class="ds-label">Hourly forecast:</span> Updated every 6h</div>
+    <div class="ds-dot"></div>
+    <div class="ds-item"><span class="ds-label">Daily forecast:</span> Updated every 6h</div>
+    <div class="ds-dot"></div>
+    <div class="ds-item"><span class="ds-label">Next model update:</span> <span id="next-model-update">--</span></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="national" onclick="switchTab('national')">National</div>
+    <div class="tab" data-tab="province" onclick="switchTab('province')">Provinces</div>
+    <div class="tab" data-tab="district" onclick="switchTab('district')">Districts</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══ NATIONAL TAB ═══════════════════════════════════ -->
+    <div id="tab-national" class="tab-content active">
+
+      <!-- SECTION 1: Hero Banner -->
+      <section class="nat-hero nat-section">
+        <div class="nat-hero-content">
+          <div class="nat-hero-left">
+            <div class="nat-hero-loc" id="hero-loc">Kathmandu, Bagmati Province</div>
+            <div class="nat-hero-temp" id="hero-temp">--<sup>°C</sup></div>
+            <div class="nat-hero-desc" id="hero-desc">Loading...</div>
+            <div class="nat-hero-stats">
+              <div class="nat-hero-pill"><span class="nat-hero-pill-val" id="hero-fl">--</span><span class="nat-hero-pill-lbl">Feels Like</span></div>
+              <div class="nat-hero-pill"><span class="nat-hero-pill-val" id="hero-hum">--</span><span class="nat-hero-pill-lbl">Humidity</span></div>
+              <div class="nat-hero-pill"><span class="nat-hero-pill-val" id="hero-vis">--</span><span class="nat-hero-pill-lbl">Visibility</span></div>
+              <div class="nat-hero-pill"><span class="nat-hero-pill-val" id="hero-uv">--</span><span class="nat-hero-pill-lbl">UV Index</span></div>
+            </div>
+          </div>
+          <div class="nat-hero-right">
+            <div class="nat-sun-arc">
+              <svg class="sun-arc-svg" viewBox="0 0 220 120" fill="none">
+                <path d="M 20 105 A 90 90 0 0 1 200 105" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+                <path id="sun-arc-lit" d="M 20 105 A 90 90 0 0 1 200 105" stroke="rgba(255,200,60,0.5)" stroke-width="2.5" fill="none" stroke-dashoffset="0" stroke-linecap="round"/>
+                <circle id="sun-arc-dot" cx="110" cy="15" r="6" fill="#ffd43b" filter="url(#sunGlow)"/>
+                <defs><filter id="sunGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                <line x1="20" y1="105" x2="200" y2="105" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+              </svg>
+              <div class="nat-sun-times">
+                <span id="sun-rise">--:--</span>
+                <span id="sun-set">--:--</span>
+              </div>
+            </div>
+            <div class="nat-sun-meta">
+              <span><b id="m-daylight">--</b> hrs daylight</span>
+              <span>UV max <b id="m-uvmax">--</b></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: Hourly Forecast Ribbon -->
+      <section class="nat-hourly nat-section">
+        <div class="section-hdr">Next 12 Hours</div>
+        <div class="nat-hourly-scroll" id="hourly-wrap"></div>
+      </section>
+
+      <!-- SECTION 3: City Cards -->
+      <section class="nat-cities nat-section">
+        <div class="section-hdr">Major Cities</div>
+        <div class="nat-cities-grid">
+          <div class="nat-city-card" style="--accent:#22c983">
+            <div class="nat-city-name">Kathmandu</div>
+            <div class="nat-city-province">Bagmati</div>
+            <div class="nat-city-temp" id="nw-ktm">--<span>°C</span></div>
+            <div class="nat-city-desc" id="nw-ktm-d">Loading...</div>
+          </div>
+          <div class="nat-city-card" style="--accent:#f5a623">
+            <div class="nat-city-name">Pokhara</div>
+            <div class="nat-city-province">Gandaki</div>
+            <div class="nat-city-temp" id="nw-pkr">--<span>°C</span></div>
+            <div class="nat-city-desc" id="nw-pkr-d">Loading...</div>
+          </div>
+          <div class="nat-city-card" style="--accent:#2d7cf6">
+            <div class="nat-city-name">Biratnagar</div>
+            <div class="nat-city-province">Koshi</div>
+            <div class="nat-city-temp" id="nw-brt">--<span>°C</span></div>
+            <div class="nat-city-desc" id="nw-brt-d">Loading...</div>
+          </div>
+          <div class="nat-city-card" style="--accent:#f59e0b">
+            <div class="nat-city-name">Dhangadhi</div>
+            <div class="nat-city-province">Sudurpashchim</div>
+            <div class="nat-city-temp" id="nw-dhg">--<span>°C</span></div>
+            <div class="nat-city-desc" id="nw-dhg-d">Loading...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: Map -->
+      <section class="nat-map-section nat-section">
+        <div class="section-hdr">Nepal Weather Map</div>
+        <div class="nat-map-wrap">
+          <div id="national-map"></div>
+          <div class="map-layer-ctrl" id="nat-map-layer-ctrl" style="top:12px;left:12px;position:absolute;z-index:500">
+            <div class="map-layer-title">Map Style</div>
+            <div class="map-layer-opt active" data-layer="street" onclick="switchNatMapLayer('street')">
+              <div class="ml-radio"></div><span class="ml-label">Street Map</span>
+            </div>
+            <div class="map-layer-opt" data-layer="satellite" onclick="switchNatMapLayer('satellite')">
+              <div class="ml-radio"></div><span class="ml-label">Satellite</span>
+            </div>
+            <div class="map-layer-opt" data-layer="terrain" onclick="switchNatMapLayer('terrain')">
+              <div class="ml-radio"></div><span class="ml-label">Terrain</span>
+            </div>
+            <div class="map-layer-opt" data-layer="dark" onclick="switchNatMapLayer('dark')">
+              <div class="ml-radio"></div><span class="ml-label">Dark Mode</span>
+            </div>
+            <div class="map-layer-opt" data-layer="light" onclick="switchNatMapLayer('light')">
+              <div class="ml-radio"></div><span class="ml-label">Light Mode</span>
+            </div>
+            <div class="map-layer-opt" data-layer="positron" onclick="switchNatMapLayer('positron')">
+              <div class="ml-radio"></div><span class="ml-label">Positron</span>
+            </div>
+          </div>
+          <div class="map-compass" style="position:absolute;bottom:24px;right:16px;z-index:500">
+            <div class="map-compass-inner">
+              <div class="mc-needle"><div class="mc-needle-n"></div><div class="mc-needle-s"></div></div>
+              <div class="mc-center"></div>
+              <span class="mc-dir n">N</span><span class="mc-dir s">S</span>
+              <span class="mc-dir e">E</span><span class="mc-dir w">W</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: Bento Metrics Grid -->
+      <section class="nat-bento nat-section">
+        <div class="section-hdr">Atmospheric Conditions</div>
+        <div class="nat-bento-grid">
+          <!-- Wind (spans 2 rows) -->
+          <div class="nat-bento-card card-wind">
+            <div class="nb-title">Wind</div>
+            <div class="wind-compass" style="width:100px;height:100px;margin:4px auto 8px">
+              <div class="wind-n">N</div><div class="wind-s">S</div>
+              <div class="wind-e">E</div><div class="wind-w">W</div>
+              <div class="wind-arrow" id="wind-arrow"></div>
+              <div class="wind-center"></div>
+            </div>
+            <div class="wind-details" style="gap:4px">
+              <div class="wind-row"><span class="wind-row-lbl">Speed</span><span class="wind-row-val" id="w-speed">-- km/h</span></div>
+              <div class="wind-row"><span class="wind-row-lbl">Gusts</span><span class="wind-row-val" id="w-gust">-- km/h</span></div>
+              <div class="wind-row"><span class="wind-row-lbl">Direction</span><span class="wind-row-val" id="w-dir">--</span></div>
+              <div class="wind-row"><span class="wind-row-lbl">Bearing</span><span class="wind-row-val" id="w-bearing">--°</span></div>
+            </div>
+          </div>
+          <!-- Pressure -->
+          <div class="nat-bento-card card-pressure">
+            <div class="nb-title">Pressure</div>
+            <div class="nb-val" id="m-pressure">--<span>hPa</span></div>
+            <div class="nb-sub">Mean sea level</div>
+          </div>
+          <!-- Cloud Cover -->
+          <div class="nat-bento-card card-cloud">
+            <div class="nb-title">Cloud Cover</div>
+            <div class="nb-val" id="m-cloud">--<span>%</span></div>
+            <div class="nb-gauge"><div class="nb-gauge-fill" id="gb-cloud" style="width:0%;background:linear-gradient(90deg,#2d7cf6,#0fb8c9)"></div></div>
+            <span id="g-cloud" style="display:none">--%</span>
+          </div>
+          <!-- Precipitation -->
+          <div class="nat-bento-card card-precip">
+            <div class="nb-title">Precipitation</div>
+            <div class="nb-val" id="m-precip">--<span>mm</span></div>
+            <div class="nb-sub">Rain <span id="m-rain">--</span> / Snow <span id="m-snow">--</span></div>
+          </div>
+          <!-- Humidity -->
+          <div class="nat-bento-card card-humidity">
+            <div class="nb-title">Humidity</div>
+            <div class="nb-val" id="g-hum">--%</div>
+            <div class="nb-sub">Dew point: <span id="m-dew">--</span></div>
+            <div class="nb-gauge"><div class="nb-gauge-fill" id="gb-hum" style="width:0%;background:linear-gradient(90deg,#16a06a,#22c983)"></div></div>
+          </div>
+          <!-- UV Index -->
+          <div class="nat-bento-card card-uv">
+            <div class="nb-title">UV Index</div>
+            <div class="nb-val" id="g-uv">--/11</div>
+            <div class="nb-gauge"><div class="nb-gauge-fill" id="gb-uv" style="width:0%;background:linear-gradient(90deg,#e68a00,#f5a623)"></div></div>
+          </div>
+          <!-- Rain Probability -->
+          <div class="nat-bento-card card-rain-prob">
+            <div class="nb-title">Rain Probability</div>
+            <div class="nb-val" id="g-rain">--%</div>
+            <div class="nb-gauge"><div class="nb-gauge-fill" id="gb-rain" style="width:0%;background:linear-gradient(90deg,#dc3545,#e94b4b)"></div></div>
+          </div>
+          <!-- Wind gauge (hidden for JS compat) -->
+          <span id="g-wind" style="display:none">-- km/h</span>
+          <div style="display:none"><div id="gb-wind" style="width:0%"></div></div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: Today's Overview -->
+      <section class="nat-today nat-section">
+        <div class="section-hdr">Today's Overview</div>
+        <div class="nat-today-grid">
+          <div class="nat-today-card">
+            <div class="nb-title">Temperature Range</div>
+            <div class="temp-range">
+              <span class="t-max" id="nr-max">--°</span>
+              <span class="t-div">/</span>
+              <span class="t-min" id="nr-min">--°</span>
+            </div>
+          </div>
+          <div class="nat-today-card">
+            <div class="nb-title">Total Precipitation</div>
+            <div class="nb-big" id="nr-precip">--<span>mm</span></div>
+            <div class="nb-sub" id="nr-precip-d">Daily total</div>
+          </div>
+          <div class="nat-today-card">
+            <div class="nb-title">Max Wind Speed</div>
+            <div class="nb-big" id="nr-wind">--<span>km/h</span></div>
+            <div class="nb-sub" id="nr-wind-d">Surface 10m</div>
+          </div>
+          <div class="nat-today-card">
+            <div class="nb-title">Precipitation Hours</div>
+            <div class="nb-big" id="nr-ph">--<span>hrs</span></div>
+            <div class="nb-sub">Hours of rain today</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 7: 7-Day Forecast -->
+      <section class="nat-forecast nat-section">
+        <div class="section-hdr">7-Day Forecast</div>
+        <div class="nat-fc-card">
+          <div id="forecast-wrap"></div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ══ PROVINCE TAB ═══════════════════════════════════ -->
+    <div id="tab-province" class="tab-content">
+      <div class="province-list">
+        <div class="province-list-header">
+          <div class="province-list-title">Provinces</div>
+          <div class="province-list-sub">7 provinces · averaged from districts</div>
+        </div>
+        <div id="province-list-wrap"></div>
+      </div>
+      <div class="prov-wrap">
+        <!-- Header bar -->
+        <div class="dd-header-bar" id="pv-header-bar">
+          <div class="dd-hb-left">
+            <div>
+              <div class="dd-hb-name" id="pv-name">Select a province</div>
+              <div class="dd-hb-province" id="pv-sub">Click a province to view averaged weather</div>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-left:16px">
+              <div class="dd-hb-temp" id="pv-temp"><sup></sup></div>
+              <div class="dd-hb-desc" id="pv-desc"></div>
+            </div>
+          </div>
+          <button class="dd-hb-close" onclick="closeProvinceDetail()" style="display:none" id="pv-close">&times;</button>
+        </div>
+
+        <!-- Top metric cards (1 row of 4) -->
+        <div class="dd-cards" id="pv-cards" style="display:none">
+          <div class="dd-cards-grid">
+            <div class="dd-box accent-red">
+              <div class="dd-box-title">Avg Temperature</div>
+              <div class="dd-box-val" id="pv-bx-temp">--<span>°C</span></div>
+              <div class="dd-box-sub" id="pv-bx-temp-range">High --° / Low --°</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="pv-bx-temp-bar" style="width:0%;background:linear-gradient(90deg,#2d7cf6,#e94b4b)"></div></div>
+            </div>
+            <div class="dd-box accent-amber">
+              <div class="dd-box-title">Feels Like</div>
+              <div class="dd-box-val" id="pv-bx-fl">--<span>°C</span></div>
+              <div class="dd-box-sub" id="pv-bx-fl-note">--</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="pv-bx-fl-bar" style="width:0%;background:linear-gradient(90deg,#e68a00,#f5a623)"></div></div>
+            </div>
+            <div class="dd-box accent-blue">
+              <div class="dd-box-title">Cloud Cover</div>
+              <div class="dd-box-val" id="pv-bx-cloud">--<span>%</span></div>
+              <div class="dd-box-sub" id="pv-bx-cloud-note">--</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="pv-bx-cloud-bar" style="width:0%;background:linear-gradient(90deg,#2d7cf6,#0fb8c9)"></div></div>
+            </div>
+            <div class="dd-box accent-teal">
+              <div class="dd-box-title">Wind</div>
+              <div class="dd-box-wind">
+                <div class="dd-box-wind-compass">
+                  <div class="dd-box-wind-arrow" id="pv-bx-wind-arrow"></div>
+                  <div class="dd-box-wind-center"></div>
+                </div>
+                <div class="dd-box-wind-info">
+                  <div class="dd-box-wind-speed" id="pv-bx-wspeed">--<span> km/h</span></div>
+                  <div class="dd-box-wind-dir" id="pv-bx-wdir">--</div>
+                  <div class="dd-box-wind-gust">Gusts: <span id="pv-bx-wgust">--</span> km/h</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Province map -->
+        <div class="prov-map-section" style="position:relative">
+          <div id="prov-map"></div>
+          <div class="dd-loading" id="pv-loading" style="display:none">
+            <div class="spinner" style="width:24px;height:24px"></div>
+            <div class="dd-loading-text">AVERAGING DISTRICT DATA</div>
+            <div class="dd-load-bar"><div class="dd-load-fill"></div></div>
+          </div>
+        </div>
+
+        <!-- Below-map cards (row 2) -->
+        <div class="dd-cards-below" id="pv-cards-below" style="display:none">
+          <div class="dd-cards-grid">
+            <div class="dd-box accent-blue">
+              <div class="dd-box-title">Precipitation</div>
+              <div class="dd-box-val" id="pv-bx-precip">--<span>mm</span></div>
+              <div class="dd-box-sub" id="pv-bx-precip-note">Avg across districts</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="pv-bx-precip-bar" style="width:0%;background:linear-gradient(90deg,#2d7cf6,#3b8ff6)"></div></div>
+            </div>
+            <div class="dd-box accent-green">
+              <div class="dd-box-title">Humidity</div>
+              <div class="dd-box-val" id="pv-bx-hum">--<span>%</span></div>
+              <div class="dd-box-sub" id="pv-bx-hum-note">Dew point: --°C</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="pv-bx-hum-bar" style="width:0%;background:linear-gradient(90deg,#16a06a,#22c983)"></div></div>
+            </div>
+            <div class="dd-box accent-purple">
+              <div class="dd-box-title">Pressure</div>
+              <div class="dd-box-val" id="pv-bx-pressure">--<span>hPa</span></div>
+              <div class="dd-box-sub">Avg sea level</div>
+            </div>
+            <div class="dd-box accent-amber">
+              <div class="dd-box-title">Sun</div>
+              <div class="dd-box-sun">
+                <div class="dd-box-sun-item">
+                  <div class="dd-box-sun-lbl">Sunrise</div>
+                  <div class="dd-box-sun-val" id="pv-bx-sunrise">--:--</div>
+                </div>
+                <div class="dd-box-sun-mid"></div>
+                <div class="dd-box-sun-item">
+                  <div class="dd-box-sun-lbl">Sunset</div>
+                  <div class="dd-box-sun-val" id="pv-bx-sunset">--:--</div>
+                </div>
+              </div>
+              <div class="dd-box-sub" id="pv-bx-daylight">Daylight: -- hrs</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Below-map data sections -->
+        <div class="dd-below" id="pv-below" style="display:none">
+          <div class="dd-sections-row">
+            <div class="dd-section">
+              <div class="section-hdr">Today's Overview</div>
+              <div class="dd-stats-grid">
+                <div class="dd-stat-card"><div class="dd-stat-title">Temp Range</div><div class="dd-stat-values"><span class="dd-stat-max" id="pv-tmax">--°</span><span class="dd-stat-min" id="pv-tmin">--°</span></div></div>
+                <div class="dd-stat-card"><div class="dd-stat-title">Total Precip</div><div class="dd-stat-big" id="pv-tprecip">--<span>mm</span></div></div>
+                <div class="dd-stat-card"><div class="dd-stat-title">Max Wind</div><div class="dd-stat-big" id="pv-tmaxwind">--<span>km/h</span></div></div>
+                <div class="dd-stat-card"><div class="dd-stat-title">Rain Hours</div><div class="dd-stat-big" id="pv-tphours">--<span>hrs</span></div></div>
+              </div>
+            </div>
+            <div class="dd-section">
+              <div class="section-hdr">Condition Index</div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>Humidity</span><span id="pv-g-hum">--%</span></div><div class="gauge-track"><div class="gauge-fill gauge-blue" id="pv-gb-hum" style="width:0%"></div></div></div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>Cloud Cover</span><span id="pv-g-cloud">--%</span></div><div class="gauge-track"><div class="gauge-fill gauge-green" id="pv-gb-cloud" style="width:0%"></div></div></div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>UV Index</span><span id="pv-g-uv">--/11</span></div><div class="gauge-track"><div class="gauge-fill gauge-amber" id="pv-gb-uv" style="width:0%"></div></div></div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>Wind</span><span id="pv-g-wind">-- km/h</span></div><div class="gauge-track"><div class="gauge-fill gauge-blue" id="pv-gb-wind" style="width:0%"></div></div></div>
+            </div>
+          </div>
+          <div class="dd-section">
+            <div class="section-hdr">Hourly Forecast (avg)</div>
+            <div class="dd-hourly-scroll" id="pv-hourly"></div>
+          </div>
+          <div class="dd-section">
+            <div class="section-hdr">7-Day Forecast (avg)</div>
+            <div class="dd-forecast-rows" id="pv-forecast"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DISTRICT TAB ════════════════════════════════════ -->
+    <div id="tab-district" class="tab-content">
+      <div class="district-list">
+        <div class="district-search">
+          <input class="search-input" type="text" placeholder="Search district..." oninput="filterDistricts(this.value)" id="dist-search"/>
+        </div>
+        <div id="district-list-wrap"></div>
+      </div>
+      <div class="map-wrap">
+        <!-- Sticky header bar (shown when district selected) -->
+        <div class="dd-header-bar" id="dd-header-bar">
+          <div class="dd-hb-left">
+            <div>
+              <div class="dd-hb-name" id="dd-name">--</div>
+              <div class="dd-hb-province" id="dd-province">--</div>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-left:16px">
+              <div class="dd-hb-temp" id="dd-temp">--<sup>°C</sup></div>
+              <div class="dd-hb-desc" id="dd-desc">--</div>
+            </div>
+          </div>
+          <button class="dd-hb-close" onclick="closeDistrictDetail()">&times;</button>
+        </div>
+
+        <!-- Box metric cards (shown when district selected) -->
+        <div class="dd-cards" id="dd-cards">
+          <div class="dd-cards-grid">
+            <!-- Temperature -->
+            <div class="dd-box accent-red">
+              <div class="dd-box-title">Temperature</div>
+              <div class="dd-box-val" id="dd-bx-temp">--<span>°C</span></div>
+              <div class="dd-box-sub" id="dd-bx-temp-range">High --° / Low --°</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="dd-bx-temp-bar" style="width:0%;background:linear-gradient(90deg,#2d7cf6,#e94b4b)"></div></div>
+            </div>
+            <!-- Feels Like -->
+            <div class="dd-box accent-amber">
+              <div class="dd-box-title">Feels Like</div>
+              <div class="dd-box-val" id="dd-bx-fl">--<span>°C</span></div>
+              <div class="dd-box-sub" id="dd-bx-fl-note">--</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="dd-bx-fl-bar" style="width:0%;background:linear-gradient(90deg,#e68a00,#f5a623)"></div></div>
+            </div>
+            <!-- Cloud Cover -->
+            <div class="dd-box accent-blue">
+              <div class="dd-box-title">Cloud Cover</div>
+              <div class="dd-box-val" id="dd-bx-cloud">--<span>%</span></div>
+              <div class="dd-box-sub" id="dd-bx-cloud-note">--</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="dd-bx-cloud-bar" style="width:0%;background:linear-gradient(90deg,#2d7cf6,#0fb8c9)"></div></div>
+            </div>
+            <!-- Wind -->
+            <div class="dd-box accent-teal">
+              <div class="dd-box-title">Wind</div>
+              <div class="dd-box-wind">
+                <div class="dd-box-wind-compass">
+                  <div class="dd-box-wind-arrow" id="dd-bx-wind-arrow"></div>
+                  <div class="dd-box-wind-center"></div>
+                </div>
+                <div class="dd-box-wind-info">
+                  <div class="dd-box-wind-speed" id="dd-bx-wspeed">--<span> km/h</span></div>
+                  <div class="dd-box-wind-dir" id="dd-bx-wdir">--</div>
+                  <div class="dd-box-wind-gust">Gusts: <span id="dd-bx-wgust">--</span> km/h</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map -->
+        <div class="dd-map-section" style="position:relative">
+          <div id="map"></div>
+          <!-- Loading overlay on map -->
+          <div class="dd-loading" id="dd-loading" style="display:none">
+            <div class="spinner" style="width:24px;height:24px"></div>
+            <div class="dd-loading-text">LOADING WEATHER DATA</div>
+            <div class="dd-load-bar"><div class="dd-load-fill"></div></div>
+          </div>
+          <!-- Map Layer Switcher -->
+          <div class="map-layer-ctrl" id="map-layer-ctrl">
+            <div class="map-layer-title">Map Style</div>
+            <div class="map-layer-opt active" data-layer="street" onclick="switchMapLayer('street')">
+              <div class="ml-radio"></div><span class="ml-label">Street Map</span>
+            </div>
+            <div class="map-layer-opt" data-layer="satellite" onclick="switchMapLayer('satellite')">
+              <div class="ml-radio"></div><span class="ml-label">Satellite</span>
+            </div>
+            <div class="map-layer-opt" data-layer="terrain" onclick="switchMapLayer('terrain')">
+              <div class="ml-radio"></div><span class="ml-label">Terrain</span>
+            </div>
+            <div class="map-layer-opt" data-layer="dark" onclick="switchMapLayer('dark')">
+              <div class="ml-radio"></div><span class="ml-label">Dark Mode</span>
+            </div>
+            <div class="map-layer-opt" data-layer="light" onclick="switchMapLayer('light')">
+              <div class="ml-radio"></div><span class="ml-label">Light Mode</span>
+            </div>
+            <div class="map-layer-opt" data-layer="positron" onclick="switchMapLayer('positron')">
+              <div class="ml-radio"></div><span class="ml-label">Positron</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Second row of box cards (below map) -->
+        <div class="dd-cards-below" id="dd-cards-below">
+          <div class="dd-cards-grid">
+            <!-- Precipitation -->
+            <div class="dd-box accent-blue">
+              <div class="dd-box-title">Precipitation</div>
+              <div class="dd-box-val" id="dd-bx-precip">--<span>mm</span></div>
+              <div class="dd-box-sub" id="dd-bx-precip-note">Rain today</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="dd-bx-precip-bar" style="width:0%;background:linear-gradient(90deg,#2d7cf6,#3b8ff6)"></div></div>
+            </div>
+            <!-- Humidity -->
+            <div class="dd-box accent-green">
+              <div class="dd-box-title">Humidity</div>
+              <div class="dd-box-val" id="dd-bx-hum">--<span>%</span></div>
+              <div class="dd-box-sub" id="dd-bx-hum-note">Dew point: --°C</div>
+              <div class="dd-box-gauge"><div class="dd-box-gauge-fill" id="dd-bx-hum-bar" style="width:0%;background:linear-gradient(90deg,#16a06a,#22c983)"></div></div>
+            </div>
+            <!-- Pressure -->
+            <div class="dd-box accent-purple">
+              <div class="dd-box-title">Pressure</div>
+              <div class="dd-box-val" id="dd-bx-pressure">--<span>hPa</span></div>
+              <div class="dd-box-sub">Sea level</div>
+            </div>
+            <!-- Sun -->
+            <div class="dd-box accent-amber">
+              <div class="dd-box-title">Sun</div>
+              <div class="dd-box-sun">
+                <div class="dd-box-sun-item">
+                  <div class="dd-box-sun-lbl">Sunrise</div>
+                  <div class="dd-box-sun-val" id="dd-bx-sunrise">--:--</div>
+                </div>
+                <div class="dd-box-sun-mid"></div>
+                <div class="dd-box-sun-item">
+                  <div class="dd-box-sun-lbl">Sunset</div>
+                  <div class="dd-box-sun-val" id="dd-bx-sunset">--:--</div>
+                </div>
+              </div>
+              <div class="dd-box-sub" id="dd-bx-daylight">Daylight: -- hrs</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Below-map data (shown when district selected, user scrolls down) -->
+        <div class="dd-below" id="dd-below">
+          <!-- Row: Overview stats -->
+          <div class="dd-sections-row">
+            <div class="dd-section">
+              <div class="section-hdr">Today's Overview</div>
+              <div class="dd-stats-grid">
+                <div class="dd-stat-card">
+                  <div class="dd-stat-title">Temp Range</div>
+                  <div class="dd-stat-values"><span class="dd-stat-max" id="dd-tmax">--°</span><span class="dd-stat-min" id="dd-tmin">--°</span></div>
+                </div>
+                <div class="dd-stat-card">
+                  <div class="dd-stat-title">Total Precip</div>
+                  <div class="dd-stat-big" id="dd-tprecip">--<span>mm</span></div>
+                </div>
+                <div class="dd-stat-card">
+                  <div class="dd-stat-title">Max Wind</div>
+                  <div class="dd-stat-big" id="dd-tmaxwind">--<span>km/h</span></div>
+                </div>
+                <div class="dd-stat-card">
+                  <div class="dd-stat-title">Rain Hours</div>
+                  <div class="dd-stat-big" id="dd-tphours">--<span>hrs</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="dd-section">
+              <div class="section-hdr">Condition Index</div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>Humidity</span><span id="dd-g-hum">--%</span></div><div class="gauge-track"><div class="gauge-fill gauge-blue" id="dd-gb-hum" style="width:0%"></div></div></div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>Cloud Cover</span><span id="dd-g-cloud">--%</span></div><div class="gauge-track"><div class="gauge-fill gauge-green" id="dd-gb-cloud" style="width:0%"></div></div></div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>UV Index</span><span id="dd-g-uv">--/11</span></div><div class="gauge-track"><div class="gauge-fill gauge-amber" id="dd-gb-uv" style="width:0%"></div></div></div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>Wind</span><span id="dd-g-wind">-- km/h</span></div><div class="gauge-track"><div class="gauge-fill gauge-blue" id="dd-gb-wind" style="width:0%"></div></div></div>
+              <div class="gauge-row"><div class="gauge-label-row"><span>Rain Prob.</span><span id="dd-g-rain">--%</span></div><div class="gauge-track"><div class="gauge-fill gauge-red" id="dd-gb-rain" style="width:0%"></div></div></div>
+            </div>
+          </div>
+
+          <!-- Hourly Forecast -->
+          <div class="dd-section">
+            <div class="section-hdr">Hourly Forecast</div>
+            <div class="dd-hourly-scroll" id="dd-hourly"></div>
+          </div>
+
+          <!-- 7-Day Forecast -->
+          <div class="dd-section">
+            <div class="section-hdr">7-Day Forecast</div>
+            <div class="dd-forecast-rows" id="dd-forecast"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA — Nepal Provinces & Districts
+// ═══════════════════════════════════════════════════
+const PROVINCES = [
+  { id:1, name:"Koshi",          capital:"Biratnagar",  lat:26.4525, lng:87.2718, color:"#2d7cf6" },
+  { id:2, name:"Madhesh",        capital:"Janakpur",    lat:26.7105, lng:85.9240, color:"#0fb8c9" },
+  { id:3, name:"Bagmati",        capital:"Kathmandu",   lat:27.7172, lng:85.3240, color:"#22c983" },
+  { id:4, name:"Gandaki",        capital:"Pokhara",     lat:28.2096, lng:83.9856, color:"#f5a623" },
+  { id:5, name:"Lumbini",        capital:"Butwal",      lat:27.7006, lng:83.4484, color:"#a855f7" },
+  { id:6, name:"Karnali",        capital:"Surkhet",     lat:28.6018, lng:81.6161, color:"#e94b4b" },
+  { id:7, name:"Sudurpashchim",  capital:"Dhangadhi",   lat:28.6936, lng:80.5936, color:"#f59e0b" },
+];
+
+const DISTRICTS = [
+  {name:"Taplejung",    province:"Koshi",         lat:27.3500,lng:87.6667},
+  {name:"Panchthar",    province:"Koshi",         lat:27.1500,lng:87.8000},
+  {name:"Ilam",         province:"Koshi",         lat:26.9100,lng:87.9300},
+  {name:"Jhapa",        province:"Koshi",         lat:26.5400,lng:87.8500},
+  {name:"Morang",       province:"Koshi",         lat:26.6500,lng:87.4000},
+  {name:"Sunsari",      province:"Koshi",         lat:26.7000,lng:87.1667},
+  {name:"Dhankuta",     province:"Koshi",         lat:27.0667,lng:87.3500},
+  {name:"Terhathum",    province:"Koshi",         lat:27.1167,lng:87.5333},
+  {name:"Sankhuwasabha",province:"Koshi",         lat:27.5500,lng:87.2333},
+  {name:"Bhojpur",      province:"Koshi",         lat:27.1667,lng:87.0500},
+  {name:"Solukhumbu",   province:"Koshi",         lat:27.6833,lng:86.6500},
+  {name:"Okhaldhunga", province:"Koshi",         lat:27.3167,lng:86.5000},
+  {name:"Khotang",      province:"Koshi",         lat:27.0333,lng:86.8333},
+  {name:"Udayapur",     province:"Koshi",         lat:26.8333,lng:86.5167},
+  {name:"Saptari",      province:"Madhesh",       lat:26.6500,lng:86.9000},
+  {name:"Siraha",       province:"Madhesh",       lat:26.6500,lng:86.2000},
+  {name:"Dhanusha",     province:"Madhesh",       lat:26.8167,lng:85.9333},
+  {name:"Mahottari",    province:"Madhesh",       lat:26.6500,lng:85.6667},
+  {name:"Sarlahi",      province:"Madhesh",       lat:26.9667,lng:85.3833},
+  {name:"Rautahat",     province:"Madhesh",       lat:27.0500,lng:85.1000},
+  {name:"Bara",         province:"Madhesh",       lat:27.0000,lng:84.9167},
+  {name:"Parsa",        province:"Madhesh",       lat:27.1333,lng:84.7500},
+  {name:"Sindhupalchok",province:"Bagmati",       lat:27.9500,lng:85.6833},
+  {name:"Kavrepalanchok",province:"Bagmati",      lat:27.5500,lng:85.5333},
+  {name:"Lalitpur",     province:"Bagmati",       lat:27.6667,lng:85.3333},
+  {name:"Bhaktapur",    province:"Bagmati",       lat:27.6720,lng:85.4298},
+  {name:"Kathmandu",    province:"Bagmati",       lat:27.7172,lng:85.3240},
+  {name:"Nuwakot",      province:"Bagmati",       lat:27.9000,lng:85.1667},
+  {name:"Rasuwa",       province:"Bagmati",       lat:28.1000,lng:85.3667},
+  {name:"Dhading",      province:"Bagmati",       lat:27.8667,lng:84.9167},
+  {name:"Makwanpur",    province:"Bagmati",       lat:27.4500,lng:85.0000},
+  {name:"Ramechhap",    province:"Bagmati",       lat:27.3333,lng:86.0833},
+  {name:"Dolakha",      province:"Bagmati",       lat:27.6833,lng:86.0833},
+  {name:"Sindhuli",     province:"Bagmati",       lat:27.2500,lng:85.9667},
+  {name:"Kaski",        province:"Gandaki",       lat:28.2096,lng:83.9856},
+  {name:"Gorkha",       province:"Gandaki",       lat:28.0000,lng:84.6333},
+  {name:"Manang",       province:"Gandaki",       lat:28.6667,lng:84.0167},
+  {name:"Mustang",      province:"Gandaki",       lat:28.9833,lng:83.8667},
+  {name:"Myagdi",       province:"Gandaki",       lat:28.4667,lng:83.4833},
+  {name:"Baglung",      province:"Gandaki",       lat:28.2667,lng:83.5833},
+  {name:"Parbat",       province:"Gandaki",       lat:28.2167,lng:83.7000},
+  {name:"Syangja",      province:"Gandaki",       lat:28.0833,lng:83.8833},
+  {name:"Tanahun",      province:"Gandaki",       lat:27.9333,lng:84.2500},
+  {name:"Lamjung",      province:"Gandaki",       lat:28.2500,lng:84.4167},
+  {name:"Nawalpur",     province:"Gandaki",       lat:27.7000,lng:84.1167},
+  {name:"Rupandehi",    province:"Lumbini",       lat:27.6000,lng:83.4833},
+  {name:"Kapilvastu",   province:"Lumbini",       lat:27.5667,lng:83.0500},
+  {name:"Arghakhanchi", province:"Lumbini",       lat:27.9500,lng:83.1667},
+  {name:"Gulmi",        province:"Lumbini",       lat:28.0667,lng:83.2833},
+  {name:"Palpa",        province:"Lumbini",       lat:27.8667,lng:83.5500},
+  {name:"Nawalparasi W",province:"Lumbini",       lat:27.7000,lng:83.6333},
+  {name:"Pyuthan",      province:"Lumbini",       lat:28.0833,lng:82.8333},
+  {name:"Rolpa",        province:"Lumbini",       lat:28.3333,lng:82.6500},
+  {name:"Eastern Rukum",province:"Lumbini",       lat:28.5500,lng:82.6000},
+  {name:"Banke",        province:"Lumbini",       lat:28.0500,lng:81.6000},
+  {name:"Bardiya",      province:"Lumbini",       lat:28.3833,lng:81.4500},
+  {name:"Dolpa",        province:"Karnali",       lat:29.0000,lng:82.8333},
+  {name:"Mugu",         province:"Karnali",       lat:29.5000,lng:82.1667},
+  {name:"Humla",        province:"Karnali",       lat:29.9500,lng:81.8167},
+  {name:"Jumla",        province:"Karnali",       lat:29.2833,lng:82.1667},
+  {name:"Kalikot",      province:"Karnali",       lat:29.0833,lng:81.6333},
+  {name:"Dailekh",      province:"Karnali",       lat:28.8333,lng:81.7167},
+  {name:"Jajarkot",     province:"Karnali",       lat:28.7000,lng:82.2167},
+  {name:"Western Rukum",province:"Karnali",       lat:28.5833,lng:82.0500},
+  {name:"Salyan",       province:"Karnali",       lat:28.3833,lng:82.1667},
+  {name:"Surkhet",      province:"Karnali",       lat:28.6018,lng:81.6161},
+  {name:"Bajura",       province:"Sudurpashchim", lat:29.5000,lng:81.3000},
+  {name:"Bajhang",      province:"Sudurpashchim", lat:29.5500,lng:81.1000},
+  {name:"Achham",       province:"Sudurpashchim", lat:29.1000,lng:81.2167},
+  {name:"Doti",         province:"Sudurpashchim", lat:29.2667,lng:80.9667},
+  {name:"Kailali",      province:"Sudurpashchim", lat:28.6936,lng:80.5936},
+  {name:"Kanchanpur",   province:"Sudurpashchim", lat:28.9667,lng:80.1333},
+  {name:"Dadeldhura",   province:"Sudurpashchim", lat:29.3000,lng:80.5833},
+  {name:"Baitadi",      province:"Sudurpashchim", lat:29.5333,lng:80.4167},
+  {name:"Darchula",     province:"Sudurpashchim", lat:29.8500,lng:80.5500},
+];
+
+// Weather code descriptions
+function wcDesc(code) {
+  if(code===0) return "Clear Sky";
+  if(code<=2)  return "Partly Cloudy";
+  if(code===3) return "Overcast";
+  if(code<=49) return "Foggy";
+  if(code<=57) return "Drizzle";
+  if(code<=67) return "Rain";
+  if(code<=77) return "Snow";
+  if(code<=82) return "Rain Showers";
+  if(code<=86) return "Snow Showers";
+  if(code<=99) return "Thunderstorm";
+  return "Unknown";
+}
+function wcColor(code) {
+  if(code===0) return "#d4a017";
+  if(code<=2)  return "#6b82a0";
+  if(code===3) return "#5a7290";
+  if(code<=49) return "#7a8fa5";
+  if(code<=67) return "#2d7cf6";
+  if(code<=77) return "#3a8ed6";
+  if(code<=99) return "#dc3545";
+  return "#64748b";
+}
+function windDir(deg) {
+  const dirs=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round(deg/22.5)%16];
+}
+function dewPoint(t, rh) {
+  const a=17.271, b=237.7;
+  const gamma=(a*t/(b+t))+Math.log(rh/100);
+  return (b*gamma/(a-gamma)).toFixed(1);
+}
+function formatTime(iso) {
+  if(!iso) return "--:--";
+  const d=new Date(iso);
+  return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0");
+}
+function dayName(offset) {
+  const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const d=new Date(); d.setDate(d.getDate()+offset);
+  return offset===0?"Today":offset===1?"Tomorrow":days[d.getDay()];
+}
+
+// ═══════════════════════════════════════════════════
+// API FETCH
+// ═══════════════════════════════════════════════════
+const BASE = "https://api.open-meteo.com/v1/forecast";
+const MODEL = "&models=ecmwf_ifs025";
+
+function buildUrl(lat, lng, extra="") {
+  return `${BASE}?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,uv_index&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_hours,wind_speed_10m_max,wind_gusts_10m_max,precipitation_probability_max&timezone=Asia%2FKathmandu&forecast_days=7${MODEL}${extra}`;
+}
+
+async function fetchWeather(lat, lng) {
+  const res = await fetch(buildUrl(lat, lng));
+  return res.json();
+}
+
+async function fetchSimple(lat, lng) {
+  const url = `${BASE}?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,uv_index,apparent_temperature,cloud_cover&timezone=Asia%2FKathmandu${MODEL}`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════
+// NATIONAL TAB — Kathmandu detailed
+// ═══════════════════════════════════════════════════
+async function loadNational() {
+  const data = await fetchWeather(27.7172, 85.3240);
+  const c = data.current;
+  const d = data.daily;
+  const h = data.hourly;
+
+  // ── HERO ──
+  document.getElementById("hero-temp").innerHTML = `${Math.round(c.temperature_2m)}<sup>°C</sup>`;
+  document.getElementById("hero-desc").textContent = wcDesc(c.weather_code);
+  document.getElementById("hero-fl").textContent = Math.round(c.apparent_temperature)+"°C";
+  document.getElementById("hero-hum").textContent = c.relative_humidity_2m+"%";
+  document.getElementById("hero-vis").textContent = (c.visibility/1000).toFixed(1)+" km";
+  document.getElementById("hero-uv").textContent = c.uv_index?.toFixed(1)||"--";
+
+  // ── BENTO METRICS ──
+  document.getElementById("m-pressure").innerHTML = `${Math.round(c.pressure_msl)}<span>hPa</span>`;
+  document.getElementById("m-dew").textContent = dewPoint(c.temperature_2m, c.relative_humidity_2m) + "°C";
+  document.getElementById("m-cloud").innerHTML = `${c.cloud_cover}<span>%</span>`;
+  document.getElementById("m-precip").innerHTML = `${c.precipitation}<span>mm</span>`;
+  document.getElementById("m-rain").textContent = c.rain + "mm";
+  document.getElementById("m-snow").textContent = c.snowfall + "cm";
+
+  // ── WIND ──
+  const wdir = c.wind_direction_10m;
+  document.getElementById("wind-arrow").style.transform = `translateX(-50%) translateY(-100%) rotate(${wdir}deg)`;
+  document.getElementById("w-speed").textContent = c.wind_speed_10m.toFixed(1)+" km/h";
+  document.getElementById("w-gust").textContent = c.wind_gusts_10m?.toFixed(1)+" km/h";
+  document.getElementById("w-dir").textContent = windDir(wdir);
+  document.getElementById("w-bearing").textContent = wdir+"°";
+
+  // ── GAUGES ──
+  const setGauge = (id, gid, val, max) => {
+    document.getElementById(id).textContent = val;
+    document.getElementById(gid).style.width = Math.min(100, (parseFloat(val)/max)*100)+"%";
+  };
+  setGauge("g-hum", "gb-hum", c.relative_humidity_2m+"%", 100);
+  setGauge("g-cloud","gb-cloud",c.cloud_cover+"%",100);
+  setGauge("g-uv","gb-uv",(c.uv_index||0).toFixed(1)+"/11",11);
+  setGauge("g-wind","gb-wind",c.wind_speed_10m.toFixed(1)+" km/h",100);
+  const rainProb = h.precipitation_probability?.[new Date().getHours()]||0;
+  setGauge("g-rain","gb-rain",rainProb+"%",100);
+
+  // ── SUN & DAYLIGHT ──
+  document.getElementById("sun-rise").textContent = formatTime(d.sunrise?.[0]);
+  document.getElementById("sun-set").textContent  = formatTime(d.sunset?.[0]);
+  const sr=new Date(d.sunrise?.[0]), ss=new Date(d.sunset?.[0]);
+  const dayH = ((ss-sr)/3600000).toFixed(1);
+  document.getElementById("m-daylight").textContent = dayH;
+  document.getElementById("m-uvmax").textContent = d.uv_index_max?.[0]?.toFixed(1)||"--";
+
+  // Sun arc visualization
+  updateSunArc(d.sunrise?.[0], d.sunset?.[0]);
+
+  // ── CITY WIDGETS ──
+  document.getElementById("nw-ktm").innerHTML = `${Math.round(c.temperature_2m)}<span>°C</span>`;
+  document.getElementById("nw-ktm-d").textContent = wcDesc(c.weather_code);
+
+  // ── TODAY'S OVERVIEW ──
+  document.getElementById("nr-max").textContent = Math.round(d.temperature_2m_max?.[0])+"°";
+  document.getElementById("nr-min").textContent = Math.round(d.temperature_2m_min?.[0])+"°";
+  document.getElementById("nr-precip").innerHTML = `${d.precipitation_sum?.[0]?.toFixed(1)||"0"}<span>mm</span>`;
+  document.getElementById("nr-wind").innerHTML = `${Math.round(d.wind_speed_10m_max?.[0])}<span>km/h</span>`;
+  document.getElementById("nr-ph").innerHTML = `${d.precipitation_hours?.[0]||"0"}<span>hrs</span>`;
+
+  // ── HOURLY FORECAST (enhanced visual ribbon) ──
+  const now = new Date().getHours();
+  const wrap = document.getElementById("hourly-wrap");
+  wrap.innerHTML = "";
+
+  // Compute temp range for bar scaling
+  const hTemps = [];
+  for(let i=now; i<now+13 && i<24; i++) hTemps.push(h.temperature_2m?.[i]||0);
+  const hMin = Math.min(...hTemps), hMax = Math.max(...hTemps);
+  const hRange = Math.max(hMax - hMin, 1);
+
+  for(let i=now; i<now+13 && i<24; i++) {
+    const temp = h.temperature_2m?.[i] || 0;
+    const barH = Math.max(6, ((temp - hMin) / hRange) * 40);
+    const col = document.createElement("div");
+    col.className = "nat-h-col"+(i===now?" now":"");
+    col.innerHTML = `
+      <div class="nat-h-time">${i===now?"Now":i+":00"}</div>
+      <div class="nat-h-temp">${Math.round(temp)}°</div>
+      <div class="nat-h-bar-wrap"><div class="nat-h-bar" style="height:${barH}px;background:${tempBarColor(Math.round(temp))}"></div></div>
+      <div class="nat-h-rain">${h.precipitation_probability?.[i]||0}%</div>
+      <div class="nat-h-wc">${wcDesc(h.weather_code?.[i])}</div>
+    `;
+    wrap.appendChild(col);
+  }
+
+  // ── 7-DAY FORECAST (with temperature range bars) ──
+  const fw = document.getElementById("forecast-wrap");
+  fw.innerHTML = "";
+
+  const allMin = [], allMax = [];
+  for(let i=0; i<7; i++) {
+    allMin.push(d.temperature_2m_min?.[i]||0);
+    allMax.push(d.temperature_2m_max?.[i]||0);
+  }
+  const absMin = Math.min(...allMin), absMax = Math.max(...allMax);
+  const absRange = Math.max(absMax - absMin, 1);
+
+  for(let i=0; i<7; i++) {
+    const mn = d.temperature_2m_min?.[i]||0;
+    const mx = d.temperature_2m_max?.[i]||0;
+    const leftPct = ((mn - absMin) / absRange) * 100;
+    const widthPct = Math.max(8, ((mx - mn) / absRange) * 100);
+
+    let barGrad = "linear-gradient(90deg,#2d7cf6,#22c983)";
+    if(mx > 32) barGrad = "linear-gradient(90deg,#f5a623,#e94b4b)";
+    else if(mx > 25) barGrad = "linear-gradient(90deg,#22c983,#f5a623)";
+    else if(mx < 10) barGrad = "linear-gradient(90deg,#a0c4f7,#2d7cf6)";
+
+    const row = document.createElement("div");
+    row.className = "nat-fc-row";
+    row.innerHTML = `
+      <div class="nat-fc-day">${dayName(i)}</div>
+      <div class="nat-fc-desc" style="color:${wcColor(d.weather_code?.[i])}">${wcDesc(d.weather_code?.[i])}</div>
+      <div class="nat-fc-rain">${d.precipitation_probability_max?.[i]||0}%</div>
+      <div class="nat-fc-bar-area">
+        <div class="nat-fc-min">${Math.round(mn)}°</div>
+        <div class="nat-fc-track">
+          <div class="nat-fc-fill" style="left:${leftPct}%;width:${widthPct}%;background:${barGrad}"></div>
+        </div>
+        <div class="nat-fc-max">${Math.round(mx)}°</div>
+      </div>
+    `;
+    fw.appendChild(row);
+  }
+
+  // ── OTHER CITIES ──
+  loadCityWidget("Pokhara", 28.2096, 83.9856, "nw-pkr", "nw-pkr-d");
+  loadCityWidget("Biratnagar", 26.4525, 87.2718, "nw-brt", "nw-brt-d");
+  loadCityWidget("Dhangadhi", 28.6936, 80.5936, "nw-dhg", "nw-dhg-d");
+}
+
+function updateSunArc(sunriseISO, sunsetISO) {
+  if(!sunriseISO || !sunsetISO) return;
+  const sr = new Date(sunriseISO), ss = new Date(sunsetISO);
+  const now = new Date();
+  const totalDay = ss - sr;
+  const elapsed = now - sr;
+  const pct = Math.max(0, Math.min(1, elapsed / totalDay));
+
+  // Arc path: from (20,105) to (200,105) with radius 90
+  // Parametric angle from PI to 0 (left to right on top semicircle)
+  const angle = Math.PI * (1 - pct);
+  const cx = 110, cy = 105, r = 90;
+  const x = cx + r * Math.cos(angle);
+  const y = cy - r * Math.sin(angle);
+
+  const dot = document.getElementById("sun-arc-dot");
+  if(dot) { dot.setAttribute("cx", x); dot.setAttribute("cy", y); }
+
+  // Lit portion of arc (how far along the path we've gone)
+  const litPath = document.getElementById("sun-arc-lit");
+  if(litPath) {
+    const totalLen = Math.PI * 90; // semicircle circumference
+    const litLen = totalLen * pct;
+    litPath.setAttribute("stroke-dasharray", `${litLen} ${totalLen}`);
+  }
+}
+
+async function loadCityWidget(city, lat, lng, tempId, descId) {
+  const data = await fetchSimple(lat, lng);
+  const c = data.current;
+  document.getElementById(tempId).innerHTML = `${Math.round(c.temperature_2m)}<span>°C</span>`;
+  document.getElementById(descId).textContent = wcDesc(c.weather_code);
+}
+
+// ═══════════════════════════════════════════════════
+// PROVINCE TAB
+// ═══════════════════════════════════════════════════
+let provinceMap = null;
+let selectedProvince = null;
+let provHighlightedLayers = [];
+let provPulseInterval = null;
+let provinceData = {}; // cache: provinceName → averaged data
+
+function buildProvinceList() {
+  const wrap = document.getElementById("province-list-wrap");
+  wrap.innerHTML = "";
+  PROVINCES.forEach(p => {
+    const districts = PROVINCE_TO_DISTRICTS[p.name] || [];
+    const div = document.createElement("div");
+    div.className = "prov-item";
+    div.id = `pi-${p.id}`;
+    div.innerHTML = `
+      <div class="prov-item-color" style="background:${p.color}"></div>
+      <div class="prov-item-info">
+        <div class="prov-item-name">${p.name}</div>
+        <div class="prov-item-sub">${p.capital} · ${districts.length} districts</div>
+      </div>
+      <div class="prov-item-temp">--°C</div>
+    `;
+    div.onclick = () => selectProvince(p);
+    wrap.appendChild(div);
+  });
+}
+
+function initProvinceMap() {
+  if (provinceMap) return;
+  provinceMap = L.map("prov-map", {
+    center: [28.3949, 84.1240],
+    zoom: 7,
+    zoomControl: false
+  });
+  L.control.zoom({ position: 'bottomleft' }).addTo(provinceMap);
+
+  L.tileLayer(MAP_TILES.street.url, {
+    attribution: MAP_TILES.street.attr,
+    maxZoom: 18
+  }).addTo(provinceMap);
+
+  // Load boundaries — reuse the same GeoJSON infra
+  addDistrictBoundaries(provinceMap, 'province');
+}
+
+function highlightProvincePolygons(provinceName) {
+  // Reset previous highlights
+  clearProvinceHighlight();
+
+  const geoLayer = districtGeoLayers['province'];
+  if (!geoLayer) return;
+
+  // Find all district polygons belonging to this province
+  geoLayer.eachLayer(layer => {
+    const name = layer.feature?.properties?.name || layer.feature?.id || "";
+    const prov = getProvince(name);
+    if (prov === provinceName) {
+      provHighlightedLayers.push(layer);
+      layer.setStyle({ fillColor: PROVINCE_COLORS[provinceName] || "#2d7cf6", fillOpacity: 0.35, color: PROVINCE_COLORS[provinceName] || "#2d7cf6", weight: 2.5, opacity: 0.9 });
+      layer.bringToFront();
+    }
+  });
+
+  // Pulsing glow effect
+  let pulse = true;
+  provPulseInterval = setInterval(() => {
+    const op = pulse ? 0.2 : 0.35;
+    provHighlightedLayers.forEach(l => l.setStyle({ fillOpacity: op }));
+    pulse = !pulse;
+  }, 800);
+}
+
+function clearProvinceHighlight() {
+  provHighlightedLayers.forEach(layer => {
+    const name = layer.feature?.properties?.name || layer.feature?.id || "";
+    const prov = getProvince(name);
+    const color = prov ? (PROVINCE_COLORS[prov] || "#2d7cf6") : "#94a3b8";
+    layer.setStyle({ fillColor: color, fillOpacity: 0.12, color: color, weight: 1, opacity: 0.4 });
+  });
+  provHighlightedLayers = [];
+  if (provPulseInterval) { clearInterval(provPulseInterval); provPulseInterval = null; }
+}
+
+function closeProvinceDetail() {
+  document.getElementById("pv-cards").style.display = "none";
+  document.getElementById("pv-cards-below").style.display = "none";
+  document.getElementById("pv-below").style.display = "none";
+  document.getElementById("pv-loading").style.display = "none";
+  document.getElementById("pv-close").style.display = "none";
+  document.getElementById("pv-name").textContent = "Select a province";
+  document.getElementById("pv-sub").textContent = "Click a province to view averaged weather";
+  document.getElementById("pv-temp").innerHTML = "<sup></sup>";
+  document.getElementById("pv-desc").textContent = "";
+
+  clearProvinceHighlight();
+  document.querySelectorAll(".prov-item").forEach(el => el.classList.remove("selected"));
+  selectedProvince = null;
+  if (provinceMap) {
+    provinceMap.setView([28.3949, 84.1240], 7, { animate: true });
+    setTimeout(() => provinceMap.invalidateSize(), 100);
+  }
+}
+
+async function selectProvince(p) {
+  selectedProvince = p.name;
+
+  // Update list selection
+  document.querySelectorAll(".prov-item").forEach(el => el.classList.remove("selected"));
+  const listItem = document.getElementById(`pi-${p.id}`);
+  if (listItem) { listItem.classList.add("selected"); listItem.scrollIntoView({ block: "nearest" }); }
+
+  // Show header
+  document.getElementById("pv-name").textContent = p.name + " Province";
+  document.getElementById("pv-sub").textContent = `Capital: ${p.capital}`;
+  document.getElementById("pv-close").style.display = "";
+  document.getElementById("pv-cards").style.display = "block";
+
+  // Show loading
+  document.getElementById("pv-loading").style.display = "flex";
+
+  // Highlight province on map
+  highlightProvincePolygons(p.name);
+
+  // Zoom to province center
+  if (provinceMap) {
+    provinceMap.setView([p.lat, p.lng], 7, { animate: true });
+    setTimeout(() => provinceMap.invalidateSize(), 150);
+  }
+
+  // Fetch weather for all districts in province
+  const districts = PROVINCE_TO_DISTRICTS[p.name] || [];
+  const weatherResults = [];
+
+  await Promise.all(districts.map(async (d) => {
+    // Reuse districtData cache if already fetched
+    if (!districtData[d.name]) {
+      try {
+        districtData[d.name] = await fetchWeather(d.lat, d.lng);
+      } catch (e) {
+        console.warn(`Failed to fetch ${d.name}:`, e);
+        return;
+      }
+    }
+    weatherResults.push(districtData[d.name]);
+  }));
+
+  // If user switched away during fetch, abort
+  if (selectedProvince !== p.name) return;
+
+  // Hide loading
+  document.getElementById("pv-loading").style.display = "none";
+
+  if (weatherResults.length === 0) return;
+
+  // ── AVERAGE CALCULATIONS ──
+  const n = weatherResults.length;
+  const avg = (arr, key) => arr.reduce((s, d) => s + (d.current?.[key] || 0), 0) / n;
+  const avgDaily = (arr, key, idx) => arr.reduce((s, d) => s + (d.daily?.[key]?.[idx] || 0), 0) / n;
+  const avgHourly = (arr, key, idx) => arr.reduce((s, d) => s + (d.hourly?.[key]?.[idx] || 0), 0) / n;
+
+  const avgTemp = avg(weatherResults, "temperature_2m");
+  const avgFL = avg(weatherResults, "apparent_temperature");
+  const avgCloud = avg(weatherResults, "cloud_cover");
+  const avgWind = avg(weatherResults, "wind_speed_10m");
+  const avgGust = avg(weatherResults, "wind_gusts_10m");
+  const avgWindDir = avg(weatherResults, "wind_direction_10m");
+  const avgHumidity = avg(weatherResults, "relative_humidity_2m");
+  const avgPressure = avg(weatherResults, "pressure_msl");
+  const avgPrecip = avg(weatherResults, "precipitation");
+  const avgUV = avg(weatherResults, "uv_index");
+
+  const avgTMax = avgDaily(weatherResults, "temperature_2m_max", 0);
+  const avgTMin = avgDaily(weatherResults, "temperature_2m_min", 0);
+  const avgPrecipSum = avgDaily(weatherResults, "precipitation_sum", 0);
+  const avgPrecipHours = avgDaily(weatherResults, "precipitation_hours", 0);
+  const avgWindMax = avgDaily(weatherResults, "wind_speed_10m_max", 0);
+
+  // Most common weather code
+  const wcCounts = {};
+  weatherResults.forEach(d => {
+    const wc = d.current?.weather_code || 0;
+    wcCounts[wc] = (wcCounts[wc] || 0) + 1;
+  });
+  const dominantWC = +Object.entries(wcCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+  // ── POPULATE HEADER ──
+  document.getElementById("pv-temp").innerHTML = `${Math.round(avgTemp)}<sup>°C</sup>`;
+  document.getElementById("pv-desc").textContent = wcDesc(dominantWC);
+
+  // Update sidebar temp
+  if (listItem) listItem.querySelector(".prov-item-temp").textContent = Math.round(avgTemp) + "°C";
+
+  // ── TOP BOX CARDS ──
+  document.getElementById("pv-bx-temp").innerHTML = `${Math.round(avgTemp)}<span>°C</span>`;
+  document.getElementById("pv-bx-temp-range").textContent = `High ${Math.round(avgTMax)}° / Low ${Math.round(avgTMin)}°`;
+  document.getElementById("pv-bx-temp-bar").style.width = Math.min(100, Math.max(5, ((avgTemp + 10) / 50) * 100)) + "%";
+
+  const flDiff = Math.round(avgFL) - Math.round(avgTemp);
+  document.getElementById("pv-bx-fl").innerHTML = `${Math.round(avgFL)}<span>°C</span>`;
+  document.getElementById("pv-bx-fl-note").textContent = flDiff > 0 ? `Feels ${flDiff}° warmer` : flDiff < 0 ? `Feels ${Math.abs(flDiff)}° cooler` : "Same as actual";
+  document.getElementById("pv-bx-fl-bar").style.width = Math.min(100, Math.max(5, ((avgFL + 10) / 50) * 100)) + "%";
+
+  document.getElementById("pv-bx-cloud").innerHTML = `${Math.round(avgCloud)}<span>%</span>`;
+  const ccDesc = avgCloud > 80 ? "Overcast" : avgCloud > 50 ? "Mostly Cloudy" : avgCloud > 20 ? "Partly Cloudy" : "Clear Sky";
+  document.getElementById("pv-bx-cloud-note").textContent = ccDesc;
+  document.getElementById("pv-bx-cloud-bar").style.width = Math.round(avgCloud) + "%";
+
+  document.getElementById("pv-bx-wind-arrow").style.transform = `translateX(-50%) translateY(-100%) rotate(${Math.round(avgWindDir)}deg)`;
+  document.getElementById("pv-bx-wspeed").innerHTML = `${avgWind.toFixed(1)}<span> km/h</span>`;
+  document.getElementById("pv-bx-wdir").textContent = windDir(avgWindDir) + " (" + Math.round(avgWindDir) + "°)";
+  document.getElementById("pv-bx-wgust").textContent = (avgGust || 0).toFixed(1);
+
+  // ── BELOW-MAP CARDS ──
+  document.getElementById("pv-cards-below").style.display = "block";
+  document.getElementById("pv-bx-precip").innerHTML = `${avgPrecipSum.toFixed(1)}<span>mm</span>`;
+  document.getElementById("pv-bx-precip-note").textContent = avgPrecipHours > 0 ? `${Math.round(avgPrecipHours)} hrs of rain avg` : "No rain expected";
+  document.getElementById("pv-bx-precip-bar").style.width = Math.min(100, avgPrecipSum * 2) + "%";
+
+  const dp = dewPoint(avgTemp, avgHumidity);
+  document.getElementById("pv-bx-hum").innerHTML = `${Math.round(avgHumidity)}<span>%</span>`;
+  document.getElementById("pv-bx-hum-note").textContent = `Dew point: ${dp}°C`;
+  document.getElementById("pv-bx-hum-bar").style.width = Math.round(avgHumidity) + "%";
+
+  document.getElementById("pv-bx-pressure").innerHTML = `${Math.round(avgPressure)}<span> hPa</span>`;
+
+  // Sun — average sunrise/sunset from first district's daily data (they're close enough within a province)
+  const firstDaily = weatherResults[0].daily;
+  document.getElementById("pv-bx-sunrise").textContent = formatTime(firstDaily.sunrise?.[0]);
+  document.getElementById("pv-bx-sunset").textContent = formatTime(firstDaily.sunset?.[0]);
+  const sr = new Date(firstDaily.sunrise?.[0]), ss = new Date(firstDaily.sunset?.[0]);
+  document.getElementById("pv-bx-daylight").textContent = "Daylight: " + ((ss - sr) / 3600000).toFixed(1) + " hrs";
+
+  // ── BELOW-MAP DATA ──
+  document.getElementById("pv-below").style.display = "block";
+
+  // Today's overview
+  document.getElementById("pv-tmax").textContent = Math.round(avgTMax) + "°";
+  document.getElementById("pv-tmin").textContent = Math.round(avgTMin) + "°";
+  document.getElementById("pv-tprecip").innerHTML = `${avgPrecipSum.toFixed(1)}<span>mm</span>`;
+  document.getElementById("pv-tmaxwind").innerHTML = `${Math.round(avgWindMax)}<span>km/h</span>`;
+  document.getElementById("pv-tphours").innerHTML = `${Math.round(avgPrecipHours)}<span>hrs</span>`;
+
+  // Condition gauges
+  const setG = (id, gid, val, max) => {
+    document.getElementById(id).textContent = val;
+    document.getElementById(gid).style.width = Math.min(100, (parseFloat(val) / max) * 100) + "%";
+  };
+  setG("pv-g-hum", "pv-gb-hum", Math.round(avgHumidity) + "%", 100);
+  setG("pv-g-cloud", "pv-gb-cloud", Math.round(avgCloud) + "%", 100);
+  setG("pv-g-uv", "pv-gb-uv", (avgUV || 0).toFixed(1) + "/11", 11);
+  setG("pv-g-wind", "pv-gb-wind", avgWind.toFixed(1) + " km/h", 100);
+
+  // ── HOURLY FORECAST (averaged) ──
+  renderProvinceHourly(weatherResults);
+
+  // ── 7-DAY FORECAST (averaged) ──
+  renderProvinceForecast(weatherResults);
+}
+
+function renderProvinceHourly(weatherResults) {
+  const now = new Date().getHours();
+  const wrap = document.getElementById("pv-hourly");
+  wrap.innerHTML = "";
+  const n = weatherResults.length;
+
+  // Compute averaged hourly temps for scaling
+  const temps = [];
+  for (let i = now; i < now + 13 && i < 24; i++) {
+    const avgT = weatherResults.reduce((s, d) => s + (d.hourly?.temperature_2m?.[i] || 0), 0) / n;
+    temps.push(avgT);
+  }
+  const tMin = Math.min(...temps), tMax = Math.max(...temps);
+  const tRange = Math.max(tMax - tMin, 1);
+
+  let idx = 0;
+  for (let i = now; i < now + 13 && i < 24; i++) {
+    const avgTemp = weatherResults.reduce((s, d) => s + (d.hourly?.temperature_2m?.[i] || 0), 0) / n;
+    const avgRain = weatherResults.reduce((s, d) => s + (d.hourly?.precipitation_probability?.[i] || 0), 0) / n;
+
+    // Most common weather code at this hour
+    const wcH = {};
+    weatherResults.forEach(d => {
+      const wc = d.hourly?.weather_code?.[i] || 0;
+      wcH[wc] = (wcH[wc] || 0) + 1;
+    });
+    const topWC = +Object.entries(wcH).sort((a, b) => b[1] - a[1])[0][0];
+
+    const barH = Math.max(8, ((avgTemp - tMin) / tRange) * 44);
+    const temp = Math.round(avgTemp);
+    const col = document.createElement("div");
+    col.className = "dd-hour-col" + (i === now ? " now" : "");
+    col.innerHTML = `
+      <div class="dd-hour-time">${i === now ? "Now" : i + ":00"}</div>
+      <div class="dd-hour-temp">${temp}°</div>
+      <div class="dd-hour-bar-wrap"><div class="dd-hour-bar" style="height:${barH}px;background:${tempBarColor(temp)}"></div></div>
+      <div class="dd-hour-rain">${Math.round(avgRain)}%</div>
+      <div class="dd-hour-wc">${wcDesc(topWC)}</div>
+    `;
+    wrap.appendChild(col);
+    idx++;
+  }
+}
+
+function renderProvinceForecast(weatherResults) {
+  const fw = document.getElementById("pv-forecast");
+  fw.innerHTML = "";
+  const n = weatherResults.length;
+
+  // Get averaged min/max for all 7 days
+  const allMin = [], allMax = [];
+  for (let i = 0; i < 7; i++) {
+    allMin.push(weatherResults.reduce((s, d) => s + (d.daily?.temperature_2m_min?.[i] || 0), 0) / n);
+    allMax.push(weatherResults.reduce((s, d) => s + (d.daily?.temperature_2m_max?.[i] || 0), 0) / n);
+  }
+  const absMin = Math.min(...allMin), absMax = Math.max(...allMax);
+  const absRange = Math.max(absMax - absMin, 1);
+
+  for (let i = 0; i < 7; i++) {
+    const mn = allMin[i], mx = allMax[i];
+    const leftPct = ((mn - absMin) / absRange) * 100;
+    const widthPct = Math.max(8, ((mx - mn) / absRange) * 100);
+
+    let barGrad = "linear-gradient(90deg,#2d7cf6,#22c983)";
+    if (mx > 32) barGrad = "linear-gradient(90deg,#f5a623,#e94b4b)";
+    else if (mx > 25) barGrad = "linear-gradient(90deg,#22c983,#f5a623)";
+    else if (mx < 10) barGrad = "linear-gradient(90deg,#a0c4f7,#2d7cf6)";
+
+    // Most common weather code for this day
+    const wcD = {};
+    weatherResults.forEach(d => {
+      const wc = d.daily?.weather_code?.[i] || 0;
+      wcD[wc] = (wcD[wc] || 0) + 1;
+    });
+    const topWC = +Object.entries(wcD).sort((a, b) => b[1] - a[1])[0][0];
+
+    const avgRainProb = weatherResults.reduce((s, d) => s + (d.daily?.precipitation_probability_max?.[i] || 0), 0) / n;
+
+    const row = document.createElement("div");
+    row.className = "dd-fc-row";
+    row.innerHTML = `
+      <div class="dd-fc-day">${dayName(i)}</div>
+      <div class="dd-fc-desc" style="color:${wcColor(topWC)}">${wcDesc(topWC)}</div>
+      <div class="dd-fc-rain">${Math.round(avgRainProb)}%</div>
+      <div class="dd-fc-bar-wrap">
+        <div class="dd-fc-min">${Math.round(mn)}°</div>
+        <div class="dd-fc-bar-track">
+          <div class="dd-fc-bar-fill" style="left:${leftPct}%;width:${widthPct}%;background:${barGrad}"></div>
+        </div>
+        <div class="dd-fc-max">${Math.round(mx)}°</div>
+      </div>
+    `;
+    fw.appendChild(row);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// DISTRICT TAB + LEAFLET MAP
+// ═══════════════════════════════════════════════════
+let districtMap = null;
+let districtMarkers = {};
+let districtData = {};
+let selectedDistrict = null;
+let nationalMap = null;
+
+function initDistrictMap() {
+  if(districtMap) return;
+  districtMap = L.map("map", {
+    center:[28.3949, 84.1240],
+    zoom:7,
+    zoomControl:false
+  });
+  L.control.zoom({position:'bottomleft'}).addTo(districtMap);
+
+  districtTileLayer = L.tileLayer(MAP_TILES.street.url, {
+    attribution: MAP_TILES.street.attr,
+    maxZoom:18
+  }).addTo(districtMap);
+
+  // Load district boundaries and province borders
+  addDistrictBoundaries(districtMap, 'district');
+
+  // Add district point markers (on top of polygons)
+  DISTRICTS.forEach(d => {
+    const marker = L.circleMarker([d.lat, d.lng], {
+      radius:5, fillColor:"#2d7cf6", color:"#ffffff",
+      weight:2, fillOpacity:0.9, stroke:true
+    }).addTo(districtMap);
+
+    marker.on("click", () => selectDistrict(d, marker));
+    districtMarkers[d.name] = marker;
+  });
+}
+
+function initNationalMap() {
+  if(nationalMap) return;
+  setTimeout(() => {
+    nationalMap = L.map("national-map",{
+      center:[28.0,84.0], zoom:6, zoomControl:false
+    });
+    L.control.zoom({position:'bottomleft'}).addTo(nationalMap);
+    nationalTileLayer = L.tileLayer(MAP_TILES.street.url, {
+      attribution: MAP_TILES.street.attr, maxZoom:18
+    }).addTo(nationalMap);
+
+    // Load district boundaries and province borders on national map
+    addDistrictBoundaries(nationalMap, 'national');
+
+    // Province capital markers (on top of polygons)
+    PROVINCES.forEach(p => {
+      const icon = L.divIcon({
+        className:"",
+        html:`<div style="background:${p.color};border-radius:50%;width:14px;height:14px;border:3px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.2)"></div>`,
+        iconSize:[14,14],iconAnchor:[7,7]
+      });
+      L.marker([p.lat, p.lng], {icon}).addTo(nationalMap)
+        .bindPopup(`<b style="color:#1a2332">${p.name}</b><br><span style="color:#5a6a7e;font-size:11px">${p.capital}</span>`);
+    });
+  }, 300);
+}
+
+let highlightedLayer = null;
+let pulseInterval = null;
+
+function highlightDistrictPolygon(districtName) {
+  // Reset previous highlight
+  if (highlightedLayer) {
+    const prov = getProvince(highlightedLayer._districtName || "");
+    const color = prov ? (PROVINCE_COLORS[prov] || "#2d7cf6") : "#94a3b8";
+    highlightedLayer.setStyle({ fillColor: color, fillOpacity: 0.12, color: color, weight: 1, opacity: 0.4 });
+    highlightedLayer = null;
+  }
+  if (pulseInterval) { clearInterval(pulseInterval); pulseInterval = null; }
+
+  const geoLayer = districtGeoLayers['district'];
+  if (!geoLayer) return;
+
+  geoLayer.eachLayer(layer => {
+    const name = layer.feature?.properties?.name || layer.feature?.id || "";
+    if (name.toUpperCase().replace(/\s/g,"") === districtName.toUpperCase().replace(/\s/g,"")) {
+      layer._districtName = name;
+      // Bright highlight
+      layer.setStyle({
+        fillColor: "#3b8ff6",
+        fillOpacity: 0.40,
+        color: "#ffffff",
+        weight: 3,
+        opacity: 1,
+      });
+      layer.bringToFront();
+      highlightedLayer = layer;
+
+      // Pulsing glow effect
+      let pulse = true;
+      pulseInterval = setInterval(() => {
+        if (!highlightedLayer) { clearInterval(pulseInterval); return; }
+        pulse = !pulse;
+        highlightedLayer.setStyle({
+          fillOpacity: pulse ? 0.45 : 0.25,
+          weight: pulse ? 4 : 2,
+          color: pulse ? "#ffffff" : "#a0c4f7",
+        });
+      }, 1200);
+    }
+  });
+}
+
+function closeDistrictDetail() {
+  document.getElementById("dd-header-bar").style.display = "none";
+  document.getElementById("dd-cards").style.display = "none";
+  document.getElementById("dd-cards-below").style.display = "none";
+  document.getElementById("dd-below").style.display = "none";
+  document.getElementById("dd-loading").style.display = "none";
+
+  // Reset map highlight
+  if (highlightedLayer) {
+    const prov = getProvince(highlightedLayer._districtName || "");
+    const color = prov ? (PROVINCE_COLORS[prov] || "#2d7cf6") : "#94a3b8";
+    highlightedLayer.setStyle({ fillColor: color, fillOpacity: 0.12, color: color, weight: 1, opacity: 0.4 });
+    highlightedLayer = null;
+  }
+  if (pulseInterval) { clearInterval(pulseInterval); pulseInterval = null; }
+
+  Object.values(districtMarkers).forEach(m => m.setStyle({fillColor:"#2d7cf6", radius:5, weight:2}));
+  document.querySelectorAll(".district-item").forEach(el => el.classList.remove("selected"));
+  selectedDistrict = null;
+  if(districtMap) setTimeout(() => districtMap.invalidateSize(), 100);
+}
+
+function tempBarColor(temp) {
+  if (temp > 35) return "linear-gradient(to top,#e94b4b,#ff6b6b)";
+  if (temp > 28) return "linear-gradient(to top,#f5a623,#ffcc02)";
+  if (temp > 20) return "linear-gradient(to top,#22c983,#6dd5a0)";
+  if (temp > 10) return "linear-gradient(to top,#2d7cf6,#6ba8ff)";
+  return "linear-gradient(to top,#a0c4f7,#c8e6fa)";
+}
+
+function renderHourlyVisual(h) {
+  const now = new Date().getHours();
+  const wrap = document.getElementById("dd-hourly");
+  wrap.innerHTML = "";
+
+  // Get temp range for bar scaling
+  const temps = [];
+  for (let i = now; i < now + 13 && i < 24; i++) temps.push(h.temperature_2m?.[i] || 0);
+  const tMin = Math.min(...temps), tMax = Math.max(...temps);
+  const tRange = Math.max(tMax - tMin, 1);
+
+  for (let i = now; i < now + 13 && i < 24; i++) {
+    const temp = Math.round(h.temperature_2m?.[i] || 0);
+    const rain = h.precipitation_probability?.[i] || 0;
+    const wc = wcDesc(h.weather_code?.[i]);
+    const barH = Math.max(8, ((h.temperature_2m?.[i] - tMin) / tRange) * 44);
+    const col = document.createElement("div");
+    col.className = "dd-hour-col" + (i === now ? " now" : "");
+    col.innerHTML = `
+      <div class="dd-hour-time">${i === now ? "Now" : i + ":00"}</div>
+      <div class="dd-hour-temp">${temp}°</div>
+      <div class="dd-hour-bar-wrap"><div class="dd-hour-bar" style="height:${barH}px;background:${tempBarColor(temp)}"></div></div>
+      <div class="dd-hour-rain">${rain}%</div>
+      <div class="dd-hour-wc">${wc}</div>
+    `;
+    wrap.appendChild(col);
+  }
+}
+
+function renderForecastVisual(daily) {
+  const fw = document.getElementById("dd-forecast");
+  fw.innerHTML = "";
+
+  // Get absolute min/max across all 7 days for bar scaling
+  const allMin = [], allMax = [];
+  for (let i = 0; i < 7; i++) {
+    allMin.push(daily.temperature_2m_min?.[i] || 0);
+    allMax.push(daily.temperature_2m_max?.[i] || 0);
+  }
+  const absMin = Math.min(...allMin), absMax = Math.max(...allMax);
+  const absRange = Math.max(absMax - absMin, 1);
+
+  for (let i = 0; i < 7; i++) {
+    const mn = daily.temperature_2m_min?.[i] || 0;
+    const mx = daily.temperature_2m_max?.[i] || 0;
+    const leftPct = ((mn - absMin) / absRange) * 100;
+    const widthPct = Math.max(8, ((mx - mn) / absRange) * 100);
+
+    // Gradient color based on max temp
+    let barGrad = "linear-gradient(90deg,#2d7cf6,#22c983)";
+    if (mx > 32) barGrad = "linear-gradient(90deg,#f5a623,#e94b4b)";
+    else if (mx > 25) barGrad = "linear-gradient(90deg,#22c983,#f5a623)";
+    else if (mx < 10) barGrad = "linear-gradient(90deg,#a0c4f7,#2d7cf6)";
+
+    const row = document.createElement("div");
+    row.className = "dd-fc-row";
+    row.innerHTML = `
+      <div class="dd-fc-day">${dayName(i)}</div>
+      <div class="dd-fc-desc" style="color:${wcColor(daily.weather_code?.[i])}">${wcDesc(daily.weather_code?.[i])}</div>
+      <div class="dd-fc-rain">${daily.precipitation_probability_max?.[i] || 0}%</div>
+      <div class="dd-fc-bar-wrap">
+        <div class="dd-fc-min">${Math.round(mn)}°</div>
+        <div class="dd-fc-bar-track">
+          <div class="dd-fc-bar-fill" style="left:${leftPct}%;width:${widthPct}%;background:${barGrad}"></div>
+        </div>
+        <div class="dd-fc-max">${Math.round(mx)}°</div>
+      </div>
+    `;
+    fw.appendChild(row);
+  }
+}
+
+async function selectDistrict(d, marker) {
+  selectedDistrict = d.name;
+
+  // Update list selection
+  document.querySelectorAll(".district-item").forEach(el => el.classList.remove("selected"));
+  const listItem = document.getElementById(`di-${d.name.replace(/\s/g,"_")}`);
+  if(listItem) { listItem.classList.add("selected"); listItem.scrollIntoView({block:"nearest"}); }
+
+  // Update marker styles
+  Object.values(districtMarkers).forEach(m => m.setStyle({fillColor:"#2d7cf6", radius:5, weight:2, color:"#ffffff"}));
+  if(marker) marker.setStyle({fillColor:"#ffffff", radius:10, weight:4, color:"#2d7cf6", fillOpacity:1});
+
+  // Highlight polygon on map
+  highlightDistrictPolygon(d.name);
+
+  // Show header bar + cards, hide below data until loaded
+  document.getElementById("dd-header-bar").style.display = "flex";
+  document.getElementById("dd-cards").style.display = "block";
+  document.getElementById("dd-below").style.display = "none";
+  document.getElementById("dd-name").textContent = d.name;
+  document.getElementById("dd-province").textContent = d.province + " Province";
+  document.getElementById("dd-temp").innerHTML = `--<sup>°C</sup>`;
+  document.getElementById("dd-desc").textContent = "Loading...";
+  document.getElementById("dd-loading").style.display = "flex";
+
+  // Scroll map-wrap to top
+  document.querySelector("#tab-district .map-wrap").scrollTop = 0;
+
+  if(districtMap) setTimeout(() => districtMap.invalidateSize(), 150);
+
+  // Fetch full weather data
+  if(!districtData[d.name]) {
+    const data = await fetchWeather(d.lat, d.lng);
+    districtData[d.name] = data;
+
+    const temp = data.current.temperature_2m;
+    const col = temp>30?"#e94b4b":temp>25?"#f5a623":temp>20?"#22c983":temp>15?"#2d7cf6":"#c8e6fa";
+    if(marker) marker.setStyle({fillColor:"#ffffff", radius:10, weight:4, color:col, fillOpacity:1});
+
+    const li = document.getElementById(`di-${d.name.replace(/\s/g,"_")}`);
+    if(li) li.querySelector(".di-temp").textContent = Math.round(temp)+"°C";
+  }
+
+  const data = districtData[d.name];
+  const c = data.current;
+  const daily = data.daily;
+  const h = data.hourly;
+
+  // Hide loading
+  document.getElementById("dd-loading").style.display = "none";
+
+  // ── HEADER BAR ──
+  document.getElementById("dd-temp").innerHTML = `${Math.round(c.temperature_2m)}<sup>°C</sup>`;
+  document.getElementById("dd-desc").textContent = wcDesc(c.weather_code);
+
+  // ── BOX CARDS ──
+  const tMax = daily.temperature_2m_max?.[0] || 0;
+  const tMin = daily.temperature_2m_min?.[0] || 0;
+  const dp = dewPoint(c.temperature_2m, c.relative_humidity_2m);
+
+  // Temperature box
+  document.getElementById("dd-bx-temp").innerHTML = `${Math.round(c.temperature_2m)}<span>°C</span>`;
+  document.getElementById("dd-bx-temp-range").textContent = `High ${Math.round(tMax)}° / Low ${Math.round(tMin)}°`;
+  document.getElementById("dd-bx-temp-bar").style.width = Math.min(100, Math.max(5, ((c.temperature_2m + 10) / 50) * 100)) + "%";
+
+  // Feels Like box
+  const fl = Math.round(c.apparent_temperature);
+  document.getElementById("dd-bx-fl").innerHTML = `${fl}<span>°C</span>`;
+  const flDiff = fl - Math.round(c.temperature_2m);
+  document.getElementById("dd-bx-fl-note").textContent = flDiff > 0 ? `Feels ${flDiff}° warmer` : flDiff < 0 ? `Feels ${Math.abs(flDiff)}° cooler` : "Same as actual";
+  document.getElementById("dd-bx-fl-bar").style.width = Math.min(100, Math.max(5, ((c.apparent_temperature + 10) / 50) * 100)) + "%";
+
+  // Cloud Cover box
+  document.getElementById("dd-bx-cloud").innerHTML = `${c.cloud_cover}<span>%</span>`;
+  const ccDesc = c.cloud_cover > 80 ? "Overcast" : c.cloud_cover > 50 ? "Mostly Cloudy" : c.cloud_cover > 20 ? "Partly Cloudy" : "Clear Sky";
+  document.getElementById("dd-bx-cloud-note").textContent = ccDesc;
+  document.getElementById("dd-bx-cloud-bar").style.width = c.cloud_cover + "%";
+
+  // Wind box
+  const wdir = c.wind_direction_10m;
+  document.getElementById("dd-bx-wind-arrow").style.transform = `translateX(-50%) translateY(-100%) rotate(${wdir}deg)`;
+  document.getElementById("dd-bx-wspeed").innerHTML = `${c.wind_speed_10m.toFixed(1)}<span> km/h</span>`;
+  document.getElementById("dd-bx-wdir").textContent = windDir(wdir) + " (" + wdir + "°)";
+  document.getElementById("dd-bx-wgust").textContent = (c.wind_gusts_10m||0).toFixed(1);
+
+  // Precipitation box
+  document.getElementById("dd-bx-precip").innerHTML = `${(daily.precipitation_sum?.[0] || 0).toFixed(1)}<span>mm</span>`;
+  const ph = daily.precipitation_hours?.[0] || 0;
+  document.getElementById("dd-bx-precip-note").textContent = ph > 0 ? `${ph} hrs of rain today` : "No rain expected";
+  document.getElementById("dd-bx-precip-bar").style.width = Math.min(100, (daily.precipitation_sum?.[0] || 0) * 2) + "%";
+
+  // Humidity box
+  document.getElementById("dd-bx-hum").innerHTML = `${c.relative_humidity_2m}<span>%</span>`;
+  document.getElementById("dd-bx-hum-note").textContent = `Dew point: ${dp}°C`;
+  document.getElementById("dd-bx-hum-bar").style.width = c.relative_humidity_2m + "%";
+
+  // Pressure box
+  document.getElementById("dd-bx-pressure").innerHTML = `${Math.round(c.pressure_msl)}<span> hPa</span>`;
+
+  // Sun box
+  document.getElementById("dd-bx-sunrise").textContent = formatTime(daily.sunrise?.[0]);
+  document.getElementById("dd-bx-sunset").textContent = formatTime(daily.sunset?.[0]);
+  const sr = new Date(daily.sunrise?.[0]), ss = new Date(daily.sunset?.[0]);
+  document.getElementById("dd-bx-daylight").textContent = "Daylight: " + ((ss - sr) / 3600000).toFixed(1) + " hrs";
+
+  // ── BELOW-MAP DATA ──
+  document.getElementById("dd-cards-below").style.display = "block";
+  document.getElementById("dd-below").style.display = "block";
+
+  // Today's overview stats
+  document.getElementById("dd-tmax").textContent = Math.round(tMax) + "°";
+  document.getElementById("dd-tmin").textContent = Math.round(tMin) + "°";
+  document.getElementById("dd-tprecip").innerHTML = `${(daily.precipitation_sum?.[0] || 0).toFixed(1)}<span>mm</span>`;
+  document.getElementById("dd-tmaxwind").innerHTML = `${Math.round(daily.wind_speed_10m_max?.[0])}<span>km/h</span>`;
+  document.getElementById("dd-tphours").innerHTML = `${ph}<span>hrs</span>`;
+
+  // Condition gauges
+  const setG = (id, gid, val, max) => {
+    document.getElementById(id).textContent = val;
+    document.getElementById(gid).style.width = Math.min(100, (parseFloat(val) / max) * 100) + "%";
+  };
+  setG("dd-g-hum", "dd-gb-hum", c.relative_humidity_2m + "%", 100);
+  setG("dd-g-cloud", "dd-gb-cloud", c.cloud_cover + "%", 100);
+  setG("dd-g-uv", "dd-gb-uv", (c.uv_index || 0).toFixed(1) + "/11", 11);
+  setG("dd-g-wind", "dd-gb-wind", c.wind_speed_10m.toFixed(1) + " km/h", 100);
+  const rainProb = h.precipitation_probability?.[new Date().getHours()] || 0;
+  setG("dd-g-rain", "dd-gb-rain", rainProb + "%", 100);
+
+  // Hourly visual
+  renderHourlyVisual(h);
+
+  // 7-day forecast visual
+  renderForecastVisual(daily);
+}
+
+function buildDistrictList() {
+  const wrap = document.getElementById("district-list-wrap");
+  wrap.innerHTML = "";
+  DISTRICTS.forEach(d => {
+    const div = document.createElement("div");
+    div.className = "district-item";
+    div.id = `di-${d.name.replace(/\s/g,"_")}`;
+    div.innerHTML = `
+      <div>
+        <div class="di-name">${d.name}</div>
+        <div class="di-province">${d.province}</div>
+      </div>
+      <div class="di-temp">--°C</div>
+    `;
+    div.onclick = () => {
+      const marker = districtMarkers[d.name];
+      selectDistrict(d, marker);
+      districtMap.setView([d.lat, d.lng], 8, {animate:true});
+    };
+    wrap.appendChild(div);
+  });
+}
+
+function filterDistricts(q) {
+  const items = document.querySelectorAll(".district-item");
+  const lq = q.toLowerCase();
+  items.forEach(item => {
+    const name = item.querySelector(".di-name").textContent.toLowerCase();
+    const prov = item.querySelector(".di-province").textContent.toLowerCase();
+    item.style.display = (name.includes(lq)||prov.includes(lq)) ? "" : "none";
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════
+let loadedTabs = {national:false, province:false, district:false};
+
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab===name));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.toggle("active", c.id===`tab-${name}`));
+
+  if(name==="national" && nationalMap) {
+    setTimeout(() => nationalMap.invalidateSize(), 150);
+  }
+  if(name==="province" && !loadedTabs.province) {
+    loadedTabs.province = true;
+    buildProvinceList();
+    setTimeout(() => { initProvinceMap(); }, 100);
+  }
+  if(name==="province" && provinceMap) {
+    setTimeout(() => provinceMap.invalidateSize(), 150);
+  }
+  if(name==="district" && !loadedTabs.district) {
+    loadedTabs.district = true;
+    buildDistrictList();
+    setTimeout(() => { initDistrictMap(); }, 100);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// CLOCK & AUTO REFRESH
+// ═══════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const t = now.getHours().toString().padStart(2,"0")+":"+
+            now.getMinutes().toString().padStart(2,"0")+":"+
+            now.getSeconds().toString().padStart(2,"0");
+  document.getElementById("last-updated").textContent = t;
+
+  // Next ECMWF model update countdown
+  // ECMWF runs at 00,06,12,18 UTC; data available ~6h after run start
+  // So new data arrives at approx 06,12,18,00 UTC
+  const utcH = now.getUTCHours(), utcM = now.getUTCMinutes();
+  const dataHours = [6, 12, 18, 24]; // hours when new data becomes available (UTC)
+  const currentMin = utcH * 60 + utcM;
+  let nextMin = dataHours.find(h => h * 60 > currentMin);
+  if (!nextMin) nextMin = dataHours[0] + 24; // wrap to next day
+  const diffMin = nextMin * 60 - currentMin;
+  const hLeft = Math.floor(diffMin / 60);
+  const mLeft = diffMin % 60;
+  const el = document.getElementById("next-model-update");
+  if (el) el.textContent = `~${hLeft}h ${mLeft}m`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Auto-refresh every 15 minutes
+setInterval(() => {
+  if(loadedTabs.national) loadNational();
+  // Province data refreshes on click (averaged from districts)
+  // Districts refresh on click — no need for bulk refresh
+}, 15 * 60 * 1000);
+
+// ═══════════════════════════════════════════════════
+// MAP TILE LAYERS
+// ═══════════════════════════════════════════════════
+const MAP_TILES = {
+  street:    { url:"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attr:"&copy; OpenStreetMap" },
+  satellite: { url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr:"&copy; Esri" },
+  terrain:   { url:"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", attr:"&copy; OpenTopoMap" },
+  dark:      { url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", attr:"&copy; CartoDB" },
+  light:     { url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", attr:"&copy; CartoDB" },
+  positron:  { url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", attr:"&copy; CartoDB" },
+};
+
+let districtTileLayer = null;
+let nationalTileLayer = null;
+
+function switchMapLayer(name) {
+  if (!districtMap || !MAP_TILES[name]) return;
+  // Update radio UI
+  document.querySelectorAll('#map-layer-ctrl .map-layer-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.layer === name);
+  });
+  // Swap tile layer
+  if (districtTileLayer) districtMap.removeLayer(districtTileLayer);
+  districtTileLayer = L.tileLayer(MAP_TILES[name].url, { attribution: MAP_TILES[name].attr, maxZoom: 18 }).addTo(districtMap);
+}
+
+function switchNatMapLayer(name) {
+  if (!nationalMap || !MAP_TILES[name]) return;
+  document.querySelectorAll('#nat-map-layer-ctrl .map-layer-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.layer === name);
+  });
+  if (nationalTileLayer) nationalMap.removeLayer(nationalTileLayer);
+  nationalTileLayer = L.tileLayer(MAP_TILES[name].url, { attribution: MAP_TILES[name].attr, maxZoom: 18 }).addTo(nationalMap);
+}
+
+// ═══════════════════════════════════════════════════
+// GEOJSON BOUNDARIES — Districts & Province Borders
+// ═══════════════════════════════════════════════════
+const TOPO_URL = "https://raw.githubusercontent.com/mesaugat/geoJSON-Nepal/master/nepal-districts.topojson";
+let geoJsonCache = null;
+let districtGeoLayers = { district: null, national: null, province: null };
+let provinceGeoLayers = { district: null, national: null, province: null };
+
+// Map district names from TopoJSON → province using our DISTRICTS array
+const DISTRICT_TO_PROVINCE = {};
+DISTRICTS.forEach(d => {
+  DISTRICT_TO_PROVINCE[d.name.toUpperCase()] = d.province;
+  // Handle alternate spellings
+  DISTRICT_TO_PROVINCE[d.name.replace(/\s/g,"").toUpperCase()] = d.province;
+});
+// Add common name variations between TopoJSON and our data
+const NAME_ALIASES = {
+  "KAVREPALANCHOWK":"Bagmati","KAVREPALANCHOK":"Bagmati",
+  "SINDHUPALCHOWK":"Bagmati","SINDHUPALCHOK":"Bagmati",
+  "NAWALPARASI_EAST":"Gandaki","NAWALPARASI EAST":"Gandaki",
+  "NAWALPARASI_WEST":"Lumbini","NAWALPARASI WEST":"Lumbini",
+  "NAWALPUR":"Gandaki","NAWALPARASI W":"Lumbini","NAWALPARASIW":"Lumbini",
+  "RUKUM_EAST":"Lumbini","RUKUM EAST":"Lumbini","EASTERN RUKUM":"Lumbini","EASTERNRUKUM":"Lumbini",
+  "RUKUM_WEST":"Karnali","RUKUM WEST":"Karnali","WESTERN RUKUM":"Karnali","WESTERNRUKUM":"Karnali",
+  "CHITAWAN":"Bagmati","CHITWAN":"Bagmati","TANAHAU":"Gandaki",
+  "TANAHU":"Gandaki","TERHATHUM":"Koshi","TERATHUM":"Koshi",
+  "KAPILBASTU":"Lumbini","KAPILVASTU":"Lumbini",
+  "DANG":"Lumbini","DANG DEUKHURI":"Lumbini",
+  "PARASI":"Lumbini","PARSA":"Madhesh",
+  "DHANUSHA":"Madhesh","DHANUSA":"Madhesh",
+  "KANCHANPUR":"Sudurpashchim","MAHOTTARI":"Madhesh",
+};
+Object.entries(NAME_ALIASES).forEach(([k,v]) => { DISTRICT_TO_PROVINCE[k] = v; });
+
+// Province color mapping
+const PROVINCE_COLORS = {};
+PROVINCES.forEach(p => { PROVINCE_COLORS[p.name] = p.color; });
+
+// Province → Districts mapping (built from DISTRICTS array)
+const PROVINCE_TO_DISTRICTS = {};
+DISTRICTS.forEach(d => {
+  if (!PROVINCE_TO_DISTRICTS[d.province]) PROVINCE_TO_DISTRICTS[d.province] = [];
+  PROVINCE_TO_DISTRICTS[d.province].push(d);
+});
+
+function getProvince(districtName) {
+  const up = districtName.toUpperCase().trim();
+  return DISTRICT_TO_PROVINCE[up] || DISTRICT_TO_PROVINCE[up.replace(/\s/g,"")] || null;
+}
+
+async function fetchGeoJson() {
+  if (geoJsonCache) return geoJsonCache;
+  try {
+    const resp = await fetch(TOPO_URL);
+    const topo = await resp.json();
+    geoJsonCache = topojson.feature(topo, topo.objects.nepal);
+    return geoJsonCache;
+  } catch(e) {
+    console.error("Failed to load Nepal boundaries:", e);
+    return null;
+  }
+}
+
+function addDistrictBoundaries(map, mapKey) {
+  fetchGeoJson().then(geojson => {
+    if (!geojson || !map) return;
+
+    // District fill layer
+    districtGeoLayers[mapKey] = L.geoJSON(geojson, {
+      style: function(feature) {
+        const prov = getProvince(feature.properties.name || feature.id || "");
+        const color = prov ? (PROVINCE_COLORS[prov] || "#2d7cf6") : "#94a3b8";
+        return {
+          fillColor: color,
+          fillOpacity: 0.12,
+          color: color,
+          weight: 1,
+          opacity: 0.4,
+        };
+      },
+      onEachFeature: function(feature, layer) {
+        const name = feature.properties.name || feature.id || "Unknown";
+        const prov = getProvince(name) || "Unknown";
+        layer.bindTooltip(
+          `<b style="font-size:12px">${name}</b><br><span style="color:#64748b;font-size:10px">${prov} Province</span>`,
+          { sticky: true, className: 'district-tooltip' }
+        );
+        layer.on('mouseover', function() {
+          if (mapKey === 'province' && provHighlightedLayers.includes(this)) return;
+          this.setStyle({ fillOpacity: 0.3, weight: 2 });
+        });
+        layer.on('mouseout', function() {
+          if (mapKey === 'province' && provHighlightedLayers.includes(this)) return;
+          this.setStyle({ fillOpacity: 0.12, weight: 1 });
+        });
+        // Click to select district or province
+        layer.on('click', function() {
+          if (mapKey === 'province') {
+            // On province map, clicking any district selects its province
+            const provName = getProvince(name);
+            if (provName) {
+              const p = PROVINCES.find(pr => pr.name === provName);
+              if (p) selectProvince(p);
+            }
+          } else if (mapKey === 'district') {
+            const dist = DISTRICTS.find(d =>
+              d.name.toUpperCase() === name.toUpperCase() ||
+              d.name.replace(/\s/g,"").toUpperCase() === name.replace(/\s/g,"").toUpperCase()
+            );
+            if (dist) {
+              const marker = districtMarkers[dist.name];
+              selectDistrict(dist, marker);
+              districtMap.setView([dist.lat, dist.lng], 10, {animate:true});
+            }
+          }
+        });
+      }
+    }).addTo(map);
+
+    // Province border layer (thicker lines grouping districts by province)
+    addProvinceBorders(map, mapKey, geojson);
+  });
+}
+
+function addProvinceBorders(map, mapKey, geojson) {
+  // Group district features by province
+  const provinceGroups = {};
+  geojson.features.forEach(f => {
+    const name = f.properties.name || f.id || "";
+    const prov = getProvince(name);
+    if (prov) {
+      if (!provinceGroups[prov]) provinceGroups[prov] = [];
+      provinceGroups[prov].push(f);
+    }
+  });
+
+  // Create a FeatureCollection for each province and merge
+  const provinceLayers = [];
+  Object.entries(provinceGroups).forEach(([provName, features]) => {
+    const color = PROVINCE_COLORS[provName] || "#2d7cf6";
+    const provinceFC = { type: "FeatureCollection", features: features };
+
+    const layer = L.geoJSON(provinceFC, {
+      style: {
+        fillColor: "transparent",
+        fillOpacity: 0,
+        color: color,
+        weight: 3,
+        opacity: 0.8,
+        dashArray: null,
+      },
+      interactive: false
+    });
+    provinceLayers.push(layer);
+  });
+
+  provinceGeoLayers[mapKey] = L.layerGroup(provinceLayers).addTo(map);
+
+  // Add province name labels
+  PROVINCES.forEach(p => {
+    const label = L.divIcon({
+      className: 'province-label',
+      html: `<div style="
+        font-family:var(--font-m);font-size:10px;font-weight:700;
+        color:${p.color};text-shadow:0 1px 3px rgba(255,255,255,0.9),0 0 6px rgba(255,255,255,0.8);
+        letter-spacing:1px;white-space:nowrap;pointer-events:none;
+      ">${p.name.toUpperCase()}</div>`,
+      iconSize: [120, 20],
+      iconAnchor: [60, 10]
+    });
+    L.marker([p.lat, p.lng], { icon: label, interactive: false }).addTo(map);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+async function init() {
+  await loadNational();
+  loadedTabs.national = true;
+  initNationalMap();
+
+  // Scroll-reveal animation for national sections
+  const natObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        if (e.target.querySelector('#national-map') && nationalMap) {
+          setTimeout(() => nationalMap.invalidateSize(), 200);
+        }
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.nat-section').forEach(s => natObserver.observe(s));
+
+  // Dismiss loading screen
+  const loading = document.getElementById("loading");
+  loading.style.transition = "opacity 0.7s ease";
+  loading.style.opacity = "0";
+  setTimeout(() => {
+    loading.style.display = "none";
+    const app = document.getElementById("app");
+    app.style.transition = "opacity 0.7s ease";
+    app.style.opacity = "1";
+  }, 700);
+}
+
+init();
+</script>
+</body>
+</html>

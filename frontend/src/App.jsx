@@ -21,6 +21,7 @@ import VideoAnalysis from './pages/VideoAnalysis';
 import NoFlyZone from './pages/NoFlyZone';
 
 import DisasterReport from './pages/DisasterReport';
+import NepalWeather from './pages/NepalWeather';
 import CommandCenter from './pages/CommandCenter';
 import LiveSurveillance from './pages/LiveSurveillance';
 import MyDisasterReports from './pages/MyDisasterReports';
@@ -161,6 +162,16 @@ function App() {
 
           {/* No Fly Zone Route */}
           <Route path="/no-fly-zone" element={<NoFlyZone />} />
+
+          {/* Nepal Weather Route */}
+          <Route
+            path="/nepal-weather"
+            element={
+              <ProtectedRoute allowedRoles={['citizen']}>
+                <NepalWeather />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Disaster Report Route */}
           <Route
