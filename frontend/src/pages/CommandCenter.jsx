@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import nepalBorderData from '../data/map.json';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../firebase/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +27,7 @@ const STATUS_CONFIG = {
 };
 
 const TILE_LAYERS = {
+  positron: { name: 'Positron',  url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' },
   street:    { name: 'Street',    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap' },
   satellite: { name: 'Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '&copy; Esri' },
   terrain:   { name: 'Terrain',   url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenTopoMap' },
@@ -41,44 +44,28 @@ function calcDist(a, b) {
   return (2 * R * Math.asin(Math.sqrt(s))).toFixed(2);
 }
 
-function hdopInfo(hdop) {
-  const v = parseFloat(hdop);
-  if (!v || isNaN(v)) return { label: '\u2014', color: '#94a3b8', quality: 'Unknown' };
-  if (v < 1) return { label: `${v.toFixed(2)} (Ideal)`, color: '#059669', quality: 'Excellent' };
-  if (v < 2) return { label: `${v.toFixed(2)} (Excellent)`, color: '#059669', quality: 'Excellent' };
-  if (v < 5) return { label: `${v.toFixed(2)} (Good)`, color: '#d97706', quality: 'Good' };
-  if (v < 10) return { label: `${v.toFixed(2)} (Moderate)`, color: '#ea580c', quality: 'Moderate' };
-  return { label: `${v.toFixed(2)} (Poor)`, color: '#dc2626', quality: 'Poor' };
+// Inject CSS animations for radar-style markers
+if (typeof document !== 'undefined' && !document.getElementById('cmd-map-pulse-css')) {
+  const style = document.createElement('style');
+  style.id = 'cmd-map-pulse-css';
+  style.textContent = `
+    @keyframes cmdRadar { 0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0.7; } 100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; } }
+    @keyframes cmdGlow { 0%, 100% { box-shadow: 0 0 6px rgba(220,38,38,0.5); } 50% { box-shadow: 0 0 16px rgba(220,38,38,0.8); } }
+  `;
+  document.head.appendChild(style);
 }
 
 const incidentIcon = L.divIcon({
   className: '',
-  html: `<div style="position:relative;width:48px;height:56px;display:flex;align-items:center;justify-content:center;">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:40px;height:40px;border:2px solid #dc2626;border-radius:50%;opacity:.4;animation:incPulse 2s ease-out infinite;"></div>
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:40px;height:40px;border:2px solid #dc2626;border-radius:50%;opacity:.4;animation:incPulse 2s ease-out 1s infinite;"></div>
-    <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;">
-      <div style="width:36px;height:36px;background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(220,38,38,.5);">
-        <svg style="transform:rotate(45deg);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-      </div>
-      <div style="width:3px;height:8px;background:#b91c1c;margin-top:-2px;border-radius:0 0 2px 2px;"></div>
-    </div>
+  html: `<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
+    <div style="position:absolute;top:50%;left:50%;width:32px;height:32px;border:2px solid #dc2626;border-radius:50%;animation:cmdRadar 2s ease-out infinite;"></div>
+    <div style="position:absolute;top:50%;left:50%;width:32px;height:32px;border:2px solid #dc2626;border-radius:50%;animation:cmdRadar 2s ease-out 1s infinite;"></div>
+    <div style="position:relative;z-index:2;width:20px;height:20px;background:#dc2626;border-radius:50%;border:3px solid #fff;animation:cmdGlow 2s ease-in-out infinite;"></div>
   </div>`,
-  iconSize: [48, 56],
-  iconAnchor: [24, 50],
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
 });
 
-const droneMarkerIcon = L.divIcon({
-  className: '',
-  html: `<div style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;">
-    <div style="position:absolute;inset:0;border:2px solid #2563eb;border-radius:50%;animation:dronePulse 2s ease-out infinite;"></div>
-    <div style="position:absolute;inset:0;border:2px solid #2563eb;border-radius:50%;animation:dronePulse 2s ease-out 1s infinite;"></div>
-    <div style="position:relative;z-index:2;width:40px;height:40px;background:linear-gradient(135deg,#2563eb,#0891b2);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,99,235,.5);animation:droneFloat 3s ease-in-out infinite;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><circle cx="12" cy="12" r="2"/><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/><circle cx="12" cy="12" r="8"/></svg>
-    </div>
-  </div>`,
-  iconSize: [52, 52],
-  iconAnchor: [26, 26],
-});
 
 function FlyToTarget({ target }) {
   const map = useMap();
@@ -100,23 +87,36 @@ function DynamicTileLayer({ tileKey }) {
   return null;
 }
 
+function OpenSelectedPopup({ selectedReport, markerRefs }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!selectedReport || !markerRefs.current) return;
+    const marker = markerRefs.current[selectedReport.id];
+    if (marker) {
+      setTimeout(() => marker.openPopup(), 400);
+    }
+  }, [selectedReport, map]);
+  return null;
+}
+
 export default function CommandCenter() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [drone, setDrone] = useState(null);
-  const [droneTrail, setDroneTrail] = useState([]);
-  const trailRef = useRef([]);
   const [selectedReport, setSelectedReport] = useState(null);
+  const markerRefs = useRef({});
   const [statistics, setStatistics] = useState({
     totalReports: 0, pendingReports: 0, resolvedReports: 0,
     criticalReports: 0, activeDrones: 0,
   });
   const [flyTarget, setFlyTarget] = useState(null);
   const [clock, setClock] = useState(new Date());
-  const [tileKey, setTileKey] = useState('street');
+  const [tileKey, setTileKey] = useState('positron');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [officerNotes, setOfficerNotes] = useState('');
+  const [tileMenuOpen, setTileMenuOpen] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
@@ -139,9 +139,6 @@ export default function CommandCenter() {
         const d = snapshot.val();
         if (d?.latitude && d.latitude !== 'Not Fixed') {
           setDrone(d);
-          const pos = [parseFloat(d.latitude), parseFloat(d.longitude)];
-          trailRef.current = [...trailRef.current.slice(-99), pos];
-          setDroneTrail([...trailRef.current]);
         }
       },
       (err) => console.error('Firebase drone error:', err)
@@ -182,7 +179,7 @@ export default function CommandCenter() {
         { status: newStatus, officer_notes: notes || undefined },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}. Notification sent to citizen.`);
+      toast.success(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}. SMS notification sent to citizen.`);
       setSelectedReport((prev) => prev ? { ...prev, status: newStatus } : prev);
       setOfficerNotes('');
       fetchReports();
@@ -208,7 +205,6 @@ export default function CommandCenter() {
   const selectedPos = selectedReport
     ? [parseFloat(selectedReport.latitude), parseFloat(selectedReport.longitude)] : null;
   const distance = calcDist(dronePos, selectedPos);
-  const hInfo = hdopInfo(drone?.hdop);
 
   const filteredReports = filterSeverity === 'ALL'
     ? reports
@@ -377,23 +373,21 @@ export default function CommandCenter() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="flex-1 relative bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col"
           >
-            <div className="flex justify-between items-center px-5 py-3 bg-white border-b border-gray-200 flex-shrink-0">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800">Live Command Map</h2>
-                <p className="text-sm text-gray-500">{reports.length} active incidents{drone ? ' \u2022 Drone tracking' : ''}</p>
+            <div className="flex justify-between items-center px-5 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <CommandIcon className="w-4.5 h-4.5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-gray-800">Live Command Map</h2>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-[2px]">{reports.length} incidents{drone ? ' • drone online' : ''}</p>
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                {Object.entries(TILE_LAYERS).map(([key, layer]) => (
-                  <button key={key} onClick={() => setTileKey(key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      tileKey === key
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {layer.name}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <button onClick={centerMap}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 transition">
+                  <CrosshairIcon className="w-3.5 h-3.5" />Reset
+                </button>
               </div>
             </div>
 
@@ -409,13 +403,16 @@ export default function CommandCenter() {
               <DynamicTileLayer tileKey={tileKey} />
               <FlyToTarget target={flyTarget} />
 
-              {droneTrail.length > 1 && (
-                <Polyline positions={droneTrail} pathOptions={{ color: '#2563eb', weight: 2, dashArray: '6,8', opacity: 0.6 }} />
+              {nepalBorderData?.features && (
+                <GeoJSON data={nepalBorderData} style={{ color: '#94a3b8', weight: 2, opacity: 0.6, fillColor: '#94a3b8', fillOpacity: 0.03 }} />
               )}
+
+              <OpenSelectedPopup selectedReport={selectedReport} markerRefs={markerRefs} />
 
               {filteredReports.map((r) => (
                 <Marker
                   key={r.id}
+                  ref={(ref) => { if (ref) markerRefs.current[r.id] = ref; }}
                   position={[parseFloat(r.latitude), parseFloat(r.longitude)]}
                   icon={incidentIcon}
                   eventHandlers={{ click: () => navigateToReport(r) }}
@@ -454,190 +451,46 @@ export default function CommandCenter() {
                 </Marker>
               ))}
 
-              {dronePos && (
-                <Marker position={dronePos} icon={droneMarkerIcon}>
-                  <Popup minWidth={230}>
-                    <div style={{ fontFamily: 'Inter,sans-serif' }}>
-                      <strong style={{ fontSize: 15, display: 'block', marginBottom: 8 }}>Live Drone</strong>
-                      <div style={{ fontSize: 13, marginBottom: 4 }}>
-                        <span style={{ color: '#94a3b8' }}>Status: </span>
-                        <span style={{ fontWeight: 600, color: '#059669' }}>{drone.status || 'Active'}</span>
-                      </div>
-                      <div style={{ fontSize: 13, marginBottom: 4 }}>Alt: {parseFloat(drone.altitude).toFixed(1)}m</div>
-                      <div style={{ fontSize: 13, marginBottom: 4 }}>Speed: {parseFloat(drone.speed).toFixed(2)} km/h</div>
-                      <div style={{ fontSize: 13, marginBottom: 4 }}>Satellites: {drone.satellites}</div>
-                      <div style={{ fontSize: 13, marginBottom: 4 }}>HDOP: {hInfo.label}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
-                        Updated: {drone.time} &middot; {drone.date}
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              )}
-
-              {dronePos && selectedPos && (
-                <Polyline positions={[dronePos, selectedPos]} pathOptions={{ color: '#f59e0b', weight: 2, dashArray: '8,6', opacity: 0.8 }} />
-              )}
             </MapContainer>
 
-            {/* Map legend */}
-            <div className="absolute bottom-4 left-4 z-[500] bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl px-5 py-3 flex items-center gap-6 shadow-lg text-sm text-gray-600 font-medium">
+            {/* Layer Switcher (weather-page style) */}
+            <div className="absolute top-16 left-3 z-[500]">
+              <button
+                onClick={() => setTileMenuOpen(!tileMenuOpen)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-all text-xs font-medium text-gray-600"
+              >
+                <LayersIcon className="w-3.5 h-3.5" />
+                Map Style
+              </button>
+              {tileMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute top-10 left-0 bg-white/98 backdrop-blur-sm rounded-xl border border-gray-200 shadow-xl py-1.5 min-w-[150px]"
+                >
+                  {Object.entries(TILE_LAYERS).map(([key, layer]) => (
+                    <button key={key} onClick={() => { setTileKey(key); setTileMenuOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-xs font-medium transition-all ${
+                        tileKey === key ? 'bg-emerald-50 text-emerald-600 font-bold' : 'text-gray-600 hover:bg-gray-50'
+                      }`}>
+                      {layer.name}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </div>
+
+            {/* Map Legend */}
+            <div className="absolute bottom-4 left-4 z-[500] bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl px-4 py-2.5 flex items-center gap-5 shadow-lg text-xs text-gray-600 font-medium">
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full bg-red-600 shadow-[0_0_6px_rgba(220,38,38,0.5)]" />
+                <span className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_6px_rgba(220,38,38,0.5)]" />
                 Incidents
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full bg-blue-600 shadow-[0_0_6px_rgba(37,99,235,0.5)]" />
-                Drone
+                <span className="w-3 h-3 rounded-full bg-gray-400 opacity-50 border-2 border-gray-300" />
+                Nepal Border
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-6 border-t-2 border-dashed border-blue-500" />
-                Trail
-              </div>
-              {distance && (
-                <span className="bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full font-bold border border-cyan-200 text-xs">
-                  {distance} km
-                </span>
-              )}
-              <button onClick={centerMap}
-                className="ml-1 px-4 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 font-semibold hover:bg-emerald-100 transition text-sm">
-                <CrosshairIcon className="w-4 h-4 inline-block mr-1" />Reset
-              </button>
             </div>
-          </motion.div>
-
-          {/* Right sidebar: Drone Telemetry */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="w-[380px] flex-shrink-0 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-y-auto flex flex-col"
-          >
-            <div className="flex-shrink-0">
-              <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
-                <div className="flex items-center gap-2.5">
-                  <DroneIcon className="w-5 h-5 text-gray-600" />
-                  <h2 className="text-lg font-bold text-gray-800">Drone Telemetry</h2>
-                </div>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${
-                  drone ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-400 border border-gray-200'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${drone ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
-                  {drone ? 'Online' : 'Offline'}
-                </span>
-              </div>
-
-              {drone ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3 p-4">
-                    <TeleCard icon={<GlobeIcon className="w-4 h-4 text-blue-500" />} label="Latitude" value={parseFloat(drone.latitude).toFixed(5)} cls="bg-blue-50 border-blue-200" />
-                    <TeleCard icon={<GlobeIcon className="w-4 h-4 text-blue-500" />} label="Longitude" value={parseFloat(drone.longitude).toFixed(5)} cls="bg-blue-50 border-blue-200" />
-                    <TeleCard icon={<AltitudeIcon className="w-4 h-4 text-cyan-500" />} label="Altitude" value={`${parseFloat(drone.altitude).toFixed(1)}m`} cls="bg-cyan-50 border-cyan-200" />
-                    <TeleCard icon={<SpeedIcon className="w-4 h-4 text-emerald-500" />} label="Speed" value={`${parseFloat(drone.speed).toFixed(2)} km/h`} cls="bg-emerald-50 border-emerald-200" />
-                    <TeleCard icon={<SatelliteIcon className="w-4 h-4 text-violet-500" />} label="Satellites" value={drone.satellites} cls="bg-violet-50 border-violet-200" />
-                    <TeleCard icon={<SignalIcon className="w-4 h-4 text-gray-500" />} label="HDOP" value={hInfo.label} cls="bg-gray-50 border-gray-200" valueColor={hInfo.color} />
-                  </div>
-
-                  <div className="flex items-center gap-3 px-5 py-3 bg-gray-50 border-t border-gray-100">
-                    <span className="text-sm text-gray-500 flex-1">Signal Strength</span>
-                    <div className="flex items-end gap-1 h-6">
-                      {[1, 2, 3, 4, 5].map(i => (
-                        <div key={i}
-                          className={`w-2 rounded-sm transition-colors ${drone.satellites >= i * 2 ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-gray-200'}`}
-                          style={{ height: `${i * 5}px` }}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm font-bold text-emerald-600">{drone.satellites} sats</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-t border-gray-100 text-sm text-gray-400">
-                    <ClockIcon className="w-3.5 h-3.5" />
-                    <span className="flex-1">Last Update</span>
-                    <span className="font-mono font-medium text-gray-600">{drone.time} &middot; {drone.date}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center gap-3 py-10 text-gray-400">
-                  <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
-                    <SignalIcon className="w-7 h-7 text-gray-300" />
-                  </div>
-                  <span className="text-base font-medium">No drone connected</span>
-                  <span className="text-sm text-gray-300">Waiting for signal...</span>
-                </div>
-              )}
-            </div>
-
-            {/* Selected report quick summary */}
-            {selectedReport && (
-              <div className="border-t border-gray-200 flex-1 overflow-y-auto">
-                <div className="px-5 py-3 bg-emerald-50/50 border-b border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                      <DisasterTypeIcon type={selectedReport.metadata?.disaster_type} className="w-4 h-4 text-gray-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-gray-900 capitalize">{capitalize(selectedReport.metadata?.disaster_type || 'Unknown')}</div>
-                      <div className="text-xs text-gray-400">Report #{selectedReport.id}</div>
-                    </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${STATUS_CONFIG[selectedReport.status]?.bg || 'bg-gray-100 text-gray-600 border-gray-300'}`}>
-                      {STATUS_CONFIG[selectedReport.status]?.label || selectedReport.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="px-5 py-3 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 uppercase tracking-wide">Severity</span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: SEV_BG[selectedReport.severity], color: SEV_COLOR[selectedReport.severity] }}>
-                      {selectedReport.severity || 'Unknown'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-xs text-gray-400 uppercase tracking-wide block mb-1">Description</span>
-                    <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{selectedReport.metadata?.description || 'No description'}</p>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 uppercase tracking-wide">Reporter</span>
-                    <span className="text-xs font-medium text-gray-700">{selectedReport.metadata?.reporter_name || 'Anonymous'}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-xs text-gray-400 uppercase tracking-wide block mb-1">Location</span>
-                    <span className="text-xs font-mono text-blue-600">
-                      {parseFloat(selectedReport.latitude).toFixed(5)}, {parseFloat(selectedReport.longitude).toFixed(5)}
-                    </span>
-                  </div>
-
-                  {distance && (
-                    <div className="flex items-center justify-between bg-cyan-50 rounded-lg px-3 py-2 border border-cyan-200">
-                      <span className="text-xs text-cyan-600">Drone Distance</span>
-                      <span className="text-sm font-bold text-cyan-800">{distance} km</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 uppercase tracking-wide">Submitted</span>
-                    <span className="text-xs text-gray-600">{new Date(selectedReport.created_at).toLocaleString()}</span>
-                  </div>
-
-                  {selectedReport.metadata?.officer_notes && (
-                    <div className="bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
-                      <span className="text-xs text-amber-600 font-bold block mb-0.5">Officer Notes</span>
-                      <p className="text-xs text-amber-800 line-clamp-2">{selectedReport.metadata.officer_notes}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="px-5 py-2 border-t border-gray-100 bg-gray-50">
-                  <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1">
-                    <ChevronDownIcon className="w-3 h-3" /> Full details below
-                  </p>
-                </div>
-              </div>
-            )}
           </motion.div>
         </div>
 
@@ -713,6 +566,34 @@ export default function CommandCenter() {
                     className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
                     <MapPinIcon className="w-4 h-4" /> Open in Google Maps
                   </a>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          lat: selectedReport.latitude,
+                          lng: selectedReport.longitude,
+                          reported_at: selectedReport.created_at,
+                          disaster_type: selectedReport.metadata?.disaster_type || 'Unknown',
+                          report_id: selectedReport.id,
+                          severity: selectedReport.severity || '',
+                          address: selectedReport.metadata?.address || '',
+                        });
+                        navigate(`/incident-weather?${params.toString()}`);
+                      }}
+                      className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                      Weather
+                    </button>
+                    <button
+                      onClick={() => navigate('/drone-visualization')}
+                      className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-violet-200 transition-all"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                      Live Drone
+                    </button>
+                  </div>
                 </div>
 
                 {/* CENTER: Officer Actions */}
@@ -869,16 +750,6 @@ export default function CommandCenter() {
 
 /* Sub-components */
 
-function TeleCard({ icon, label, value, cls, valueColor }) {
-  return (
-    <div className={`rounded-xl border p-3 flex flex-col gap-1.5 transition-transform hover:scale-[1.02] ${cls}`}>
-      {icon}
-      <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</span>
-      <span className="text-base font-bold text-gray-900 leading-tight" style={valueColor ? { color: valueColor } : {}}>{value}</span>
-    </div>
-  );
-}
-
 function InfoItem({ label, value, mono = false, highlight = false }) {
   return (
     <div className={`flex items-center justify-between ${highlight ? 'bg-cyan-50 px-3 py-2 rounded-lg border border-cyan-200' : ''}`}>
@@ -975,19 +846,12 @@ function DisasterTypeIcon({ type, className, style }) {
 
 function AlertIcon({ className, style }) { return <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>; }
 function CommandIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>; }
-function DroneIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><circle cx="12" cy="12" r="2" /><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24" /><circle cx="12" cy="12" r="8" /></svg>; }
-function GlobeIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A9 9 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>; }
-function AltitudeIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19.5v-15m0 0l-6.75 6.75M12 4.5l6.75 6.75" /></svg>; }
-function SpeedIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>; }
-function SatelliteIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.348 14.652a3.75 3.75 0 010-5.304m5.304 0a3.75 3.75 0 010 5.304m-7.425 2.121a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>; }
 function XIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>; }
 function CheckCircleIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>; }
 function XCircleIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>; }
 function MapPinIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>; }
 function CrosshairIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" /><path d="M12 2v4m0 12v4m10-10h-4M6 12H2" /></svg>; }
 function InboxIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-17.399 0V6.108c0-1.135.845-2.098 1.976-2.192a48.424 48.424 0 0113.048 0c1.131.094 1.976 1.057 1.976 2.192V13.5" /></svg>; }
+function LayersIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>; }
 function PlayIcon({ className }) { return <svg className={className} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>; }
-function SignalIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.348 14.652a3.75 3.75 0 010-5.304m5.304 0a3.75 3.75 0 010 5.304m-7.425 2.121a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>; }
-function ClockIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>; }
-function ChevronDownIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>; }
 function SeverityIcon({ className, style }) { return <svg className={className} style={style} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>; }

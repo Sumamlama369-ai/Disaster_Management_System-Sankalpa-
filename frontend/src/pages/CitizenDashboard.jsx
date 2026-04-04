@@ -398,9 +398,13 @@ export default function CitizenDashboard() {
                 </span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-400 mb-10 max-w-xl leading-relaxed">
+              <p className="text-base sm:text-lg text-slate-400 mb-4 max-w-xl leading-relaxed">
                 Your centralized hub for disaster management. Report emergencies with GPS precision,
                 register drones, monitor live crisis feeds and access critical response resources.
+              </p>
+
+              <p className="text-sm sm:text-base text-cyan-400/80 font-medium italic mb-10 tracking-wide">
+                "प्रविधिबाट विपद् व्यवस्थापन"
               </p>
 
               {/* CTA Buttons */}
@@ -817,9 +821,7 @@ export default function CitizenDashboard() {
               {/* Badge */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                    <DroneIcon className="w-6 h-6 text-white" />
-                  </div>
+                  <img src="/src/logo/FYP_Logo.png" alt="Sankalpa Logo" className="w-12 h-12 rounded-xl object-contain" />
                   <div>
                     <p className="text-sm font-bold text-gray-900">Sankalpa</p>
                     <p className="text-xs text-gray-400">Disaster Response</p>
@@ -896,9 +898,7 @@ export default function CitizenDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <ShieldCheckIcon className="w-5 h-5 text-white" />
-              </div>
+              <img src="/src/logo/FYP_Logo.png" alt="Sankalpa Logo" className="w-9 h-9 rounded-lg object-contain" />
               <div>
                 <p className="text-white font-bold text-sm">Sankalpa</p>
                 <p className="text-slate-400 text-xs">Disaster Management System</p>

@@ -338,7 +338,7 @@ export default function OfficerDashboard() {
             alt=""
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-sky-600/90 via-sky-500/85 to-cyan-500/80" />
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-700/95 via-sky-600/95 to-cyan-600/92" />
         </div>
 
         {/* Decorative elements */}
@@ -377,8 +377,11 @@ export default function OfficerDashboard() {
                   Command Center
                 </span>
               </h1>
-              <p className="text-base lg:text-lg text-sky-100/80 max-w-xl mb-8 leading-relaxed">
+              <p className="text-base lg:text-lg text-sky-100/80 max-w-xl mb-4 leading-relaxed">
                 Coordinating aerial drone response, AI-powered surveillance, and real-time disaster monitoring across Nepal's terrain.
+              </p>
+              <p className="text-sm md:text-base text-cyan-200/90 font-medium italic mb-8 tracking-wide">
+                "संकटको समयमा तपाईंको भरोसा"
               </p>
 
               {/* Hero action buttons */}
@@ -414,9 +417,9 @@ export default function OfficerDashboard() {
               transition={{ delay: 0.3, duration: 0.6 }}
               className="hidden lg:block"
             >
-              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-sm ml-auto">
+              <div className="bg-sky-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-6 max-w-sm ml-auto shadow-2xl">
                 <div className="flex items-center gap-4 mb-5">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white/30 to-white/10 border border-white/20 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white/40 to-white/20 border-2 border-white/30 flex items-center justify-center">
                     {user?.profile_picture ? (
                       <img src={user.profile_picture} alt="" className="w-14 h-14 rounded-full object-cover" />
                     ) : (
@@ -429,16 +432,16 @@ export default function OfficerDashboard() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <div className="bg-white/15 rounded-xl p-3 text-center">
                     <p className="text-2xl font-extrabold text-white">{loading ? '—' : stats.totalReports}</p>
-                    <p className="text-xs text-sky-200 mt-0.5">Total Reports</p>
+                    <p className="text-[10px] text-sky-100 mt-0.5 font-medium">Total Reports</p>
                   </div>
-                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <div className="bg-white/15 rounded-xl p-3 text-center">
                     <p className="text-2xl font-extrabold text-white">{loading ? '—' : stats.resolvedReports}</p>
-                    <p className="text-xs text-sky-200 mt-0.5">Resolved</p>
+                    <p className="text-[10px] text-sky-100 mt-0.5 font-medium">Resolved</p>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center gap-2 bg-emerald-400/15 border border-emerald-400/20 rounded-xl px-4 py-2.5">
+                <div className="mt-4 flex items-center gap-2 bg-emerald-400/20 border border-emerald-400/30 rounded-xl px-4 py-2.5">
                   <PulseIcon className="w-4 h-4 text-emerald-300" />
                   <span className="text-sm font-medium text-emerald-200">All systems operational</span>
                 </div>
@@ -594,9 +597,7 @@ export default function OfficerDashboard() {
           className="bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-sky-100 border border-sky-200 text-sky-500 flex items-center justify-center">
-              <ShieldIcon className="w-6 h-6" />
-            </div>
+            <img src="/src/logo/FYP_Logo.png" alt="Sankalpa Logo" className="w-12 h-12 rounded-xl object-contain" />
             <div>
               <p className="text-sm font-bold text-gray-900">Sankalpa Disaster Management System</p>
               <p className="text-xs text-gray-500 mt-0.5">

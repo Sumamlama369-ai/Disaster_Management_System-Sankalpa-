@@ -521,15 +521,15 @@ export default function VideoAnalysis() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100"
+            className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100"
           >
             <div className="max-w-2xl mx-auto">
-              <div className="text-center mb-8">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <span className="text-5xl">🎥</span>
+              <div className="text-center mb-5">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Upload Disaster Video</h2>
-                <p className="text-gray-600">
+                <h2 className="text-xl font-bold text-gray-800 mb-1">Upload Disaster Video</h2>
+                <p className="text-gray-600 text-sm">
                   Upload a video for AI-powered disaster analysis using YOLOv8 models
                 </p>
               </div>
@@ -537,7 +537,7 @@ export default function VideoAnalysis() {
               {/* File Upload Area */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+                className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
               >
                 <input
                   ref={fileInputRef}
@@ -549,11 +549,11 @@ export default function VideoAnalysis() {
                 
                 {selectedFile ? (
                   <div>
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">✅</span>
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                     </div>
-                    <p className="text-lg font-bold text-gray-800 mb-2">{selectedFile.name}</p>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-base font-bold text-gray-800 mb-1">{selectedFile.name}</p>
+                    <p className="text-sm text-gray-600 mb-3">
                       Size: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                     </p>
                     <button
@@ -569,10 +569,10 @@ export default function VideoAnalysis() {
                   </div>
                 ) : (
                   <div>
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">📁</span>
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                     </div>
-                    <p className="text-lg font-bold text-gray-800 mb-2">
+                    <p className="text-base font-bold text-gray-800 mb-1">
                       Click to select video or drag and drop
                     </p>
                     <p className="text-sm text-gray-600">
@@ -602,7 +602,7 @@ export default function VideoAnalysis() {
               <button
                 onClick={handleUpload}
                 disabled={!selectedFile || uploading}
-                className={`w-full mt-6 py-4 rounded-xl font-bold text-white text-lg transition-all ${
+                className={`w-full mt-4 py-3 rounded-xl font-bold text-white transition-all ${
                   selectedFile && !uploading
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl'
                     : 'bg-gray-300 cursor-not-allowed'
@@ -614,22 +614,20 @@ export default function VideoAnalysis() {
                     Uploading {uploadProgress}%
                   </span>
                 ) : (
-                  '🚀 Upload and Analyze'
+                  'Upload and Analyze'
                 )}
               </button>
 
               {/* Info Cards */}
-              <div className="grid grid-cols-2 gap-4 mt-8">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                  <div className="text-3xl mb-2">🎯</div>
-                  <p className="text-sm font-bold text-blue-900 mb-1">Object Detection</p>
+              <div className="grid grid-cols-2 gap-3 mt-5">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 border border-blue-200">
+                  <p className="text-sm font-bold text-blue-900 mb-0.5">Object Detection</p>
                   <p className="text-xs text-blue-700">
                     Detects fire, ambulance, injured people, and more
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                  <div className="text-3xl mb-2">🎭</div>
-                  <p className="text-sm font-bold text-purple-900 mb-1">Segmentation</p>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 border border-purple-200">
+                  <p className="text-sm font-bold text-purple-900 mb-0.5">Segmentation</p>
                   <p className="text-xs text-purple-700">
                     Measures affected areas and damage extent
                   </p>

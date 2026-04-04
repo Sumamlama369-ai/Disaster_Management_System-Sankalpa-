@@ -105,6 +105,18 @@ class UpdatePhoneRequest(BaseModel):
         }
 
 
+class UpdateDistrictRequest(BaseModel):
+    """Update district request"""
+    district: str = Field(..., min_length=2, max_length=100, description="District name")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "district": "Kathmandu"
+            }
+        }
+
+
 class UserResponse(BaseModel):
     """User information response"""
     id: int
@@ -113,6 +125,7 @@ class UserResponse(BaseModel):
     role: str
     profile_picture: Optional[str] = None
     phone: Optional[str] = None
+    district: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -122,7 +135,8 @@ class UserResponse(BaseModel):
                 "name": "John Doe",
                 "role": "officer",
                 "profile_picture": "https://lh3.googleusercontent.com/...",
-                "phone": "+977-9800000000"
+                "phone": "+977-9800000000",
+                "district": "Kathmandu"
             }
         }
 

@@ -138,7 +138,8 @@ class AuthService:
                 'name': user.name,
                 'role': user.role.value,
                 'profile_picture': user.profile_picture,
-                'phone': user.phone
+                'phone': user.phone,
+                'district': user.district
             }
         }
 
@@ -204,7 +205,8 @@ class AuthService:
                 'name': user.name,
                 'role': user.role.value,
                 'profile_picture': user.profile_picture,
-                'phone': user.phone
+                'phone': user.phone,
+                'district': user.district
             }
         }
 

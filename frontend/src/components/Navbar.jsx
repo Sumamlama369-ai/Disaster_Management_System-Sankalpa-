@@ -84,6 +84,11 @@ const LoaderIcon = ({ className = "w-4 h-4" }) => (
     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
   </svg>
 );
+const MapPinIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+  </svg>
+);
 
 
 export default function Navbar() {
@@ -102,6 +107,34 @@ export default function Navbar() {
   const [phoneSaved, setPhoneSaved] = useState(false);
   const phoneInputRef = useRef(null);
 
+  // District editing state
+  const [isEditingDistrict, setIsEditingDistrict] = useState(false);
+  const [districtInput, setDistrictInput] = useState('');
+  const [districtSaving, setDistrictSaving] = useState(false);
+  const [districtError, setDistrictError] = useState('');
+  const [districtSaved, setDistrictSaved] = useState(false);
+  const [districtSearch, setDistrictSearch] = useState('');
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+
+  // Nepal districts list
+  const NEPAL_DISTRICTS = [
+    "Taplejung","Panchthar","Ilam","Jhapa","Morang","Sunsari","Dhankuta","Terhathum",
+    "Sankhuwasabha","Bhojpur","Solukhumbu","Okhaldhunga","Khotang","Udayapur",
+    "Saptari","Siraha","Dhanusha","Mahottari","Sarlahi","Rautahat","Bara","Parsa",
+    "Sindhupalchok","Kavrepalanchok","Lalitpur","Bhaktapur","Kathmandu","Nuwakot",
+    "Rasuwa","Dhading","Makwanpur","Ramechhap","Dolakha","Sindhuli","Chitwan",
+    "Kaski","Gorkha","Manang","Mustang","Myagdi","Baglung","Parbat","Syangja",
+    "Tanahun","Lamjung","Nawalpur","Rupandehi","Kapilvastu","Arghakhanchi","Gulmi",
+    "Palpa","Parasi","Pyuthan","Rolpa","Eastern Rukum","Banke","Bardiya","Dang",
+    "Dolpa","Mugu","Humla","Jumla","Kalikot","Dailekh","Jajarkot","Western Rukum",
+    "Salyan","Surkhet","Bajura","Bajhang","Achham","Doti","Kailali","Kanchanpur",
+    "Dadeldhura","Baitadi","Darchula"
+  ];
+
+  const filteredDistricts = NEPAL_DISTRICTS.filter(d =>
+    d.toLowerCase().includes(districtSearch.toLowerCase())
+  );
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -114,6 +147,9 @@ export default function Navbar() {
         setProfileOpen(false);
         setIsEditingPhone(false);
         setPhoneError('');
+        setIsEditingDistrict(false);
+        setDistrictError('');
+        setShowDistrictDropdown(false);
       }
     };
     if (profileOpen) document.addEventListener('mousedown', handleClickOutside);
@@ -171,6 +207,45 @@ export default function Navbar() {
     if (e.key === 'Escape') cancelEditingPhone();
   };
 
+  const startEditingDistrict = () => {
+    setDistrictInput(user?.district || '');
+    setDistrictSearch(user?.district || '');
+    setIsEditingDistrict(true);
+    setDistrictError('');
+    setDistrictSaved(false);
+    setShowDistrictDropdown(true);
+  };
+
+  const cancelEditingDistrict = () => {
+    setIsEditingDistrict(false);
+    setDistrictInput('');
+    setDistrictSearch('');
+    setDistrictError('');
+    setShowDistrictDropdown(false);
+  };
+
+  const saveDistrict = async (name) => {
+    const trimmed = (name || districtInput).trim();
+    if (!trimmed || trimmed.length < 2) {
+      setDistrictError('Select a valid district');
+      return;
+    }
+    setDistrictSaving(true);
+    setDistrictError('');
+    try {
+      const updatedUser = await authService.updateDistrict(trimmed);
+      updateUser({ district: updatedUser.district });
+      setIsEditingDistrict(false);
+      setShowDistrictDropdown(false);
+      setDistrictSaved(true);
+      setTimeout(() => setDistrictSaved(false), 2500);
+    } catch (err) {
+      setDistrictError(err.response?.data?.detail || 'Failed to update district');
+    } finally {
+      setDistrictSaving(false);
+    }
+  };
+
   // Define navigation items based on role
   const getNavItems = () => {
     if (user?.role === 'citizen') {
@@ -191,16 +266,17 @@ export default function Navbar() {
         { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
         { id: 'command-center', label: 'Command Center', path: '/command-center' },
         { id: 'live-surveillance', label: 'Live Surveillance', path: '/live-surveillance' },
+        { id: 'drone-visualization', label: 'Drone 3D', path: '/drone-visualization' },
       ];
     } else if (user?.role === 'admin') {
       return [
         { id: 'home', label: 'Home', path: '/admin-dashboard' },
         { id: 'analytics', label: 'Analytics', path: '/analytics' },
+        { id: 'user-management', label: 'User Management', path: '/user-management' },
         { id: 'sms-alerts', label: 'SMS Alerts', path: '/sms-alerts' },
-        { id: 'users', label: 'User Management', path: '/user-management' },
-        { id: 'video-analysis', label: 'Video Analysis', path: '/video-analysis' },
-        { id: 'reports', label: 'Reports', path: '/reports' },
+        { id: 'weather-intel', label: 'Weather Intel', path: '/admin-weather' },
         { id: 'command-center', label: 'Command Center', path: '/command-center' },
+        { id: 'drone-visualization', label: 'Drone 3D', path: '/drone-visualization' },
       ];
     }
     return [];
@@ -269,9 +345,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer flex-shrink-0" onClick={() => navigate(navItems[0]?.path)}>
-            <div className={`w-10 h-10 bg-gradient-to-br ${theme.gradient} rounded-xl flex items-center justify-center shadow-sm`}>
-              {getRoleIcon()}
-            </div>
+            <img src="/src/logo/FYP_Logo.png" alt="Sankalpa Logo" className="w-12 h-12 rounded-xl object-contain" />
             <div>
               <h1 className="text-lg font-bold text-gray-900">Sankalpa</h1>
               <p className="text-[11px] text-gray-400 font-medium -mt-0.5">{getRoleLabel()}</p>
@@ -472,6 +546,86 @@ export default function Navbar() {
                       </div>
                     </div>
                   )}
+
+                  {/* District Row */}
+                  <div className="flex items-start gap-3 px-2 py-2.5 rounded-xl">
+                    <div className="w-9 h-9 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <MapPinIcon className="w-4.5 h-4.5 text-violet-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">District</p>
+                        {!isEditingDistrict && (
+                          <button
+                            onClick={startEditingDistrict}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-500 hover:text-blue-600 transition-colors"
+                          >
+                            <EditIcon className="w-3 h-3" />
+                            {user?.district ? 'Edit' : 'Add'}
+                          </button>
+                        )}
+                      </div>
+
+                      {isEditingDistrict ? (
+                        <div>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={districtSearch}
+                              onChange={(e) => { setDistrictSearch(e.target.value); setShowDistrictDropdown(true); setDistrictError(''); }}
+                              onFocus={() => setShowDistrictDropdown(true)}
+                              placeholder="Search district..."
+                              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all bg-gray-50 text-gray-800 placeholder-gray-300"
+                              disabled={districtSaving}
+                            />
+                            {showDistrictDropdown && filteredDistricts.length > 0 && (
+                              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-[180px] overflow-y-auto">
+                                {filteredDistricts.map(d => (
+                                  <button key={d} onClick={() => { setDistrictInput(d); setDistrictSearch(d); setShowDistrictDropdown(false); saveDistrict(d); }}
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-violet-50 transition-colors ${
+                                      user?.district === d ? 'bg-violet-50 text-violet-600 font-semibold' : 'text-gray-700'
+                                    }`}>
+                                    {d}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {showDistrictDropdown && filteredDistricts.length === 0 && districtSearch.trim() && (
+                              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl p-3 text-center">
+                                <p className="text-xs text-gray-400">No matching district</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <button onClick={cancelEditingDistrict} disabled={districtSaving}
+                              className="text-[11px] text-gray-400 hover:text-gray-600 font-medium transition-colors">
+                              Cancel
+                            </button>
+                            {districtSaving && <LoaderIcon className="w-3 h-3 text-violet-400" />}
+                          </div>
+                          {districtError && (
+                            <p className="text-red-500 text-[11px] mt-1 font-medium">{districtError}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {user?.district ? (
+                            <>
+                              <p className="text-sm text-gray-700 font-medium">{user.district}</p>
+                              {districtSaved && (
+                                <span className="inline-flex items-center gap-1 text-violet-500 text-[11px] font-semibold">
+                                  <CheckIcon className="w-3 h-3" />
+                                  Saved
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-300 italic">Not added yet</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Logout Button */}

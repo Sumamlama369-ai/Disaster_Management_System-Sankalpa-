@@ -14,6 +14,7 @@ import OfficerDashboard from './pages/OfficerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminAnalytics from './pages/AdminAnalytics';
 import DisasterAlertSMS from './pages/DisasterAlertSMS';
+import AdminWeather from './pages/AdminWeather';
 import DronePermitForm from './pages/DronePermitForm';
 import MyPermits from './pages/MyPermits';
 import PermitReview from './pages/PermitReview';
@@ -23,8 +24,11 @@ import NoFlyZone from './pages/NoFlyZone';
 import DisasterReport from './pages/DisasterReport';
 import NepalWeather from './pages/NepalWeather';
 import CommandCenter from './pages/CommandCenter';
+import IncidentWeather from './pages/IncidentWeather';
 import LiveSurveillance from './pages/LiveSurveillance';
 import MyDisasterReports from './pages/MyDisasterReports';
+import DroneVisualization from './pages/DroneVisualization';
+import UserManagement from './pages/UserManagement';
 
 
 function App() {
@@ -113,6 +117,24 @@ function App() {
             }
           />
 
+          {/* Admin Weather Intelligence */}
+          <Route
+            path="/admin-weather"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminWeather />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-management"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Citizen Routes */}
           <Route
             path="/drone-permit-form"
@@ -154,7 +176,7 @@ function App() {
           <Route
             path="/video-analysis"
             element={
-              <ProtectedRoute allowedRoles={['citizen','officer', 'admin']}>
+              <ProtectedRoute allowedRoles={['citizen','officer']}>
                 <VideoAnalysis />
               </ProtectedRoute>
             }
@@ -199,12 +221,32 @@ function App() {
             }
           />
 
+          {/* Incident Weather Route */}
+          <Route
+            path="/incident-weather"
+            element={
+              <ProtectedRoute allowedRoles={['officer', 'admin']}>
+                <IncidentWeather />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Live Surveillance Route */}
           <Route
             path="/live-surveillance"
             element={
               <ProtectedRoute allowedRoles={['officer', 'admin']}>
                 <LiveSurveillance />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Drone Visualization Route */}
+          <Route
+            path="/drone-visualization"
+            element={
+              <ProtectedRoute allowedRoles={['officer', 'admin']}>
+                <DroneVisualization />
               </ProtectedRoute>
             }
           />

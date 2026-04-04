@@ -27,10 +27,11 @@ def load_yolo_model():
 
 
 class IPCameraStream:
-    """Manages connection to IP webcam with auto-reconnect."""
+    """Manages connection to IP webcam or device webcam with auto-reconnect."""
 
-    def __init__(self, url: str):
-        self.url = url
+    def __init__(self, source):
+        """source: URL string for IP camera, or int (0) for device webcam."""
+        self.source = source
         self.cap = None
         self.connected = False
 
@@ -38,17 +39,21 @@ class IPCameraStream:
         if self.cap:
             self.cap.release()
 
-        logger.info(f"Connecting to IP camera: {self.url}")
-        self.cap = cv2.VideoCapture(self.url)
+        if isinstance(self.source, int):
+            logger.info(f"Opening device webcam index: {self.source}")
+        else:
+            logger.info(f"Connecting to IP camera: {self.source}")
+
+        self.cap = cv2.VideoCapture(self.source)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         if self.cap.isOpened():
             self.connected = True
-            logger.info("IP camera connected successfully.")
+            logger.info("Camera connected successfully.")
             return True
 
         self.connected = False
-        logger.error("Failed to connect to IP camera.")
+        logger.error("Failed to connect to camera.")
         return False
 
     def read_frame(self):
@@ -68,19 +73,25 @@ class IPCameraStream:
             self.connected = False
 
 
-async def stream_yolo_detections(websocket, confidence: Optional[float] = None, ip_cam_url: Optional[str] = None):
+async def stream_yolo_detections(websocket, confidence: Optional[float] = None, ip_cam_url: Optional[str] = None, use_webcam: bool = False):
     """Stream YOLO detections to a WebSocket client."""
     if confidence is None:
         confidence = settings.YOLO_CONFIDENCE
 
-    cam_url = ip_cam_url or settings.IP_CAM_URL
+    # Determine camera source: device webcam (index 0) or IP camera URL
+    if use_webcam:
+        cam_source = 0  # device webcam
+    else:
+        cam_source = ip_cam_url or settings.IP_CAM_URL
+
     model = load_yolo_model()
-    camera = IPCameraStream(cam_url)
+    camera = IPCameraStream(cam_source)
 
     if not camera.connect():
+        source_label = "device webcam" if use_webcam else f"IP camera ({cam_source})"
         await websocket.send_json({
             "type": "error",
-            "message": "Failed to connect to IP camera. Check IP_CAM_URL in .env"
+            "message": f"Failed to connect to {source_label}."
         })
         return
 
@@ -115,11 +126,27 @@ async def stream_yolo_detections(websocket, confidence: Optional[float] = None, 
             _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
             frame_bytes = buffer.tobytes()
 
+            # Build per-detection details
+            det_details = []
+            class_counts = {}
+            conf_sum = 0.0
+            for box in results.boxes:
+                cls_id = int(box.cls[0])
+                cls_name = model.names.get(cls_id, f"class_{cls_id}")
+                conf = float(box.conf[0])
+                det_details.append({"class": cls_name, "confidence": round(conf, 3)})
+                class_counts[cls_name] = class_counts.get(cls_name, 0) + 1
+                conf_sum += conf
+
+            num_det = len(results.boxes)
             await websocket.send_json({
                 "type": "frame",
                 "frame_id": frame_count,
-                "detections": len(results.boxes),
-                "size": len(frame_bytes)
+                "detections": num_det,
+                "size": len(frame_bytes),
+                "details": det_details,
+                "class_counts": class_counts,
+                "avg_confidence": round(conf_sum / num_det, 3) if num_det > 0 else 0,
             })
 
             await websocket.send_bytes(frame_bytes)

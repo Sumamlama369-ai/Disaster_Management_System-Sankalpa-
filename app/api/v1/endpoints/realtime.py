@@ -52,11 +52,14 @@ async def realtime_detect(
     token: str = Query(...),
     confidence: float = Query(default=0.45, ge=0.1, le=0.95),
     ip_cam_url: Optional[str] = Query(default=None),
+    use_webcam: bool = Query(default=False),
 ):
     """
     WebSocket endpoint for real-time YOLO object detection.
 
     Connect with: ws://<host>/api/v1/realtime/detect?token=<jwt>&confidence=0.45
+    For device webcam: add &use_webcam=true
+    For IP camera: add &ip_cam_url=http://...
 
     Streams alternating messages:
       1. JSON metadata  {"type": "frame", "frame_id": N, "detections": D, "size": S}
@@ -79,7 +82,7 @@ async def realtime_detect(
         logger.info(f"Surveillance stream started for user: {user_id}")
 
         # Start streaming detections
-        await stream_yolo_detections(websocket, confidence=confidence, ip_cam_url=ip_cam_url)
+        await stream_yolo_detections(websocket, confidence=confidence, ip_cam_url=ip_cam_url, use_webcam=use_webcam)
 
     except WebSocketDisconnect:
         logger.info("Client disconnected from surveillance stream.")

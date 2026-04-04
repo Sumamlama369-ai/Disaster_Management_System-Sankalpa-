@@ -17,7 +17,7 @@ export default function LoginProcess() {
   const handleLogin = async () => {
     try {
       const googleToken = location.state?.googleToken || sessionStorage.getItem('google_token');
-      
+
       if (!googleToken) {
         toast.error('Session expired. Please login again.');
         navigate('/');
@@ -29,7 +29,7 @@ export default function LoginProcess() {
       if (response.success) {
         // User is verified - direct login
         login(response.access_token, response.user);
-        
+
         // Navigate to dashboard
         const role = response.user.role;
         navigate(`/${role}-dashboard`);
@@ -49,10 +49,34 @@ export default function LoginProcess() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-disaster-blue mx-auto"></div>
-        <p className="mt-4 text-white text-lg">Logging in...</p>
+        {/* Logo */}
+        <img src="/src/logo/FYP_Logo.png" alt="Sankalpa Logo" className="w-29 h-29 rounded-2xl object-contain mx-auto mb-8" />
+
+        {/* Animated spinner */}
+        <div className="relative w-10 h-10 mx-auto mb-6">
+          <div className="absolute inset-0 rounded-full border-3 border-slate-100" />
+          <div className="absolute inset-0 rounded-full border-3 border-transparent border-t-blue-500 animate-spin" />
+        </div>
+
+        <h3 className="text-lg font-semibold text-slate-800 mb-1">
+          Signing you in...
+        </h3>
+        <p className="text-sm text-slate-400">
+          Verifying your credentials securely
+        </p>
+
+        {/* Animated dots */}
+        <div className="flex items-center justify-center gap-1.5 mt-4">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

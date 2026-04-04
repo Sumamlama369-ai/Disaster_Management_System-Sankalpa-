@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     # Aakash SMS API
     AAKASH_SMS_AUTH_TOKEN: str = ""
 
+    # Hugging Face
+    HF_API_TOKEN: str = ""
+
+    # Background Tasks
+    ENABLE_REDDIT_FETCHING: bool = False
+
     # YOLO / Real-Time Detection
     YOLO_MODEL_PATH: str = "yolov8n.pt"
     YOLO_CONFIDENCE: float = 0.45
@@ -52,6 +58,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 # Create single instance

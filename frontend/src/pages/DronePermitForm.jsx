@@ -129,7 +129,8 @@ export default function DronePermitForm() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            🚁 Emergency Drone Permit Application
+            <svg className="inline-block w-8 h-8 mr-2 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-6-2.67-6 0M12 12c2-2.67 6-2.67 6 0M12 12v4M12 2v4M12 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 16h8M6 20l2-4M18 20l-2-4"/></svg>
+            Emergency Drone Permit Application
           </h1>
           <p className="text-gray-600">
             Fill in all required information to request a drone operation permit
@@ -546,7 +547,7 @@ export default function DronePermitForm() {
                     />
                     {files.purpose_letter && (
                       <p className="text-sm text-green-600 mt-2">
-                        ✓ {files.purpose_letter.name}
+                        <svg className="inline-block w-4 h-4 mr-1 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>{files.purpose_letter.name}
                       </p>
                     )}
                   </div>
@@ -565,7 +566,7 @@ export default function DronePermitForm() {
                     />
                     {files.purchase_bill && (
                       <p className="text-sm text-green-600 mt-2">
-                        ✓ {files.purchase_bill.name}
+                        <svg className="inline-block w-4 h-4 mr-1 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>{files.purchase_bill.name}
                       </p>
                     )}
                   </div>
@@ -584,7 +585,7 @@ export default function DronePermitForm() {
                     />
                     {files.drone_image && (
                       <p className="text-sm text-green-600 mt-2">
-                        ✓ {files.drone_image.name}
+                        <svg className="inline-block w-4 h-4 mr-1 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>{files.drone_image.name}
                       </p>
                     )}
                   </div>
@@ -603,7 +604,7 @@ export default function DronePermitForm() {
                     />
                     {files.citizenship_doc && (
                       <p className="text-sm text-green-600 mt-2">
-                        ✓ {files.citizenship_doc.name}
+                        <svg className="inline-block w-4 h-4 mr-1 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>{files.citizenship_doc.name}
                       </p>
                     )}
                   </div>

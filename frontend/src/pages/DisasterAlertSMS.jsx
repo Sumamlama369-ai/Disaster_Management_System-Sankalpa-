@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
@@ -208,6 +209,7 @@ function SuccessOverlay({ show, count }) {
 
 // ─── Main Component ──────────────────────────────────────────
 export default function DisasterAlertSMS() {
+  const location = useLocation();
   const [sendMode, setSendMode] = useState('single');
   const [selectedType, setSelectedType] = useState(null);
   const [severity, setSeverity] = useState('High');
@@ -219,6 +221,7 @@ export default function DisasterAlertSMS() {
   const [selectedCitizens, setSelectedCitizens] = useState([]);
   const [citizenSearch, setCitizenSearch] = useState('');
   const [showRecipientList, setShowRecipientList] = useState(false);
+  const [districtFilter, setDistrictFilter] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
@@ -264,6 +267,47 @@ export default function DisasterAlertSMS() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Auto-fill from Weather Intel page alert draft
+  useEffect(() => {
+    const wa = location.state?.weatherAlert;
+    if (!wa) return;
+
+    // Set alert type
+    const alertType = ALERT_TYPES.find(a => a.name === wa.alertType);
+    if (alertType) {
+      setSelectedType(alertType.name);
+    }
+
+    // Set severity
+    setSeverity(wa.severity || 'High');
+
+    // Set send mode to broadcast for district-wide alerts
+    setSendMode('broadcast');
+
+    // Build a context-rich message
+    const sevPrefix = wa.severity !== 'Low' ? `[${(wa.severity || 'HIGH').toUpperCase()}] ` : '';
+    const riskDetails = [
+      wa.riskFlood !== 'low' ? `Flood risk: ${wa.riskFlood}` : '',
+      wa.riskLandslide !== 'low' ? `Landslide risk: ${wa.riskLandslide}` : '',
+      wa.riskStorm !== 'low' ? `Storm risk: ${wa.riskStorm}` : '',
+    ].filter(Boolean).join(', ');
+    const weatherInfo = [
+      wa.precip ? `Rainfall: ${wa.precip}mm` : '',
+      wa.wind ? `Wind: ${wa.wind}km/h` : '',
+    ].filter(Boolean).join(', ');
+
+    const baseTemplate = alertType?.template || '';
+    const customMsg = `${sevPrefix}${wa.alertType?.toUpperCase()} WARNING for ${wa.district} District (${wa.province}): ${riskDetails}. ${weatherInfo ? `Current: ${weatherInfo}. ` : ''}${baseTemplate ? baseTemplate.split(': ').slice(1).join(': ') : 'Take precautions and follow local authority instructions. Emergency: 100'}`;
+
+    setMessage(customMsg.slice(0, 480));
+
+    // Set district filter if navigating to bulk mode later
+    if (wa.district) setDistrictFilter(wa.district);
+
+    // Clear the location state so refreshing doesn't re-trigger
+    window.history.replaceState({}, document.title);
+  }, [location.state]);
 
   const fetchCitizens = async () => {
     setLoadingCitizens(true);
@@ -318,10 +362,18 @@ export default function DisasterAlertSMS() {
   };
 
   const getFilteredCitizens = () => {
-    if (!citizenSearch.trim()) return citizens;
-    const q = citizenSearch.toLowerCase();
-    return citizens.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q));
+    let filtered = citizens;
+    if (districtFilter) {
+      filtered = filtered.filter(c => c.district === districtFilter);
+    }
+    if (citizenSearch.trim()) {
+      const q = citizenSearch.toLowerCase();
+      filtered = filtered.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q));
+    }
+    return filtered;
   };
+
+  const availableDistricts = [...new Set(citizens.map(c => c.district).filter(Boolean))].sort();
 
   const charPercent = Math.min((message.length / 160) * 100, 100);
   const charColor = message.length > 160 ? 'text-red-500' : message.length > 130 ? 'text-amber-500' : 'text-gray-400';
@@ -528,6 +580,34 @@ export default function DisasterAlertSMS() {
                       </div>
                     )}
 
+                    {/* District Filter */}
+                    {availableDistricts.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <svg className="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                          <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Filter by District</span>
+                          {districtFilter && (
+                            <button onClick={() => setDistrictFilter('')} className="text-[10px] text-red-400 hover:text-red-600 font-semibold ml-auto">Clear</button>
+                          )}
+                        </div>
+                        <select
+                          value={districtFilter}
+                          onChange={e => { setDistrictFilter(e.target.value); setSelectedCitizens([]); }}
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-all text-gray-700"
+                        >
+                          <option value="">All Districts ({citizens.length} citizens)</option>
+                          {availableDistricts.map(d => (
+                            <option key={d} value={d}>{d} ({citizens.filter(c => c.district === d).length})</option>
+                          ))}
+                        </select>
+                        {districtFilter && (
+                          <p className="text-[10px] text-gray-400 mt-1 ml-1">
+                            {getFilteredCitizens().length} citizen{getFilteredCitizens().length !== 1 ? 's' : ''} in {districtFilter}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Dropdown with proper z-index, positioned relative to this container */}
                     <div ref={recipientRef} className="relative z-30">
                       <div className="relative">
@@ -563,7 +643,7 @@ export default function DisasterAlertSMS() {
                                         )}
                                         <div className="flex-1 min-w-0">
                                           <div className="text-sm font-semibold text-gray-800 truncate">{c.name}</div>
-                                          <div className="text-xs text-gray-400 truncate">{c.phone} &middot; {c.email}</div>
+                                          <div className="text-xs text-gray-400 truncate">{c.phone} &middot; {c.email}{c.district ? ` \u00B7 ${c.district}` : ''}</div>
                                         </div>
                                       </button>
                                     );

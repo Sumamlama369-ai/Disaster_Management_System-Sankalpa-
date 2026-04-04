@@ -35,7 +35,8 @@ from app.schemas.disaster_reports import (
     DisasterStatistics,
     MapMarker
 )
-from app.services.gmail_service import gmail_service
+from app.core.config import settings
+import httpx as _httpx
 
 router = APIRouter()
 
@@ -415,28 +416,54 @@ async def update_report_status(
         db.add(status_history)
         db.commit()
 
-        # Send email notification to the reporting citizen
+        # Send SMS notification to the reporting citizen
         if report.user_id:  # type: ignore[arg-type]
             reporter = db.query(User).filter(User.id == report.user_id).first()
-            if reporter and reporter.email:  # type: ignore[arg-type]
-                _email = str(reporter.email)
+            if reporter and reporter.phone:  # type: ignore[arg-type]
+                _phone = str(reporter.phone).strip()
+                # Normalize: remove +977 or 977 prefix
+                if _phone.startswith("+977"):
+                    _phone = _phone[4:]
+                elif _phone.startswith("977"):
+                    _phone = _phone[3:]
+
                 _name = str(reporter.name or report.reporter_name or "Citizen")
                 _dtype = str(report.disaster_type)
                 _status = str(update.status)
                 _notes = str(update.officer_notes or update.response_notes or "")
-                def _send_notification():
+
+                status_label = {
+                    "REVIEWING": "Under Review",
+                    "DISPATCHED": "Team Dispatched",
+                    "RESCUING": "Rescue in Progress",
+                    "RESOLVED": "Resolved",
+                    "REJECTED": "Rejected",
+                    "PENDING": "Pending",
+                }.get(_status, _status)
+
+                sms_msg = f"Sankalpa Alert: Hi {_name}, your {_dtype} report (ID: {report_id}) status has been updated to: {status_label}."
+                if _notes:
+                    sms_msg += f" Officer notes: {_notes}"
+
+                def _send_sms_notification():
                     try:
-                        gmail_service.send_report_status_email(
-                            to_email=_email,
-                            name=_name,
-                            report_id=report_id,
-                            disaster_type=_dtype,
-                            new_status=_status,
-                            officer_notes=_notes
+                        resp = _httpx.get(
+                            "https://sms.aakashsms.com/sms/v3/send",
+                            params={
+                                "auth_token": settings.AAKASH_SMS_AUTH_TOKEN,
+                                "to": _phone,
+                                "text": sms_msg[:500],
+                            },
+                            timeout=15.0,
                         )
+                        data = resp.json()
+                        if data.get("error"):
+                            print(f"⚠️ SMS send error: {data.get('message', 'Unknown')}")
+                        else:
+                            print(f"✓ SMS sent to {_phone} for report {report_id}")
                     except Exception as e:
-                        print(f"⚠️ Failed to send notification email: {e}")
-                threading.Thread(target=_send_notification, daemon=True).start()
+                        print(f"⚠️ Failed to send SMS notification: {e}")
+                threading.Thread(target=_send_sms_notification, daemon=True).start()
     
     print(f"✓ Report {report_id} updated by officer {current_user.id}")
     

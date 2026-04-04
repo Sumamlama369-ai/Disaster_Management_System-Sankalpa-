@@ -207,6 +207,7 @@ async def get_citizens_with_phone(
                 "name": c.name,
                 "email": c.email,
                 "phone": c.phone,
+                "district": c.district,
                 "profile_picture": c.profile_picture,
             }
             for c in citizens

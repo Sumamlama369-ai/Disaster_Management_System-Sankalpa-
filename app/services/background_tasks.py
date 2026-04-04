@@ -64,12 +64,12 @@ class BackgroundTaskManager:
         print("⏰ Background Task Scheduler Started")
         print("="*50)
         print("Schedule:")
-        print("  - Data collection: Every 40 minutes")
+        print("  - Data collection: Every 60 minutes")
         print("  - Data cleanup: Daily at 3:00 AM")
         print("="*50 + "\n")
         
-        # Schedule data collection every 40 minutes
-        schedule.every(40).minutes.do(self.collect_disaster_data)
+        # Schedule data collection every 60 minutes
+        schedule.every(60).minutes.do(self.collect_disaster_data)
         
         # Schedule cleanup once per day at 3 AM
         schedule.every().day.at("03:00").do(self.cleanup_old_data)

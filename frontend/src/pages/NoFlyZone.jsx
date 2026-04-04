@@ -75,39 +75,18 @@ const adjustColor = (color, amount) => {
   return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
 };
 
-// Map tile layers configuration
+// Map tile layers configuration (positron default, matching CommandCenter)
 const tileLayers = {
-  street: {
-    name: 'Street Map',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '© OpenStreetMap contributors',
-  },
-  satellite: {
-    name: 'Satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: '© Esri',
-  },
-  terrain: {
-    name: 'Terrain',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: '© OpenTopoMap',
-  },
-  dark: {
-    name: 'Dark Mode',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '© CartoDB',
-  },
-  light: {
-    name: 'Light Mode',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '© CartoDB',
-  },
-  positron: {
-    name: 'Positron',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution: '© CartoDB',
-  },
+  positron:  { name: 'Positron',   url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' },
+  street:    { name: 'Street',     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap' },
+  satellite: { name: 'Satellite',  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '&copy; Esri' },
+  terrain:   { name: 'Terrain',    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenTopoMap' },
+  dark:      { name: 'Dark',       url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' },
 };
+
+// SVG icon components
+function LayersIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>; }
+function CrosshairIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>; }
 
 // Helper to parse radius string to meters
 const parseRadius = (radiusStr) => {
@@ -133,7 +112,8 @@ export default function NoFlyZone() {
   const mapInstance = useRef(null);
   const tileLayerRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
-  const [selectedTile, setSelectedTile] = useState('street');
+  const [selectedTile, setSelectedTile] = useState('positron');
+  const [layerMenuOpen, setLayerMenuOpen] = useState(false);
   
   const [stats, setStats] = useState({
     totalZones: 0,
@@ -192,9 +172,9 @@ export default function NoFlyZone() {
     // Add zoom control to bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Add initial tile layer
-    tileLayerRef.current = L.tileLayer(tileLayers.street.url, {
-      attribution: tileLayers.street.attribution,
+    // Add initial tile layer (positron default)
+    tileLayerRef.current = L.tileLayer(tileLayers.positron.url, {
+      attribution: tileLayers.positron.attribution,
       maxZoom: 19,
     }).addTo(map);
 
@@ -204,11 +184,11 @@ export default function NoFlyZone() {
     if (nepalBorderData?.features) {
       const nepalBorder = L.geoJSON(nepalBorderData, {
         style: {
-          color: '#6b7280',
+          color: '#94a3b8',
           weight: 2,
-          opacity: 0.8,
-          fillColor: '#6b7280',
-          fillOpacity: 0.05,
+          opacity: 0.6,
+          fillColor: '#94a3b8',
+          fillOpacity: 0.03,
         },
       });
       layerRefs.current.nepalBorderLayer = nepalBorder;
@@ -673,8 +653,34 @@ export default function NoFlyZone() {
 
           {/* Map Container */}
           <div className="flex-1 relative">
-            <div className="bg-white rounded-xl shadow-xl overflow-hidden h-full border border-gray-200">
-              <div ref={mapRef} className="w-full h-full" />
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden h-full border border-gray-200 flex flex-col">
+              {/* Map Header */}
+              <div className="flex justify-between items-center px-5 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-gray-800">No-Fly Zone Map</h2>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-[2px]">{stats.totalZones} restricted zones • Nepal airspace</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={centerMap}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 transition">
+                    <CrosshairIcon className="w-3.5 h-3.5" />Reset
+                  </button>
+                  <button onClick={toggleFullscreen}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 transition">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"/></svg>
+                    Fullscreen
+                  </button>
+                </div>
+              </div>
+
+              {/* Map */}
+              <div className="flex-1 relative">
+                <div ref={mapRef} className="w-full h-full" />
               
               {/* Selected Zone Popup - Enhanced Professional Design */}
               <AnimatePresence>
@@ -781,55 +787,65 @@ export default function NoFlyZone() {
                 )}
               </AnimatePresence>
               
-              {/* Map Legend */}
-              <div className="absolute bottom-4 left-4 bg-white rounded-xl shadow-lg p-4 z-[1000] border border-gray-200">
-                <h3 className="text-sm font-bold text-gray-800 mb-3">Map Legend</h3>
-                <div className="space-y-2">
-                  {Object.entries(categoryConfig).map(([key, config]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded ${config.bgColor}`}></div>
-                      <span className="text-xs text-gray-600">{config.label}</span>
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-gray-500"></div>
-                    <span className="text-xs text-gray-600">Nepal Border</span>
-                  </div>
+              {/* Layer Switcher (CommandCenter style) */}
+              <div className="absolute top-3 left-3 z-[500]">
+                <button
+                  onClick={() => setLayerMenuOpen(!layerMenuOpen)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-all text-xs font-medium text-gray-600"
+                >
+                  <LayersIcon className="w-3.5 h-3.5" />
+                  Map Style
+                </button>
+                {layerMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute top-10 left-0 bg-white/98 backdrop-blur-sm rounded-xl border border-gray-200 shadow-xl py-1.5 min-w-[150px]"
+                  >
+                    {Object.entries(tileLayers).map(([key, layer]) => (
+                      <button key={key} onClick={() => { changeTileLayer(key); setLayerMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-xs font-medium transition-all ${
+                          selectedTile === key ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-gray-600 hover:bg-gray-50'
+                        }`}>
+                        {layer.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Compass */}
+              <div className="absolute top-3 right-3 z-[500]">
+                <div className="w-14 h-14 bg-white/95 backdrop-blur-sm rounded-full border border-gray-200 shadow-lg flex items-center justify-center">
+                  <svg width="40" height="40" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="18" fill="none" stroke="#e5e7eb" strokeWidth="1" />
+                    <text x="20" y="8" textAnchor="middle" fontSize="7" fontWeight="700" fill="#ef4444">N</text>
+                    <text x="20" y="37" textAnchor="middle" fontSize="6" fontWeight="600" fill="#9ca3af">S</text>
+                    <text x="4" y="22.5" textAnchor="middle" fontSize="6" fontWeight="600" fill="#9ca3af">W</text>
+                    <text x="36" y="22.5" textAnchor="middle" fontSize="6" fontWeight="600" fill="#9ca3af">E</text>
+                    {/* North arrow (red) */}
+                    <polygon points="20,10 17,20 23,20" fill="#ef4444" />
+                    {/* South arrow (gray) */}
+                    <polygon points="20,30 17,20 23,20" fill="#cbd5e1" />
+                    {/* Center dot */}
+                    <circle cx="20" cy="20" r="2.5" fill="white" stroke="#94a3b8" strokeWidth="1" />
+                  </svg>
                 </div>
               </div>
 
-              {/* Map Controls */}
-              <div className="absolute bottom-4 right-16 flex gap-2 z-[1000]">
-                <button
-                  onClick={centerMap}
-                  className="px-4 py-2 bg-white rounded-lg shadow-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Center Map
-                </button>
-                <button
-                  onClick={toggleFullscreen}
-                  className="px-4 py-2 bg-white rounded-lg shadow-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Fullscreen
-                </button>
-              </div>
-            </div>
-
-            {/* Tile Layer Selector */}
-            <div className="absolute top-4 right-4 bg-white rounded-xl shadow-lg p-3 z-[1000] border border-gray-200">
-              <div className="space-y-1">
-                {Object.entries(tileLayers).map(([key, layer]) => (
-                  <label key={key} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
-                    <input
-                      type="radio"
-                      name="tileLayer"
-                      checked={selectedTile === key}
-                      onChange={() => changeTileLayer(key)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <span className="text-xs text-gray-700">{layer.name}</span>
-                  </label>
+              {/* Map Legend (CommandCenter style) */}
+              <div className="absolute bottom-4 left-4 z-[500] bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl px-4 py-2.5 flex items-center gap-4 shadow-lg text-xs text-gray-600 font-medium flex-wrap">
+                {Object.entries(categoryConfig).map(([key, config]) => (
+                  <div key={key} className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color, boxShadow: `0 0 6px ${config.color}40` }} />
+                    {config.label.replace(' Zones', '').replace(' Areas', '').replace(' Buildings', '')}
+                  </div>
                 ))}
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-gray-400 opacity-50 border-2 border-gray-300" />
+                  Nepal Border
+                </div>
+              </div>
               </div>
             </div>
           </div>

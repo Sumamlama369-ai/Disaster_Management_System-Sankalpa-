@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -32,6 +33,7 @@ const TYPE_COLOR = {
 
 export default function MyDisasterReports() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -108,10 +110,10 @@ export default function MyDisasterReports() {
                   </div>
                   <p className="text-gray-500 text-sm lg:text-base ml-[18px]">Monitor the real-time status and response progress of all your submitted disaster reports.</p>
                 </div>
-                <a href="/report-disaster" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all self-start lg:self-auto">
+                <button onClick={() => navigate('/report-disaster')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all self-start lg:self-auto">
                   <PlusIcon className="w-4 h-4" />
                   New Report
-                </a>
+                </button>
               </div>
             </motion.div>
 
@@ -157,9 +159,9 @@ export default function MyDisasterReports() {
             <p className="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
               {statusFilter ? "No reports match the selected filter." : "You haven't submitted any disaster reports yet."}
             </p>
-            <a href="/report-disaster" className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all">
+            <button onClick={() => navigate('/report-disaster')} className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all">
               Submit a Report <ArrowRightIcon className="w-4 h-4" />
-            </a>
+            </button>
           </motion.div>
         )}
 

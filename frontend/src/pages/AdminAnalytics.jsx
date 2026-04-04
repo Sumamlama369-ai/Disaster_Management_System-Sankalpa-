@@ -60,7 +60,7 @@ const MapPinIcon = ({ className = "w-5 h-5" }) => (
 
 // ─── Constants ────────────────────────────────────────────────
 const SEVERITY_COLORS = { LOW: '#10b981', MEDIUM: '#f59e0b', HIGH: '#f97316', CRITICAL: '#ef4444' };
-const TYPE_COLORS = { fire: '#ef4444', flood: '#3b82f6', earthquake: '#f97316', landslide: '#d97706', storm: '#0ea5e9', other: '#6b7280' };
+const TYPE_COLORS = { fire: '#ef4444', flood: '#3b82f6', earthquake: '#f97316', landslide: '#d97706', storm: '#0ea5e9', conflict: '#8b5cf6', pandemic: '#ec4899', explosion: '#f43f5e', hurricane: '#06b6d4', drought: '#a855f7', tornado: '#14b8a6', volcano: '#e11d48', tsunami: '#2563eb', wildfire: '#ea580c', other: '#6b7280' };
 const URGENCY_COLORS = { low: '#10b981', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
 
 // ─── Component ────────────────────────────────────────────────
@@ -89,10 +89,24 @@ export default function AdminAnalytics() {
   const [permits, setPermits] = useState([]);
   const [reports, setReports] = useState([]);
 
+  // Filters for Users & Permits tab
+  const [growthFilterYear, setGrowthFilterYear] = useState('all');
+  const [growthFilterMonth, setGrowthFilterMonth] = useState('all');
+  const [heatmapFilterYear, setHeatmapFilterYear] = useState('all');
+  const [heatmapFilterMonth, setHeatmapFilterMonth] = useState('all');
+
   // Derived
   const citizens = users.filter(u => u.role === 'citizen');
   const officers = users.filter(u => u.role === 'officer');
   const admins = users.filter(u => u.role === 'admin');
+
+  // Available years from all data sources (for filters)
+  const availableYears = [...new Set([
+    ...users.filter(u => u.created_at).map(u => new Date(u.created_at).getFullYear()),
+    ...reports.filter(r => r.created_at || r.timestamp).map(r => new Date(r.created_at || r.timestamp).getFullYear()),
+    ...recentDisasters.filter(d => d.timestamp).map(d => new Date(d.timestamp).getFullYear()),
+  ])].sort((a, b) => b - a);
+  const monthOptions = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -297,8 +311,15 @@ export default function AdminAnalytics() {
 
   // 5. Cumulative User Growth (stacked area)
   const getUserGrowthOption = () => {
+    const filtered = users.filter(u => {
+      if (!u.created_at) return false;
+      const d = new Date(u.created_at);
+      if (growthFilterYear !== 'all' && d.getFullYear() !== +growthFilterYear) return false;
+      if (growthFilterMonth !== 'all' && d.getMonth() !== +growthFilterMonth) return false;
+      return true;
+    });
     const mMap = {};
-    users.forEach(u => { if (!u.created_at) return; const d = new Date(u.created_at); const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if (!mMap[k]) mMap[k] = { citizen:0, officer:0, admin:0 }; mMap[k][u.role]++; });
+    filtered.forEach(u => { const d = new Date(u.created_at); const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if (!mMap[k]) mMap[k] = { citizen:0, officer:0, admin:0 }; mMap[k][u.role]++; });
     const months = Object.keys(mMap).sort();
     const labels = months.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleString('en',{month:'short',year:'2-digit'}); });
     let cc=0,co=0,ca=0;
@@ -321,6 +342,12 @@ export default function AdminAnalytics() {
     const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const hours = Array.from({length:24},(_,i)=>`${String(i).padStart(2,'0')}:00`);
 
+    const heatmapDateFilter = (d) => {
+      if (heatmapFilterYear !== 'all' && d.getFullYear() !== +heatmapFilterYear) return false;
+      if (heatmapFilterMonth !== 'all' && d.getMonth() !== +heatmapFilterMonth) return false;
+      return true;
+    };
+
     // Collect individual timestamps per day+hour slot for month/year detail in tooltip
     const regDetails = {}; // key: "hour-day" -> array of {month, year}
     const rptDetails = {};
@@ -330,6 +357,7 @@ export default function AdminAnalytics() {
     users.forEach(u => {
       if(!u.created_at) return;
       const d = new Date(u.created_at);
+      if (!heatmapDateFilter(d)) return;
       const key = `${d.getHours()}-${d.getDay()}`;
       regAgg[key] = (regAgg[key] || 0) + 1;
       if(!regDetails[key]) regDetails[key] = {};
@@ -341,6 +369,7 @@ export default function AdminAnalytics() {
       const ts = r.created_at || r.timestamp;
       if(!ts) return;
       const d = new Date(ts);
+      if (!heatmapDateFilter(d)) return;
       const key = `${d.getHours()}-${d.getDay()}`;
       rptAgg[key] = (rptAgg[key] || 0) + 1;
       if(!rptDetails[key]) rptDetails[key] = {};
@@ -351,6 +380,7 @@ export default function AdminAnalytics() {
     recentDisasters.forEach(rd => {
       if(!rd.timestamp) return;
       const d = new Date(rd.timestamp);
+      if (!heatmapDateFilter(d)) return;
       const key = `${d.getHours()}-${d.getDay()}`;
       rptAgg[key] = (rptAgg[key] || 0) + 1;
       if(!rptDetails[key]) rptDetails[key] = {};
@@ -527,9 +557,14 @@ export default function AdminAnalytics() {
 
   // 12. NLP Stream Chart (disaster timeline by type over 24h)
   const getStreamOption = () => {
+    const STREAM_FALLBACK_COLORS = ['#8b5cf6','#ec4899','#14b8a6','#f43f5e','#a855f7','#06b6d4','#ea580c','#2563eb','#84cc16','#e11d48'];
     const series = {};
     recentDisasters.forEach(d => { const h=new Date(d.timestamp).getHours(); const t=d.disaster_type; if(!series[t]) series[t]=new Array(24).fill(0); series[t][h]++; });
     const hours = Array.from({length:24},(_,i)=>`${String(i).padStart(2,'0')}:00`);
+    let fallbackIdx = 0;
+    const getColor = (type) => { if (TYPE_COLORS[type]) return TYPE_COLORS[type]; return STREAM_FALLBACK_COLORS[(fallbackIdx++) % STREAM_FALLBACK_COLORS.length]; };
+    const typeColors = {};
+    Object.keys(series).forEach(type => { typeColors[type] = getColor(type); });
     return {
       backgroundColor:'transparent',
       tooltip:{trigger:'axis',axisPointer:{type:'cross',label:{backgroundColor:'#0ea5e9'}},backgroundColor:'rgba(255,255,255,0.98)',borderColor:'#e5e7eb',borderWidth:1,textStyle:{color:'#1f2937'}},
@@ -537,11 +572,14 @@ export default function AdminAnalytics() {
       grid:{left:'3%',right:'4%',bottom:'15%',top:'8%',containLabel:true},
       xAxis:{type:'category',boundaryGap:false,data:hours,axisLabel:{fontSize:10,color:'#6b7280',interval:2},axisLine:{lineStyle:{color:'#e5e7eb'}},axisTick:{show:false}},
       yAxis:{type:'value',axisLabel:{fontSize:10,color:'#6b7280'},splitLine:{lineStyle:{color:'#f3f4f6',type:'dashed'}},axisLine:{show:false}},
-      series: Object.keys(series).map(type=>({
-        name:type.charAt(0).toUpperCase()+type.slice(1), type:'line', stack:'T', smooth:0.4, emphasis:{focus:'series'},
-        areaStyle:{opacity:0.75,color:lg(0,0,0,1,[{offset:0,color:(TYPE_COLORS[type]||'#6b7280')+'cc'},{offset:1,color:(TYPE_COLORS[type]||'#6b7280')+'22'}])},
-        lineStyle:{width:0}, showSymbol:false, data:series[type], color:TYPE_COLORS[type]||'#6b7280',
-      })),
+      series: Object.keys(series).map(type=>{
+        const c = typeColors[type];
+        return {
+          name:type.charAt(0).toUpperCase()+type.slice(1), type:'line', stack:'T', smooth:0.4, emphasis:{focus:'series'},
+          areaStyle:{opacity:0.75,color:lg(0,0,0,1,[{offset:0,color:c+'cc'},{offset:1,color:c+'22'}])},
+          lineStyle:{width:0}, showSymbol:false, data:series[type], color:c,
+        };
+      }),
     };
   };
 
@@ -772,14 +810,52 @@ export default function AdminAnalytics() {
         {activeView === 'users' && (
           <motion.div key="us" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0}} className="grid grid-cols-12 gap-5 pb-16">
             <div className="col-span-12">
-              <CC t="Platform Growth" s="Cumulative user registrations over time (stacked area)" ic={<TrendIcon/>} b="Growth">
-                <ReactECharts option={getUserGrowthOption()} style={{height:'340px'}} opts={{renderer:'svg'}}/>
-              </CC>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm h-full">
+                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-xl flex items-center justify-center text-sky-500"><TrendIcon/></div>
+                    <div><h3 className="text-sm font-bold text-gray-900">Platform Growth</h3><p className="text-[11px] text-gray-400">Cumulative user registrations over time (stacked area)</p></div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select value={growthFilterYear} onChange={e => setGrowthFilterYear(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 cursor-pointer">
+                      <option value="all">All Years</option>
+                      {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select value={growthFilterMonth} onChange={e => setGrowthFilterMonth(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 cursor-pointer">
+                      <option value="all">All Months</option>
+                      {monthOptions.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                    </select>
+                    <span className="px-3 py-1 bg-sky-50 border border-sky-100 text-sky-600 text-[10px] font-bold rounded-full uppercase tracking-wide">Growth</span>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <ReactECharts option={getUserGrowthOption()} style={{height:'340px'}} opts={{renderer:'svg'}}/>
+                </div>
+              </div>
             </div>
             <div className="col-span-12">
-              <CC t="Platform Activity Heatmap" s="Registrations vs Report submissions & NLP detections by day and hour" ic={<ActivityIcon/>} b="Dual Heatmap">
-                <ReactECharts option={getHeatmapOption()} style={{height:'340px'}} opts={{renderer:'svg'}}/>
-              </CC>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm h-full">
+                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-xl flex items-center justify-center text-sky-500"><ActivityIcon/></div>
+                    <div><h3 className="text-sm font-bold text-gray-900">Platform Activity Heatmap</h3><p className="text-[11px] text-gray-400">Registrations vs Report submissions & NLP detections by day and hour</p></div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select value={heatmapFilterYear} onChange={e => setHeatmapFilterYear(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 cursor-pointer">
+                      <option value="all">All Years</option>
+                      {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select value={heatmapFilterMonth} onChange={e => setHeatmapFilterMonth(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 cursor-pointer">
+                      <option value="all">All Months</option>
+                      {monthOptions.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                    </select>
+                    <span className="px-3 py-1 bg-sky-50 border border-sky-100 text-sky-600 text-[10px] font-bold rounded-full uppercase tracking-wide">Dual Heatmap</span>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <ReactECharts option={getHeatmapOption()} style={{height:'340px'}} opts={{renderer:'svg'}}/>
+                </div>
+              </div>
             </div>
             <div className="col-span-12 lg:col-span-6">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full">

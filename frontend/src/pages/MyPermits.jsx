@@ -24,18 +24,30 @@ export default function MyPermits() {
     }
   };
 
+  const StatusIcon = ({ type }) => {
+    if (type === 'pending') return (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    );
+    if (type === 'approved') return (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+    );
+    return (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+    );
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: '⏳', label: 'Pending' },
-      approved: { color: 'bg-green-100 text-green-800', icon: '✅', label: 'Approved' },
-      rejected: { color: 'bg-red-100 text-red-800', icon: '❌', label: 'Rejected' },
+      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
+      approved: { color: 'bg-green-100 text-green-800', label: 'Approved' },
+      rejected: { color: 'bg-red-100 text-red-800', label: 'Rejected' },
     };
 
     const config = statusConfig[status] || statusConfig.pending;
 
     return (
       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${config.color}`}>
-        <span>{config.icon}</span>
+        <StatusIcon type={status} />
         {config.label}
       </span>
     );
@@ -69,7 +81,8 @@ export default function MyPermits() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            📋 My Drone Permits
+            <svg className="inline-block w-8 h-8 mr-2 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg>
+            My Drone Permits
           </h1>
           <p className="text-gray-600">
             View and track the status of your drone permit applications
@@ -83,7 +96,7 @@ export default function MyPermits() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-xl shadow-md p-6"
           >
-            <div className="text-3xl mb-2">📝</div>
+            <div className="mb-2"><svg className="w-8 h-8 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
             <h3 className="text-2xl font-bold text-gray-800">
               {permits.length}
             </h3>
@@ -96,7 +109,7 @@ export default function MyPermits() {
             transition={{ delay: 0.1 }}
             className="bg-white rounded-xl shadow-md p-6"
           >
-            <div className="text-3xl mb-2">✅</div>
+            <div className="mb-2"><svg className="w-8 h-8 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg></div>
             <h3 className="text-2xl font-bold text-green-600">
               {permits.filter((p) => p.status === 'approved').length}
             </h3>
@@ -109,7 +122,7 @@ export default function MyPermits() {
             transition={{ delay: 0.2 }}
             className="bg-white rounded-xl shadow-md p-6"
           >
-            <div className="text-3xl mb-2">⏳</div>
+            <div className="mb-2"><svg className="w-8 h-8 text-yellow-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
             <h3 className="text-2xl font-bold text-yellow-600">
               {permits.filter((p) => p.status === 'pending').length}
             </h3>
@@ -120,7 +133,7 @@ export default function MyPermits() {
         {/* Permits List */}
         {permits.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <div className="text-6xl mb-4">📋</div>
+            <div className="mb-4 flex justify-center"><svg className="w-16 h-16 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg></div>
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               No Permits Yet
             </h3>
@@ -175,7 +188,11 @@ export default function MyPermits() {
                     {permit.officer_name && (
                       <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <p className="font-semibold text-blue-900 mb-2">
-                          {permit.status === 'approved' ? '✅ Approved by:' : '❌ Rejected by:'}
+                          {permit.status === 'approved' ? (
+                          <span className="inline-flex items-center gap-1"><svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Approved by:</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1"><svg className="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg> Rejected by:</span>
+                        )}
                         </p>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                           <div>

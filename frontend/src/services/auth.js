@@ -47,4 +47,9 @@ export const authService = {
     const response = await api.put('/users/me/phone', { phone });
     return response.data;
   },
+
+  updateDistrict: async (district) => {
+    const response = await api.put('/users/me/district', { district });
+    return response.data;
+  },
 };

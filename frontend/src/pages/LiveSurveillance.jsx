@@ -6,6 +6,14 @@ import Navbar from '../components/Navbar';
 
 const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 
+// ─── Chart colors for detected classes ────────────────────────────
+const CLASS_COLORS = [
+  '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#06b6d4', '#ec4899', '#f97316', '#14b8a6', '#6366f1',
+  '#84cc16', '#e11d48', '#0ea5e9', '#d946ef', '#78716c',
+];
+const MAX_HISTORY = 30;
+
 export default function LiveSurveillance() {
   const { token } = useAuth();
   const [streaming, setStreaming] = useState(false);
@@ -16,6 +24,15 @@ export default function LiveSurveillance() {
   const [frameId, setFrameId] = useState(0);
   const [status, setStatus] = useState('offline');
   const [showSettings, setShowSettings] = useState(false);
+
+  // ─── Analytics state ─────────────────────────────────────────────
+  const [classCounts, setClassCounts] = useState({});
+  const [avgConfidence, setAvgConfidence] = useState(0);
+  const [detectionHistory, setDetectionHistory] = useState([]);
+  const [classHistory, setClassHistory] = useState({});
+  const [confidenceHistory, setConfidenceHistory] = useState([]);
+  const [detectionDetails, setDetectionDetails] = useState([]);
+  const [totalDetected, setTotalDetected] = useState(0);
 
   const wsRef = useRef(null);
   const canvasRef = useRef(null);
@@ -55,6 +72,8 @@ export default function LiveSurveillance() {
     let wsUrl = `${WS_BASE}/api/v1/realtime/detect?token=${token}&confidence=${confidence}`;
     if (ipCamUrl.trim()) {
       wsUrl += `&ip_cam_url=${encodeURIComponent(ipCamUrl.trim())}`;
+    } else {
+      wsUrl += `&use_webcam=true`;
     }
 
     const ws = new WebSocket(wsUrl);
@@ -77,6 +96,25 @@ export default function LiveSurveillance() {
           if (msg.type === 'frame') {
             setDetections(msg.detections);
             setFrameId(msg.frame_id);
+            // Analytics data
+            if (msg.class_counts) setClassCounts(msg.class_counts);
+            if (msg.avg_confidence !== undefined) setAvgConfidence(msg.avg_confidence);
+            if (msg.details) setDetectionDetails(msg.details);
+            setTotalDetected(prev => prev + msg.detections);
+            // Time-series history
+            const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            setDetectionHistory(prev => [...prev.slice(-(MAX_HISTORY - 1)), { time: ts, count: msg.detections }]);
+            setConfidenceHistory(prev => [...prev.slice(-(MAX_HISTORY - 1)), { time: ts, value: msg.avg_confidence || 0 }]);
+            if (msg.class_counts) {
+              setClassHistory(prev => {
+                const next = { ...prev };
+                Object.keys(msg.class_counts).forEach(cls => {
+                  if (!next[cls]) next[cls] = [];
+                  next[cls] = [...(next[cls] || []).slice(-(MAX_HISTORY - 1)), msg.class_counts[cls]];
+                });
+                return next;
+              });
+            }
           } else if (msg.type === 'connected') {
             toast.success('Surveillance stream active');
           } else if (msg.type === 'warning') {
@@ -111,6 +149,13 @@ export default function LiveSurveillance() {
     setStreaming(false);
     setStatus('offline');
     setFps(0);
+    setClassCounts({});
+    setAvgConfidence(0);
+    setDetectionHistory([]);
+    setClassHistory({});
+    setConfidenceHistory([]);
+    setDetectionDetails([]);
+    setTotalDetected(0);
   }, []);
 
   useEffect(() => {
@@ -324,12 +369,229 @@ export default function LiveSurveillance() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
+              className="grid grid-cols-2 md:grid-cols-5 gap-4"
             >
               <StatCard label="Frame Rate" value={`${fps}`} unit="FPS" color="emerald" />
               <StatCard label="Objects Detected" value={`${detections}`} unit="current" color="teal" />
               <StatCard label="Frames Processed" value={`${frameId}`} unit="total" color="cyan" />
-              <StatCard label="Confidence" value={`${(confidence * 100).toFixed(0)}%`} unit="threshold" color="gray" />
+              <StatCard label="Avg Confidence" value={`${(avgConfidence * 100).toFixed(0)}%`} unit="score" color="violet" />
+              <StatCard label="Total Detections" value={`${totalDetected}`} unit="cumulative" color="gray" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Real-Time Analytics Dashboard ─────────────────────────── */}
+        <AnimatePresence>
+          {streaming && detectionHistory.length > 2 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
+            >
+              {/* Row 1: Detection Timeline + Class Distribution */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                {/* Detection Count Timeline */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Detection Timeline</h3>
+                      <p className="text-[10px] text-gray-300 mt-0.5">Objects per frame (last {MAX_HISTORY} frames)</p>
+                    </div>
+                    <span className="text-xl font-black text-emerald-600 tabular-nums">{detections}</span>
+                  </div>
+                  <div className="flex items-end gap-[3px] h-28">
+                    {detectionHistory.map((d, i) => {
+                      const max = Math.max(...detectionHistory.map(h => h.count), 1);
+                      const pct = (d.count / max) * 100;
+                      return (
+                        <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${Math.max(pct, 3)}%` }}
+                          transition={{ duration: 0.2 }}
+                          className="flex-1 rounded-t-sm min-w-[4px]"
+                          style={{ background: d.count > 0 ? `linear-gradient(to top, #10b981, #34d399)` : '#e5e7eb' }}
+                          title={`${d.time}: ${d.count} objects`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-[9px] text-gray-300 font-mono">{detectionHistory[0]?.time || ''}</span>
+                    <span className="text-[9px] text-gray-300 font-mono">{detectionHistory[detectionHistory.length - 1]?.time || ''}</span>
+                  </div>
+                </div>
+
+                {/* Class Distribution (horizontal bars) */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Class Distribution</h3>
+                      <p className="text-[10px] text-gray-300 mt-0.5">Current frame breakdown</p>
+                    </div>
+                    <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-blue-50 text-blue-500 border border-blue-100">
+                      {Object.keys(classCounts).length} classes
+                    </span>
+                  </div>
+                  <div className="space-y-2.5 max-h-[120px] overflow-y-auto">
+                    {Object.entries(classCounts).length === 0 ? (
+                      <p className="text-xs text-gray-300 text-center py-6">No detections</p>
+                    ) : (
+                      Object.entries(classCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([cls, count], i) => {
+                          const maxCount = Math.max(...Object.values(classCounts));
+                          const pct = (count / maxCount) * 100;
+                          const color = CLASS_COLORS[i % CLASS_COLORS.length];
+                          return (
+                            <div key={cls} className="flex items-center gap-3">
+                              <span className="w-20 text-[11px] font-semibold text-gray-600 capitalize truncate">{cls}</span>
+                              <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
+                                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                                  transition={{ duration: 0.4 }}
+                                  className="h-full rounded-full flex items-center justify-end pr-2"
+                                  style={{ background: `linear-gradient(90deg, ${color}90, ${color})` }}>
+                                  {pct > 30 && <span className="text-[9px] font-bold text-white">{count}</span>}
+                                </motion.div>
+                              </div>
+                              {pct <= 30 && <span className="text-[11px] font-bold text-gray-500 w-6 text-right">{count}</span>}
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Confidence Trend + Live Detection Log */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                {/* Confidence Trend */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Confidence Trend</h3>
+                      <p className="text-[10px] text-gray-300 mt-0.5">Average detection confidence over time</p>
+                    </div>
+                    <span className={`text-xl font-black tabular-nums ${avgConfidence >= 0.7 ? 'text-emerald-600' : avgConfidence >= 0.4 ? 'text-amber-600' : 'text-red-500'}`}>
+                      {(avgConfidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="relative h-28">
+                    {/* Grid lines */}
+                    {[0, 25, 50, 75, 100].map(v => (
+                      <div key={v} className="absolute w-full border-t border-dashed border-gray-100" style={{ bottom: `${v}%` }}>
+                        <span className="absolute -top-2 -left-0 text-[8px] text-gray-300">{v}%</span>
+                      </div>
+                    ))}
+                    {/* Area + line */}
+                    <svg className="w-full h-full" preserveAspectRatio="none" viewBox={`0 0 ${confidenceHistory.length} 100`}>
+                      {confidenceHistory.length > 1 && (
+                        <>
+                          <defs>
+                            <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
+                              <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.02" />
+                            </linearGradient>
+                          </defs>
+                          <path
+                            d={`M0,${100 - confidenceHistory[0].value * 100} ${confidenceHistory.map((d, i) => `L${i},${100 - d.value * 100}`).join(' ')} L${confidenceHistory.length - 1},100 L0,100 Z`}
+                            fill="url(#confGrad)" />
+                          <polyline
+                            points={confidenceHistory.map((d, i) => `${i},${100 - d.value * 100}`).join(' ')}
+                            fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeLinejoin="round" />
+                        </>
+                      )}
+                    </svg>
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-[9px] text-gray-300 font-mono">{confidenceHistory[0]?.time || ''}</span>
+                    <span className="text-[9px] text-gray-300 font-mono">{confidenceHistory[confidenceHistory.length - 1]?.time || ''}</span>
+                  </div>
+                </div>
+
+                {/* Live Detection Log */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Live Detection Feed</h3>
+                      <p className="text-[10px] text-gray-300 mt-0.5">Real-time object detections</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] text-emerald-500 font-bold uppercase">Live</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1 max-h-[128px] overflow-y-auto">
+                    {detectionDetails.length === 0 ? (
+                      <p className="text-xs text-gray-300 text-center py-6">Waiting for detections...</p>
+                    ) : (
+                      detectionDetails.slice(0, 12).map((det, i) => {
+                        const confPct = (det.confidence * 100).toFixed(0);
+                        const color = CLASS_COLORS[Object.keys(classCounts).indexOf(det.class) % CLASS_COLORS.length] || '#6b7280';
+                        return (
+                          <div key={i} className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-gray-50 transition">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                            <span className="text-xs font-semibold text-gray-700 capitalize flex-1 truncate">{det.class}</span>
+                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${confPct}%`, background: color }} />
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-400 tabular-nums w-9 text-right">{confPct}%</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Per-Class Sparklines */}
+              {Object.keys(classHistory).length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                  <div className="mb-4">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Per-Class Activity</h3>
+                    <p className="text-[10px] text-gray-300 mt-0.5">Detection count trend per object class</p>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {Object.entries(classHistory)
+                      .sort((a, b) => (b[1][b[1].length - 1] || 0) - (a[1][a[1].length - 1] || 0))
+                      .slice(0, 8)
+                      .map(([cls, history], ci) => {
+                        const color = CLASS_COLORS[ci % CLASS_COLORS.length];
+                        const latest = history[history.length - 1] || 0;
+                        const max = Math.max(...history, 1);
+                        return (
+                          <div key={cls} className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+                                <span className="text-[11px] font-bold text-gray-600 capitalize">{cls}</span>
+                              </div>
+                              <span className="text-sm font-black tabular-nums" style={{ color }}>{latest}</span>
+                            </div>
+                            <svg className="w-full h-8" preserveAspectRatio="none" viewBox={`0 0 ${history.length} ${max}`}>
+                              <defs>
+                                <linearGradient id={`sg-${ci}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+                                  <stop offset="100%" stopColor={color} stopOpacity="0" />
+                                </linearGradient>
+                              </defs>
+                              {history.length > 1 && (
+                                <>
+                                  <path
+                                    d={`M0,${max - history[0]} ${history.map((v, i) => `L${i},${max - v}`).join(' ')} L${history.length - 1},${max} L0,${max} Z`}
+                                    fill={`url(#sg-${ci})`} />
+                                  <polyline
+                                    points={history.map((v, i) => `${i},${max - v}`).join(' ')}
+                                    fill="none" stroke={color} strokeWidth="1.2" strokeLinejoin="round" />
+                                </>
+                              )}
+                            </svg>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -346,6 +608,7 @@ function StatCard({ label, value, unit, color }) {
     teal: 'from-teal-500 to-cyan-600',
     cyan: 'from-cyan-500 to-blue-600',
     gray: 'from-gray-600 to-gray-700',
+    violet: 'from-violet-500 to-purple-600',
   };
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 p-5 relative overflow-hidden">

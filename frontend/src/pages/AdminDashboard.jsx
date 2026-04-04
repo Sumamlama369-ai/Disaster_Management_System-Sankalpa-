@@ -212,7 +212,7 @@ export default function AdminDashboard() {
       path: '/live-surveillance',
       icon: <CameraIcon className="w-7 h-7" />,
       iconBg: 'bg-cyan-600',
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=250&fit=crop&q=80',
+      image: 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=400&h=250&fit=crop&q=80',
     },
     {
       title: 'Disaster Reports',
@@ -236,7 +236,7 @@ export default function AdminDashboard() {
             alt=""
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-sky-600/92 via-sky-500/88 to-cyan-500/82" />
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-700/95 via-sky-600/95 to-cyan-600/92" />
         </div>
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '36px 36px' }} />
         <div className="absolute top-10 right-[15%] w-72 h-72 bg-white/5 rounded-full blur-[80px]" />
@@ -260,8 +260,11 @@ export default function AdminDashboard() {
                   Control Center
                 </span>
               </h1>
-              <p className="text-base lg:text-lg text-sky-100/80 max-w-xl mb-8 leading-relaxed">
+              <p className="text-base lg:text-lg text-sky-100/80 max-w-xl mb-4 leading-relaxed">
                 Full system oversight — manage users, monitor analytics, review permits, and coordinate emergency operations across the Sankalpa platform.
+              </p>
+              <p className="text-sm md:text-base text-cyan-200/90 font-medium italic mb-8 tracking-wide">
+                "हरेक चुनौतीमा अडिग प्रतिबद्धता"
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -293,9 +296,9 @@ export default function AdminDashboard() {
               transition={{ delay: 0.3, duration: 0.6 }}
               className="hidden lg:block"
             >
-              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 max-w-sm ml-auto">
+              <div className="bg-sky-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-6 max-w-sm ml-auto shadow-2xl">
                 <div className="flex items-center gap-4 mb-5">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white/30 to-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white/40 to-white/20 border-2 border-white/30 flex items-center justify-center overflow-hidden">
                     {user?.profile_picture ? (
                       <img src={user.profile_picture} alt="" className="w-14 h-14 rounded-full object-cover" />
                     ) : (
@@ -308,20 +311,20 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <div className="bg-white/15 rounded-xl p-3 text-center">
                     <p className="text-xl font-extrabold text-white">{loading ? '—' : totalUsers}</p>
-                    <p className="text-[10px] text-sky-200 mt-0.5">Users</p>
+                    <p className="text-[10px] text-sky-100 mt-0.5 font-medium">Users</p>
                   </div>
-                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <div className="bg-white/15 rounded-xl p-3 text-center">
                     <p className="text-xl font-extrabold text-white">{loading ? '—' : (stats?.total_reports || 0)}</p>
-                    <p className="text-[10px] text-sky-200 mt-0.5">Reports</p>
+                    <p className="text-[10px] text-sky-100 mt-0.5 font-medium">Reports</p>
                   </div>
-                  <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <div className="bg-white/15 rounded-xl p-3 text-center">
                     <p className="text-xl font-extrabold text-white">{loading ? '—' : (stats?.active_drones || 0)}</p>
-                    <p className="text-[10px] text-sky-200 mt-0.5">Drones</p>
+                    <p className="text-[10px] text-sky-100 mt-0.5 font-medium">Drones</p>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center gap-2 bg-emerald-400/15 border border-emerald-400/20 rounded-xl px-4 py-2.5">
+                <div className="mt-4 flex items-center gap-2 bg-emerald-400/20 border border-emerald-400/30 rounded-xl px-4 py-2.5">
                   <PulseIcon className="w-4 h-4 text-emerald-300" />
                   <span className="text-sm font-medium text-emerald-200">All systems operational</span>
                 </div>
@@ -433,9 +436,7 @@ export default function AdminDashboard() {
           className="bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-sky-100 border border-sky-200 text-sky-500 flex items-center justify-center">
-              <ShieldIcon className="w-6 h-6" />
-            </div>
+            <img src="/src/logo/FYP_Logo.png" alt="Sankalpa Logo" className="w-12 h-12 rounded-xl object-contain" />
             <div>
               <p className="text-sm font-bold text-gray-900">Sankalpa Disaster Management System</p>
               <p className="text-xs text-gray-500 mt-0.5">Super Admin access — full system control and oversight.</p>

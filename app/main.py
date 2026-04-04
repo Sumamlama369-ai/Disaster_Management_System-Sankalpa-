@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 
-from app.api.v1.endpoints import auth, users, drone_permit, disaster, video, disaster_reports, realtime, sms
+from app.api.v1.endpoints import auth, users, drone_permit, disaster, video, disaster_reports, realtime, sms, weather
 from app.database.database import engine, Base
 
 # Import models for table creation
@@ -40,8 +40,12 @@ async def lifespan(app: FastAPI):
     print("✓ Database tables created successfully!")
     print("✓ Database initialized")
     
-    # Start background tasks
-    background_tasks.start()
+    # Start background tasks (only if Reddit fetching is enabled)
+    from app.core.config import settings
+    if settings.ENABLE_REDDIT_FETCHING:
+        background_tasks.start()
+    else:
+        print("⏸️ Reddit data fetching is disabled (ENABLE_REDDIT_FETCHING=False)")
     
     yield
     
@@ -59,7 +63,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://frontend:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,6 +81,7 @@ app.include_router(video.router, prefix="/api/v1/video", tags=["Video Analysis"]
 app.include_router(disaster_reports.router, prefix="/api/v1/disaster-reports", tags=["Disaster Reports"])
 app.include_router(realtime.router, prefix="/api/v1/realtime", tags=["Real-Time Detection"])
 app.include_router(sms.router, prefix="/api/v1/sms", tags=["SMS Alerts"])
+app.include_router(weather.router, prefix="/api/v1/weather", tags=["Weather Advisory"])
 
 @app.get("/")
 async def root():

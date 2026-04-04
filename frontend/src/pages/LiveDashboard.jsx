@@ -465,7 +465,7 @@ export default function LiveDashboard() {
             const percentage = ((count / maxCount) * 100).toFixed(1);
             return `<div style="padding: 8px;">
               <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; color: #ef4444;">
-                📍 ${params.name}
+                <svg style="display:inline-block;vertical-align:middle;margin-right:4px" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ${params.name}
               </div>
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                 <span style="color: #6b7280;">Incidents:</span>
@@ -677,11 +677,12 @@ export default function LiveDashboard() {
           const data = sentimentTimeline[params[0].dataIndex];
           if (!data) return '';
           const sentiment = data.y;
-          const emoji = sentiment > 0.3 ? '😊' : sentiment > 0 ? '😐' : sentiment > -0.3 ? '😟' : '😰';
-          
+          const label = sentiment > 0.3 ? 'Positive' : sentiment > 0 ? 'Neutral' : sentiment > -0.3 ? 'Concerned' : 'Distressed';
+
           return `<div style="padding: 8px;">
             <div style="font-weight: bold; margin-bottom: 6px; color: #374151;">
-              ${emoji} Sentiment Analysis
+              <svg style="display:inline-block;vertical-align:middle;margin-right:4px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${sentiment > 0 ? '#10b981' : '#ef4444'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="${sentiment > 0 ? 'M8 14s1.5 2 4 2 4-2 4-2' : 'M16 16s-1.5-2-4-2-4 2-4 2'}"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              ${label} Sentiment
             </div>
             <div style="color: #6b7280; margin-bottom: 4px;">
               Time: <strong>${data.time}</strong>
@@ -693,7 +694,7 @@ export default function LiveDashboard() {
               Score: <strong style="color: ${sentiment > 0 ? '#10b981' : '#ef4444'}">${sentiment.toFixed(3)}</strong>
             </div>
             <div style="color: #6b7280; margin-top: 4px; font-size: 11px;">
-              ${sentiment > 0 ? '✅ Positive sentiment' : '⚠️ Negative sentiment'}
+              ${sentiment > 0 ? '<svg style="display:inline-block;vertical-align:middle;margin-right:2px" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Positive sentiment' : '<svg style="display:inline-block;vertical-align:middle;margin-right:2px" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Negative sentiment'}
             </div>
           </div>`;
         },
@@ -736,9 +737,9 @@ export default function LiveDashboard() {
           color: '#6b7280',
           fontWeight: '500',
           formatter: (val) => {
-            if (val === 0) return '😐 Neutral';
-            if (val > 0) return `😊 +${val.toFixed(1)}`;
-            return `😰 ${val.toFixed(1)}`;
+            if (val === 0) return '— Neutral';
+            if (val > 0) return `+ ${val.toFixed(1)}`;
+            return `- ${val.toFixed(1)}`;
           },
         },
         splitLine: {
@@ -928,11 +929,19 @@ export default function LiveDashboard() {
     };
   };
 
-  const getSentimentEmoji = (sentiment) => {
-    if (sentiment >= 0.3) return '😊';
-    if (sentiment >= 0) return '😐';
-    if (sentiment >= -0.5) return '😟';
-    return '😰';
+  const getSentimentIcon = (sentiment) => {
+    if (sentiment >= 0.3) return (
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    );
+    if (sentiment >= 0) return (
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="15" x2="16" y2="15"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    );
+    if (sentiment >= -0.5) return (
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    );
+    return (
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/><path d="M6 6l2 2M18 6l-2 2"/></svg>
+    );
   };
 
   if (loading) {
@@ -965,7 +974,7 @@ export default function LiveDashboard() {
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-2xl animate-pulse">
-                  ⚠️
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 </div>
                 <h3 className="font-bold text-lg">Critical Alert</h3>
               </div>
@@ -973,7 +982,7 @@ export default function LiveDashboard() {
                 onClick={() => setShowAlert(false)}
                 className="text-white hover:text-red-200 text-xl font-bold"
               >
-                ✕
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
             <div className="space-y-2">
@@ -986,8 +995,8 @@ export default function LiveDashboard() {
                   className="bg-white bg-opacity-20 backdrop-blur rounded-lg p-3"
                 >
                   <p className="font-bold capitalize text-lg">{alert.disaster_type}</p>
-                  <p className="text-sm">📍 {alert.location || 'Unknown location'}</p>
-                  <p className="text-sm">⚡ Severity: {alert.severity_score}/10</p>
+                  <p className="text-sm flex items-center gap-1"><svg className="w-3.5 h-3.5 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {alert.location || 'Unknown location'}</p>
+                  <p className="text-sm flex items-center gap-1"><svg className="w-3.5 h-3.5 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Severity: {alert.severity_score}/10</p>
                 </motion.div>
               ))}
             </div>
@@ -1039,7 +1048,7 @@ export default function LiveDashboard() {
                 onClick={fetchAllData}
                 className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium"
               >
-                🔄 Refresh Data
+                <svg className="w-4 h-4 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Refresh Data
               </button>
             </div>
           </div>
@@ -1055,7 +1064,7 @@ export default function LiveDashboard() {
                 : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
             }`}
           >
-            📊 Overview Dashboard
+            <svg className="w-5 h-5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Overview Dashboard
           </button>
           <button
             onClick={() => setActiveView('advanced')}
@@ -1065,7 +1074,7 @@ export default function LiveDashboard() {
                 : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
             }`}
           >
-            🔬 Advanced Analytics
+            <svg className="w-5 h-5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg> Advanced Analytics
           </button>
         </div>
 
@@ -1078,8 +1087,8 @@ export default function LiveDashboard() {
           >
             <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-20 -mt-20"></div>
             <div className="relative">
-              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-3xl mb-3">
-                📊
+              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
               </div>
               <p className="text-blue-100 text-sm font-medium mb-1">Total Incidents</p>
               <h3 className="text-5xl font-bold mb-2">{stats.total_incidents}</h3>
@@ -1098,8 +1107,8 @@ export default function LiveDashboard() {
           >
             <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-20 -mt-20"></div>
             <div className="relative">
-              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-3xl mb-3">
-                🚨
+              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <p className="text-red-100 text-sm font-medium mb-1">Critical Alerts</p>
               <h3 className="text-5xl font-bold mb-2">{stats.urgent_incidents}</h3>
@@ -1115,8 +1124,8 @@ export default function LiveDashboard() {
           >
             <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-20 -mt-20"></div>
             <div className="relative">
-              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-3xl mb-3">
-                {getSentimentEmoji(stats.avg_sentiment)}
+              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                {getSentimentIcon(stats.avg_sentiment)}
               </div>
               <p className="text-orange-100 text-sm font-medium mb-1">Avg Sentiment</p>
               <h3 className="text-5xl font-bold mb-2">
@@ -1134,8 +1143,8 @@ export default function LiveDashboard() {
           >
             <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-20 -mt-20"></div>
             <div className="relative">
-              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-3xl mb-3">
-                🌍
+              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
               </div>
               <p className="text-emerald-100 text-sm font-medium mb-1">Top Hotspot</p>
               <h3 className="text-2xl font-bold mb-2">{stats.top_location || 'N/A'}</h3>
@@ -1151,8 +1160,8 @@ export default function LiveDashboard() {
             <div className="col-span-12 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    🗺️
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Global Incident Heatmap</h3>
@@ -1182,15 +1191,15 @@ export default function LiveDashboard() {
                       lazyUpdate={true}
                     />
                     <div className="absolute bottom-4 left-4 bg-white bg-opacity-95 backdrop-blur rounded-lg shadow-lg p-3 text-xs text-gray-600 border border-gray-200">
-                      <div className="font-bold text-gray-800 mb-2">🎮 Map Controls</div>
+                      <div className="font-bold text-gray-800 mb-2 flex items-center gap-1"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/></svg> Map Controls</div>
                       <div className="space-y-1">
-                        <div>🖱️ <span className="font-semibold">Drag:</span> Pan the map</div>
-                        <div>🔍 <span className="font-semibold">Scroll:</span> Zoom in/out</div>
-                        <div>👆 <span className="font-semibold">Click marker:</span> View details</div>
+                        <div className="flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg> <span className="font-semibold">Drag:</span> Pan the map</div>
+                        <div className="flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg> <span className="font-semibold">Scroll:</span> Zoom in/out</div>
+                        <div className="flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8V6a2 2 0 00-2-2H4a2 2 0 00-2 2v7a2 2 0 002 2h8"/><path d="M15 15l6 6"/><circle cx="16.5" cy="16.5" r="1"/></svg> <span className="font-semibold">Click marker:</span> View details</div>
                       </div>
                     </div>
                     <div className="absolute bottom-4 right-24 bg-white bg-opacity-95 backdrop-blur rounded-lg shadow-lg p-3 text-xs border border-gray-200">
-                      <div className="font-bold text-gray-800 mb-2">📊 Marker Legend</div>
+                      <div className="font-bold text-gray-800 mb-2 flex items-center gap-1"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Marker Legend</div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-red-600"></div>
@@ -1213,7 +1222,7 @@ export default function LiveDashboard() {
                       <div className="relative">
                         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-2xl">🌍</div>
+                          <svg className="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
                         </div>
                       </div>
                       <p className="text-gray-700 font-bold text-lg">Loading World Map...</p>
@@ -1227,8 +1236,8 @@ export default function LiveDashboard() {
             <div className="col-span-8 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    ⏰
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">24-Hour Activity Pattern</h3>
@@ -1246,8 +1255,8 @@ export default function LiveDashboard() {
             <div className="col-span-4 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    📋
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Live Feed</h3>
@@ -1288,7 +1297,7 @@ export default function LiveDashboard() {
                       {disaster.disaster_type}
                     </p>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600">📍 {disaster.location || 'Unknown'}</span>
+                      <span className="text-gray-600 flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {disaster.location || 'Unknown'}</span>
                       <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                         {((disaster.confidence_score || 0.5) * 100).toFixed(0)}%
                       </span>
@@ -1302,8 +1311,8 @@ export default function LiveDashboard() {
             <div className="col-span-5 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    🏆
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Disaster Distribution</h3>
@@ -1321,8 +1330,8 @@ export default function LiveDashboard() {
             <div className="col-span-7 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    📍
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Top Affected Locations</h3>
@@ -1340,8 +1349,8 @@ export default function LiveDashboard() {
             <div className="col-span-4 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    ⚠️
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Urgency Level</h3>
@@ -1359,8 +1368,8 @@ export default function LiveDashboard() {
             <div className="col-span-8 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    🌊
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12c2-2 4-4 6-4s4 2 6 4 4 4 6 4"/><path d="M2 6c2-2 4-4 6-4s4 2 6 4 4 4 6 4"/><path d="M2 18c2-2 4-4 6-4s4 2 6 4 4 4 6 4"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Disaster Timeline Evolution</h3>
@@ -1383,8 +1392,8 @@ export default function LiveDashboard() {
             <div className="col-span-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    📉
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Sentiment Wave Analysis</h3>
@@ -1413,8 +1422,8 @@ export default function LiveDashboard() {
             <div className="col-span-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    🕸️
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/><polyline points="2 15.5 12 8.5 22 15.5"/><line x1="12" y1="2" x2="12" y2="8.5"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Multi-Dimensional Analysis</h3>
@@ -1436,8 +1445,8 @@ export default function LiveDashboard() {
             <div className="col-span-12 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    ⏱️
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Complete 24-Hour Timeline</h3>
