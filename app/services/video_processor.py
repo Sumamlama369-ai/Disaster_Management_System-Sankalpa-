@@ -1,6 +1,7 @@
 import cv2
 import os
 import threading
+import asyncio
 from typing import Dict, Callable
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -10,6 +11,21 @@ from app.services.yolo_segmenter import YOLOSegmenter
 from app.utils.video_converter import VideoConverter
 from app.utils.severity_calculator import SeverityCalculator
 from app.models.video import VideoAnalysis, FrameAnalysis, VideoStatistics
+
+
+def _notify_video_status(video_id: int, event: str = "update"):
+    """Thread-safe helper to notify WebSocket subscribers about video status changes."""
+    try:
+        from app.services.ws_manager import ws_manager
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                ws_manager.notify(f"video:{video_id}", event), loop
+            )
+        else:
+            asyncio.run(ws_manager.notify(f"video:{video_id}", event))
+    except Exception:
+        pass
 
 class VideoProcessor:
     """Main video processing pipeline"""
@@ -127,7 +143,9 @@ class VideoProcessor:
             video.processing_status = 'completed'  # type: ignore
             video.processing_completed_at = datetime.now()  # type: ignore
             db.commit()
-            
+
+            _notify_video_status(video_id, "completed")
+
             print(f"\n✅ Video processing completed successfully!")
             print(f"{'='*60}\n")
             
@@ -140,7 +158,9 @@ class VideoProcessor:
                 video.processing_status = 'failed'  # type: ignore
                 video.error_message = str(e)  # type: ignore
                 db.commit()
-            
+
+                _notify_video_status(video_id, "failed")
+
             raise e
     
     def _process_frames(

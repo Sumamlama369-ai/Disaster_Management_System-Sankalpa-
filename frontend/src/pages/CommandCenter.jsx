@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -11,6 +11,7 @@ import { db } from '../firebase/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
+import useWebSocket from '../hooks/useWebSocket';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -127,9 +128,17 @@ export default function CommandCenter() {
     if (!token) return;
     fetchReports();
     fetchStatistics();
-    const interval = setInterval(() => { fetchReports(); fetchStatistics(); }, 30000);
-    return () => clearInterval(interval);
   }, [token]);
+
+  // WebSocket: re-fetch when backend notifies data changed
+  const handleWsNotify = useCallback((channel) => {
+    if (channel === 'reports') {
+      fetchReports();
+      fetchStatistics();
+    }
+  }, [token]);
+
+  useWebSocket(['reports'], handleWsNotify, { enabled: !!token });
 
   useEffect(() => {
     const droneRef = ref(db, 'drone');

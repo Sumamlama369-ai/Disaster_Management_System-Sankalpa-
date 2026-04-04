@@ -4,6 +4,7 @@ Background tasks for disaster monitoring
 import schedule
 import time
 import threading
+import asyncio
 from datetime import datetime
 from app.database.database import SessionLocal
 from app.services.reddit_service import reddit_monitor
@@ -37,7 +38,18 @@ class BackgroundTaskManager:
             
             self.last_collection = datetime.now()
             self.collection_count += 1
-            
+
+            # Notify WebSocket subscribers that disaster data has been updated
+            try:
+                from app.services.ws_manager import ws_manager
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.run_coroutine_threadsafe(ws_manager.notify("disasters", "data_collected"), loop)
+                else:
+                    asyncio.run(ws_manager.notify("disasters", "data_collected"))
+            except Exception:
+                pass
+
             print(f"✅ Collection completed at {self.last_collection.strftime('%Y-%m-%d %H:%M:%S')}")
             
         except Exception as e:

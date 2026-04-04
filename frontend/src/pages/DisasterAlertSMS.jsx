@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import useWebSocket from '../hooks/useWebSocket';
 
 // ─── SVG Icons ────────────────────────────────────────────────
 const AlertTriangleIcon = ({ className = "w-5 h-5" }) => (
@@ -252,12 +253,19 @@ export default function DisasterAlertSMS() {
     return () => clearInterval(t);
   }, []);
 
-  // Load citizens + auto-refresh every 30s
+  // Load citizens on mount
   useEffect(() => {
     fetchCitizens();
-    const interval = setInterval(fetchCitizens, 30000);
-    return () => clearInterval(interval);
   }, []);
+
+  // WebSocket: re-fetch citizens when backend notifies changes
+  const handleWsNotify = useCallback((channel) => {
+    if (channel === 'citizens' || channel === 'users') {
+      fetchCitizens();
+    }
+  }, []);
+
+  useWebSocket(['citizens', 'users'], handleWsNotify);
 
   // Outside click
   useEffect(() => {

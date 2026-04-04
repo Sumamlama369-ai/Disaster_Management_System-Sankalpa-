@@ -6,12 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sql_func, case, extract
 from typing import Optional
+import asyncio
 from pydantic import BaseModel, Field
 from app.database.database import get_db
 from app.models.user import User, UserRole
 from app.models.disaster_reports import DisasterReport
 from app.models.drone_permit import DronePermit
 from app.schemas.auth import UserResponse, UpdatePhoneRequest, UpdateDistrictRequest
+from app.services.ws_manager import ws_manager
 from app.api.v1.dependencies.auth import (
     get_current_user,
     get_current_officer,
@@ -63,6 +65,9 @@ def update_phone_number(
     current_user.phone = request.phone  # type: ignore
     db.commit()
     db.refresh(current_user)
+
+    # Notify WebSocket subscribers that citizen phone data changed
+    asyncio.create_task(ws_manager.notify("citizens", "phone_updated"))
 
     return UserResponse(
         id=current_user.id,  # type: ignore
@@ -256,6 +261,10 @@ def admin_update_user(
 
     db.commit()
     db.refresh(user)
+
+    # Notify WebSocket subscribers that user data has changed
+    asyncio.create_task(ws_manager.notify("users", "user_updated"))
+    asyncio.create_task(ws_manager.notify("citizens", "user_updated"))
 
     return {
         "success": True,

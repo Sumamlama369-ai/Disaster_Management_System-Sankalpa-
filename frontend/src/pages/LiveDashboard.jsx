@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
+import useWebSocket from '../hooks/useWebSocket';
 
 export default function LiveDashboard() {
   const [stats, setStats] = useState({
@@ -73,18 +74,22 @@ export default function LiveDashboard() {
     registerWorldMap();
   }, []);
 
-  // Countdown timer
+  // Initial data load
   useEffect(() => {
     fetchAllData();
-    const interval = setInterval(() => {
+  }, []);
+
+  // WebSocket: re-fetch when backend notifies data changed
+  const handleWsNotify = useCallback((channel) => {
+    if (channel === 'disasters' || channel === 'reports') {
       fetchStats();
       fetchRecentDisasters();
       setLastUpdate(new Date());
-      setNextFetch(new Date(Date.now() + 30000));
-      setCountdown(30);
-    }, 30000); // 30 seconds
-    return () => clearInterval(interval);
+      setCountdown(0);
+    }
   }, []);
+
+  useWebSocket(['disasters', 'reports'], handleWsNotify);
 
   useEffect(() => {
     const critical = recentDisasters.filter(d => d.urgency_level === 'critical').slice(0, 3);

@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
+import useWebSocket from '../hooks/useWebSocket';
 
 export default function VideoAnalysis() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -16,6 +17,7 @@ export default function VideoAnalysis() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('upload');
   const fileInputRef = useRef(null);
+  const [processingVideoId, setProcessingVideoId] = useState(null);
 
   // Disaster colors
   const DISASTER_COLORS = {
@@ -98,9 +100,9 @@ export default function VideoAnalysis() {
 
       toast.success('Video uploaded successfully! Processing started...');
       
-      // Poll for processing status
+      // Subscribe to WebSocket for processing status updates
       const videoId = response.data.video_id;
-      pollProcessingStatus(videoId);
+      setProcessingVideoId(videoId);
 
       // Clear selection
       setSelectedFile(null);
@@ -117,34 +119,26 @@ export default function VideoAnalysis() {
     }
   };
 
-  // Poll processing status
-  const pollProcessingStatus = async (videoId) => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await api.get(`/video/status/${videoId}`);
-        const status = response.data.status;
-
-        if (status === 'completed') {
-          clearInterval(pollInterval);
-          toast.success('Video processing completed!');
-          fetchVideos();
-          setActiveTab('history');
-        } else if (status === 'failed') {
-          clearInterval(pollInterval);
-          toast.error('Video processing failed');
-        } else {
-          // Still processing
-          console.log(`Processing status: ${status}`);
-        }
-      } catch (error) {
-        clearInterval(pollInterval);
-        console.error('Status check error:', error);
+  // WebSocket: listen for video processing status changes
+  const handleVideoWsNotify = useCallback(async (channel, event) => {
+    if (channel === `video:${processingVideoId}`) {
+      if (event === 'completed') {
+        toast.success('Video processing completed!');
+        fetchVideos();
+        setActiveTab('history');
+        setProcessingVideoId(null);
+      } else if (event === 'failed') {
+        toast.error('Video processing failed');
+        setProcessingVideoId(null);
       }
-    }, 5000); // Check every 5 seconds
+    }
+  }, [processingVideoId]);
 
-    // Stop polling after 30 minutes
-    setTimeout(() => clearInterval(pollInterval), 30 * 60 * 1000);
-  };
+  useWebSocket(
+    processingVideoId ? [`video:${processingVideoId}`] : [],
+    handleVideoWsNotify,
+    { enabled: !!processingVideoId }
+  );
 
   // View video analysis
   const viewAnalysis = async (video) => {

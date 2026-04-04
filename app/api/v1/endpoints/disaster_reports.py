@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import base64
 import threading
 import os
+import asyncio
 from pathlib import Path
 
 from app.database.database import get_db
@@ -36,6 +37,7 @@ from app.schemas.disaster_reports import (
     MapMarker
 )
 from app.core.config import settings
+from app.services.ws_manager import ws_manager
 import httpx as _httpx
 
 router = APIRouter()
@@ -90,9 +92,10 @@ async def create_disaster_report(
         db.commit()
         
         print(f"✓ Disaster report created: ID={db_report.id}, Type={db_report.disaster_type}, Severity={db_report.severity}")
-        
-        # TODO: Send real-time notification to officers via WebSocket
-        
+
+        # Notify WebSocket subscribers that reports data has changed
+        asyncio.create_task(ws_manager.notify("reports", "new_report"))
+
         return db_report
         
     except Exception as e:
@@ -466,7 +469,10 @@ async def update_report_status(
                 threading.Thread(target=_send_sms_notification, daemon=True).start()
     
     print(f"✓ Report {report_id} updated by officer {current_user.id}")
-    
+
+    # Notify WebSocket subscribers that reports data has changed
+    asyncio.create_task(ws_manager.notify("reports", "status_updated"))
+
     return report
 
 

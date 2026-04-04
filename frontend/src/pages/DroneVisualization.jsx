@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import * as THREE from 'three';
 import nepalBorderData from '../data/map.json';
+import useWebSocket from '../hooks/useWebSocket';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
@@ -700,20 +701,28 @@ export default function DroneVisualization() {
   }, [addLog]);
 
   // ─── Fetch incidents for map ────────────────────────────────────────
-  useEffect(() => {
+  const fetchIncidents = useCallback(async () => {
     if (!token) return;
-    const fetchIncidents = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/v1/disaster-reports/map/markers`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setIncidents(res.data);
-      } catch (e) { console.error('Error fetching incidents:', e); }
-    };
-    fetchIncidents();
-    const iv = setInterval(fetchIncidents, 30000);
-    return () => clearInterval(iv);
+    try {
+      const res = await axios.get(`${API_URL}/api/v1/disaster-reports/map/markers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setIncidents(res.data);
+    } catch (e) { console.error('Error fetching incidents:', e); }
   }, [token]);
+
+  useEffect(() => {
+    fetchIncidents();
+  }, [fetchIncidents]);
+
+  // WebSocket: re-fetch incidents when backend notifies data changed
+  const handleWsNotify = useCallback((channel) => {
+    if (channel === 'reports') {
+      fetchIncidents();
+    }
+  }, [fetchIncidents]);
+
+  useWebSocket(['reports'], handleWsNotify, { enabled: !!token });
 
   // ─── Map initialization ────────────────────────────────────────────
   useEffect(() => {

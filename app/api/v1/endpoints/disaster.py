@@ -10,6 +10,7 @@ from app.database.database import get_db
 from app.models.disaster import DisasterPost, DisasterInsight, DisasterStats
 from app.models.user import User
 from app.api.v1.dependencies.auth import get_current_user
+from app.services.ws_manager import ws_manager
 import json
 import asyncio
 
@@ -243,7 +244,10 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 }
                 
                 await websocket.send_json(data)
-            
+
+                # Also notify the centralized ws_manager for other subscribers
+                await ws_manager.notify("disasters", "stats_update")
+
             await asyncio.sleep(30)  # Update every 30 seconds
             
     except WebSocketDisconnect:

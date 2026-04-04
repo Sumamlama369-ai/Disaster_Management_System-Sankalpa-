@@ -4,6 +4,7 @@ Routes for registration, login, OTP verification
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import asyncio
 from app.database.database import get_db
 from app.schemas.auth import (
     RegisterRequest, RegisterResponse,
@@ -14,6 +15,7 @@ from app.schemas.auth import (
 from app.services.auth_service import auth_service
 from app.services.otp_service import otp_service
 from app.services.gmail_service import gmail_service
+from app.services.ws_manager import ws_manager
 from app.models.user import User
 
 
@@ -85,6 +87,10 @@ def verify_otp(
             detail=result['message']
         )
     
+    # Notify WebSocket subscribers that user data has changed
+    asyncio.create_task(ws_manager.notify("users", "new_user"))
+    asyncio.create_task(ws_manager.notify("citizens", "new_user"))
+
     return LoginResponse(
         success=True,
         message=result['message'],

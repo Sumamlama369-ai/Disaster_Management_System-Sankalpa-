@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import ReactECharts from 'echarts-for-react';
+import useWebSocket from '../hooks/useWebSocket';
 
 // Gradient helpers (plain objects work in all ECharts versions including v6)
 const lg = (x, y, x2, y2, stops) => ({ type: 'linear', x, y, x2, y2, colorStops: stops });
@@ -146,10 +147,15 @@ export default function AdminAnalytics() {
   };
 
   useEffect(() => { fetchData(); }, []);
-  useEffect(() => {
-    const t = setInterval(() => setCountdown(p => { if (p <= 1) { fetchData(true); return 60; } return p - 1; }), 1000);
-    return () => clearInterval(t);
+
+  // WebSocket: re-fetch when backend notifies data changed
+  const handleWsNotify = useCallback((channel) => {
+    if (['disasters', 'reports', 'users', 'permits'].includes(channel)) {
+      fetchData(true);
+    }
   }, []);
+
+  useWebSocket(['disasters', 'reports', 'users', 'permits'], handleWsNotify);
 
   // Radar chart mouse handler: detect closest point and show per-metric tooltip
   const handleRadarMouseMove = useCallback((e) => {
