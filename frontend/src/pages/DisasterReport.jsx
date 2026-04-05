@@ -296,13 +296,13 @@ export default function DisasterReport() {
   // ─── Success Screen ─────────────────────────────────────────
   if (status === "success") {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
         <Navbar />
         <div className="max-w-xl mx-auto px-4 py-16">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10 text-center"
+            className="bg-white rounded-2xl shadow-xl border border-blue-100 p-10 text-center"
           >
             <div className="relative w-20 h-20 mx-auto mb-6">
               <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-20" />
@@ -319,7 +319,7 @@ export default function DisasterReport() {
               Response teams have been notified.
             </p>
 
-            <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-100 text-left mb-8">
+            <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-blue-100 divide-y divide-blue-100/70 text-left mb-8">
               <Row label="Report ID" value={`#${reportId}`} />
               <Row
                 label="Incident Type"
@@ -368,7 +368,7 @@ export default function DisasterReport() {
 
             <button
               onClick={reset}
-              className="w-full px-8 py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-semibold transition-all shadow-sm"
+              className="w-full px-8 py-3.5 bg-gradient-to-br from-blue-500 to-indigo-600 hover:shadow-lg hover:shadow-indigo-200 text-white rounded-xl font-semibold transition-all"
             >
               Submit Another Report
             </button>
@@ -388,18 +388,18 @@ export default function DisasterReport() {
 
   // ─── Main Form ──────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
       <Navbar />
 
       {/* Hero Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-sky-500 to-sky-400">
+      <div className="relative overflow-hidden bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800">
         <div className="absolute inset-0">
           <img
             src="https://images.unsplash.com/photo-1580894894513-541e068a3e2b?w=1600&h=400&fit=crop&q=80"
             alt=""
             className="w-full h-full object-cover opacity-10"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-sky-500/90 via-sky-400/85 to-sky-300/80" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-blue-900/80 to-slate-900/90" />
         </div>
         <div className="absolute top-0 right-[15%] w-72 h-72 bg-white/10 rounded-full blur-[100px]" />
 
@@ -411,14 +411,14 @@ export default function DisasterReport() {
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center border border-white/30">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
                   <WarningTriangleIcon className="w-7 h-7 text-white" />
                 </div>
                 <div>
                   <h1 className="text-2xl md:text-3xl font-extrabold text-white">
                     Emergency Incident Report
                   </h1>
-                  <p className="text-sky-100 text-sm mt-0.5">
+                  <p className="text-slate-300 text-sm mt-0.5">
                     Fill out this form to report a disaster. GPS coordinates are captured automatically.
                   </p>
                 </div>
@@ -438,7 +438,7 @@ export default function DisasterReport() {
         {/* Wave */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg viewBox="0 0 1440 40" fill="none" className="w-full" preserveAspectRatio="none">
-            <path d="M0 40L60 35C120 30 240 20 360 16.7C480 13.3 600 16.7 720 20C840 23.3 960 26.7 1080 25C1200 23.3 1320 16.7 1380 13.3L1440 10V40H0Z" fill="white"/>
+            <path d="M0 40L60 35C120 30 240 20 360 16.7C480 13.3 600 16.7 720 20C840 23.3 960 26.7 1080 25C1200 23.3 1320 16.7 1380 13.3L1440 10V40H0Z" fill="#f1f5f9"/>
           </svg>
         </div>
       </div>
@@ -455,7 +455,7 @@ export default function DisasterReport() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="bg-white rounded-2xl border border-gray-200 p-6"
+              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
             >
               <SectionHeader num="01" title="Incident Type" required />
               <div className="grid grid-cols-3 gap-3 mt-5">
@@ -511,7 +511,7 @@ export default function DisasterReport() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl border border-gray-200 p-6"
+              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
             >
               <SectionHeader num="02" title="Severity Level" required />
               <div className="grid grid-cols-4 gap-3 mt-5">
@@ -542,7 +542,7 @@ export default function DisasterReport() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="bg-white rounded-2xl border border-gray-200 p-6"
+              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
             >
               <SectionHeader num="03" title="Description" required />
               <textarea
@@ -569,7 +569,7 @@ export default function DisasterReport() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl border border-gray-200 p-6"
+              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
             >
               <SectionHeader num="04" title="Reporter Information" optional />
               <div className="space-y-4 mt-5">
@@ -605,7 +605,7 @@ export default function DisasterReport() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="bg-white rounded-2xl border border-gray-200 p-6"
+              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
             >
               <SectionHeader num="05" title="Location Capture" />
               <div
@@ -656,7 +656,7 @@ export default function DisasterReport() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl border border-gray-200 p-6"
+              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
             >
               <SectionHeader num="06" title="Photo / Video Evidence" optional />
               <p className="text-xs text-gray-400 mt-2 mb-4">
@@ -723,9 +723,9 @@ export default function DisasterReport() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-blue-50 border border-blue-200 rounded-2xl p-5"
+                className="bg-gradient-to-br from-indigo-50 via-blue-50 to-slate-50 border border-indigo-200 rounded-2xl p-5 shadow-sm"
               >
-                <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">
+                <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-3">
                   Report Preview
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -778,8 +778,8 @@ export default function DisasterReport() {
               disabled={status !== "idle" && status !== "error"}
               className={`w-full py-4 rounded-xl font-bold text-base transition-all duration-200 flex items-center justify-center gap-3 ${
                 status === "idle" || status === "error"
-                  ? "bg-sky-500 hover:bg-sky-600 text-white hover:-translate-y-0.5 hover:shadow-xl cursor-pointer"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-200 cursor-pointer"
+                  : "bg-slate-300 text-slate-500 cursor-not-allowed"
               }`}
             >
               {status === "idle" && (
@@ -830,7 +830,7 @@ export default function DisasterReport() {
 function SectionHeader({ num, title, required, optional }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex-shrink-0 w-8 h-8 bg-sky-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
+      <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm">
         {num}
       </span>
       <h3 className="text-base font-bold text-gray-900">

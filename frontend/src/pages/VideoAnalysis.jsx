@@ -150,7 +150,7 @@ export default function VideoAnalysis() {
       setAnalysisData(response.data);
       
       // DEBUG: Log the URLs
-      console.log('🎬 Video URLs:', response.data.video_urls);
+      console.log('Video URLs:', response.data.video_urls);
       console.log('Detection URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${response.data.video_urls.detection_output}`);
       console.log('Segmentation URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${response.data.video_urls.segmentation_output}`);
       
@@ -460,14 +460,15 @@ export default function VideoAnalysis() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-blue-100">
       <Navbar />
 
       <div className="max-w-[1800px] mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            🎬 Video Analysis Dashboard
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+            <svg className="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+            Video Analysis Dashboard
           </h1>
           <p className="text-gray-600">
             AI-powered disaster video analysis with YOLOv8 detection and segmentation
@@ -478,34 +479,37 @@ export default function VideoAnalysis() {
         <div className="flex gap-3 mb-8">
           <button
             onClick={() => setActiveTab('upload')}
-            className={`px-6 py-3 rounded-xl font-bold transition-all ${
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
               activeTab === 'upload'
                 ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105'
                 : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
             }`}
           >
-            📤 Upload Video
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+            Upload Video
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-6 py-3 rounded-xl font-bold transition-all ${
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
               activeTab === 'history'
-                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg scale-105'
+                ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg scale-105'
                 : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
             }`}
           >
-            📚 Video History
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+            Video History
           </button>
           {selectedVideo && (
             <button
               onClick={() => setActiveTab('analysis')}
-              className={`px-6 py-3 rounded-xl font-bold transition-all ${
+              className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
                 activeTab === 'analysis'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg scale-105'
                   : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
               }`}
             >
-              📊 Analysis Results
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+              Analysis Results
             </button>
           )}
         </div>
@@ -620,9 +624,9 @@ export default function VideoAnalysis() {
                     Detects fire, ambulance, injured people, and more
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 border border-purple-200">
-                  <p className="text-sm font-bold text-purple-900 mb-0.5">Segmentation</p>
-                  <p className="text-xs text-purple-700">
+                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl p-3 border border-teal-200">
+                  <p className="text-sm font-bold text-teal-900 mb-0.5">Segmentation</p>
+                  <p className="text-xs text-teal-700">
                     Measures affected areas and damage extent
                   </p>
                 </div>
@@ -647,8 +651,8 @@ export default function VideoAnalysis() {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
                 <div className="relative">
-                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-2xl mb-3">
-                    📹
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
                   </div>
                   <p className="text-blue-100 text-sm font-medium mb-1">Total Videos</p>
                   <h3 className="text-4xl font-bold">{videos.length}</h3>
@@ -663,8 +667,8 @@ export default function VideoAnalysis() {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
                 <div className="relative">
-                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-2xl mb-3">
-                    ✅
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   </div>
                   <p className="text-green-100 text-sm font-medium mb-1">Completed</p>
                   <h3 className="text-4xl font-bold">
@@ -681,8 +685,8 @@ export default function VideoAnalysis() {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
                 <div className="relative">
-                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-2xl mb-3">
-                    ⏳
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
                   </div>
                   <p className="text-orange-100 text-sm font-medium mb-1">Processing</p>
                   <h3 className="text-4xl font-bold">
@@ -699,8 +703,8 @@ export default function VideoAnalysis() {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
                 <div className="relative">
-                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-2xl mb-3">
-                    🚨
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                   </div>
                   <p className="text-red-100 text-sm font-medium mb-1">Critical Videos</p>
                   <h3 className="text-4xl font-bold">
@@ -714,8 +718,8 @@ export default function VideoAnalysis() {
             <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    📚
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Video History</h3>
@@ -724,24 +728,26 @@ export default function VideoAnalysis() {
                 </div>
                 <button
                   onClick={fetchVideos}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium text-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium text-sm"
                 >
-                  🔄 Refresh
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                  Refresh
                 </button>
               </div>
 
               {videos.length === 0 ? (
                 <div className="text-center py-16">
-                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-5xl">📹</span>
+                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                    <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">No Videos Yet</h3>
                   <p className="text-gray-600 mb-6">Upload your first disaster video to get started</p>
                   <button
                     onClick={() => setActiveTab('upload')}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium"
                   >
-                    📤 Upload Video
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    Upload Video
                   </button>
                 </div>
               ) : (
@@ -757,22 +763,28 @@ export default function VideoAnalysis() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-4 flex-1">
                           {/* Video Icon */}
-                          <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl shadow-md ${
-                            video.status === 'completed' ? 'bg-gradient-to-br from-green-100 to-green-200' :
-                            video.status === 'processing' ? 'bg-gradient-to-br from-yellow-100 to-orange-200' :
-                            video.status === 'failed' ? 'bg-gradient-to-br from-red-100 to-red-200' :
-                            'bg-gradient-to-br from-gray-100 to-gray-200'
+                          <div className={`w-16 h-16 rounded-xl flex items-center justify-center shadow-md ${
+                            video.status === 'completed' ? 'bg-gradient-to-br from-green-100 to-green-200 text-green-700' :
+                            video.status === 'processing' ? 'bg-gradient-to-br from-yellow-100 to-orange-200 text-orange-700' :
+                            video.status === 'failed' ? 'bg-gradient-to-br from-red-100 to-red-200 text-red-700' :
+                            'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-600'
                           }`}>
-                            {video.status === 'completed' ? '✅' :
-                             video.status === 'processing' ? '⏳' :
-                             video.status === 'failed' ? '❌' : '📹'}
+                            {video.status === 'completed' ? (
+                              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                            ) : video.status === 'processing' ? (
+                              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                            ) : video.status === 'failed' ? (
+                              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+                            ) : (
+                              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                            )}
                           </div>
 
                           {/* Video Info */}
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <h4 className="text-lg font-bold text-gray-800">{video.filename}</h4>
-                              
+
                               {/* Status Badge */}
                               <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
                                 video.status === 'completed' ? 'bg-green-100 text-green-700' :
@@ -835,17 +847,19 @@ export default function VideoAnalysis() {
                           {video.status === 'completed' && (
                             <button
                               onClick={() => viewAnalysis(video)}
-                              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium text-sm"
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium text-sm"
                             >
-                              📊 View Analysis
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+                              View Analysis
                             </button>
                           )}
-                          
+
                           <button
                             onClick={() => deleteVideo(video.id)}
-                            className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition shadow-lg font-medium text-sm"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition shadow-lg font-medium text-sm"
                           >
-                            🗑️ Delete
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
+                            Delete
                           </button>
                         </div>
                       </div>
@@ -871,35 +885,36 @@ export default function VideoAnalysis() {
                 setSelectedVideo(null);
                 setAnalysisData(null);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl hover:bg-gray-50 transition shadow font-medium text-gray-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-xl hover:bg-gray-50 transition shadow font-medium text-gray-700"
             >
-              ← Back to History
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
+              Back to History
             </button>
 
             {/* Video Info Header */}
             <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-3xl shadow-lg">
-                    🎬
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">{selectedVideo.filename}</h2>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span>⏱️</span>
+                        <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                         <span>Duration: {Math.floor(analysisData.video_info.duration_seconds / 60)}:{(analysisData.video_info.duration_seconds % 60).toFixed(0).padStart(2, '0')}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span>🎞️</span>
+                        <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="17" x2="22" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /></svg>
                         <span>Frames: {analysisData.video_info.total_frames}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span>📐</span>
+                        <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>
                         <span>Resolution: {analysisData.video_info.resolution}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span>🎯</span>
+                        <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
                         <span>FPS: {analysisData.video_info.fps}</span>
                       </div>
                     </div>
@@ -924,8 +939,8 @@ export default function VideoAnalysis() {
               <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                      🎯
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-800">Object Detection</h3>
@@ -936,7 +951,7 @@ export default function VideoAnalysis() {
                     Detection
                   </span>
                 </div>
-                
+
                 <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
                   <video
                     controls
@@ -950,14 +965,14 @@ export default function VideoAnalysis() {
                 {/* Detection Stats */}
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                    <div className="text-2xl mb-1">📦</div>
+                    <svg className="w-7 h-7 text-blue-700 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>
                     <p className="text-xs text-blue-700 mb-1">Total Objects</p>
                     <p className="text-2xl font-bold text-blue-900">
                       {Object.values(analysisData.statistics.total_detections).reduce((a, b) => a + b, 0)}
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-                    <div className="text-2xl mb-1">✅</div>
+                    <svg className="w-7 h-7 text-green-700 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                     <p className="text-xs text-green-700 mb-1">Avg Confidence</p>
                     <p className="text-2xl font-bold text-green-900">
                       {(analysisData.statistics.avg_detection_confidence * 100).toFixed(1)}%
@@ -970,19 +985,19 @@ export default function VideoAnalysis() {
               <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                      🎭
+                    <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-800">Instance Segmentation</h3>
                       <p className="text-sm text-gray-500">YOLOv8 Segmentation Model</p>
                     </div>
                   </div>
-                  <span className="px-4 py-2 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-xl text-sm font-bold text-purple-700">
+                  <span className="px-4 py-2 bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-xl text-sm font-bold text-teal-700">
                     Segmentation
                   </span>
                 </div>
-                
+
                 <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
                   <video
                     controls
@@ -996,14 +1011,14 @@ export default function VideoAnalysis() {
                 {/* Segmentation Stats */}
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
-                    <div className="text-2xl mb-1">📏</div>
+                    <svg className="w-7 h-7 text-orange-700 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12h-4l-3 9L9 3l-3 9H2" /></svg>
                     <p className="text-xs text-orange-700 mb-1">Avg Affected Area</p>
                     <p className="text-2xl font-bold text-orange-900">
                       {analysisData.statistics.avg_affected_area.toFixed(1)}%
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
-                    <div className="text-2xl mb-1">🔥</div>
+                    <svg className="w-7 h-7 text-red-700 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>
                     <p className="text-xs text-red-700 mb-1">Max Affected Area</p>
                     <p className="text-2xl font-bold text-red-900">
                       {analysisData.statistics.max_affected_area.toFixed(1)}%
@@ -1016,8 +1031,8 @@ export default function VideoAnalysis() {
             {/* Overall Statistics */}
             <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                  📊
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Overall Analysis Summary</h3>
@@ -1028,7 +1043,7 @@ export default function VideoAnalysis() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-3xl">⚠️</span>
+                    <svg className="w-8 h-8 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                     <span className="text-xs font-bold text-blue-700 bg-blue-200 px-2 py-1 rounded">SEVERITY</span>
                   </div>
                   <p className="text-sm text-blue-700 mb-1">Average Severity</p>
@@ -1038,7 +1053,7 @@ export default function VideoAnalysis() {
 
                 <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 border border-green-200">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-3xl">🎯</span>
+                    <svg className="w-8 h-8 text-green-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
                     <span className="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded">DETECTION</span>
                   </div>
                   <p className="text-sm text-green-700 mb-1">Detection Classes</p>
@@ -1048,21 +1063,21 @@ export default function VideoAnalysis() {
                   <p className="text-xs text-green-600 mt-2">Types identified</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200">
+                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl p-5 border border-teal-200">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-3xl">📍</span>
-                    <span className="text-xs font-bold text-purple-700 bg-purple-200 px-2 py-1 rounded">PEAK</span>
+                    <svg className="w-8 h-8 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                    <span className="text-xs font-bold text-teal-700 bg-teal-200 px-2 py-1 rounded">PEAK</span>
                   </div>
-                  <p className="text-sm text-purple-700 mb-1">Peak Severity Frame</p>
-                  <p className="text-3xl font-bold text-purple-900">{analysisData.statistics.peak_severity_frame}</p>
-                  <p className="text-xs text-purple-600 mt-2">
+                  <p className="text-sm text-teal-700 mb-1">Peak Severity Frame</p>
+                  <p className="text-3xl font-bold text-teal-900">{analysisData.statistics.peak_severity_frame}</p>
+                  <p className="text-xs text-teal-600 mt-2">
                     @ {analysisData.statistics.peak_severity_timestamp?.toFixed(1)}s
                   </p>
                 </div>
 
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-5 border border-orange-200">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-3xl">💯</span>
+                    <svg className="w-8 h-8 text-orange-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
                     <span className="text-xs font-bold text-orange-700 bg-orange-200 px-2 py-1 rounded">CONFIDENCE</span>
                   </div>
                   <p className="text-sm text-orange-700 mb-1">Avg Confidence</p>
@@ -1081,8 +1096,8 @@ export default function VideoAnalysis() {
               {/* Detection Timeline */}
               <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-xl shadow">
-                    📈
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">Detection Timeline</h3>
@@ -1099,8 +1114,8 @@ export default function VideoAnalysis() {
               {/* Segmentation Area */}
               <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-xl shadow">
-                    📊
+                  <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">Affected Area Timeline</h3>
@@ -1118,8 +1133,8 @@ export default function VideoAnalysis() {
             {/* Top Detections */}
             <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center text-xl shadow">
-                  🏆
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-800">Top Detections</h3>
@@ -1136,8 +1151,8 @@ export default function VideoAnalysis() {
             {/* Frame-by-Frame Table */}
             <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center text-xl shadow">
-                  📋
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center shadow">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-800">Frame-by-Frame Details</h3>
@@ -1213,11 +1228,11 @@ export default function VideoAnalysis() {
             </div>
 
             {/* Download Section */}
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-xl p-6 border border-blue-200">
-              <div className="flex items-center justify-between">
+            <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl shadow-xl p-6 border border-blue-200">
+              <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">
-                    💾
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Download Results</h3>
@@ -1225,30 +1240,33 @@ export default function VideoAnalysis() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <button
                     onClick={() => downloadVideo(
                       `/api/v1/video/stream/${selectedVideo.id}/detection`,
                       `detection_${selectedVideo.filename}`
                     )}
-                    className="px-5 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition shadow-lg font-medium"
+                    className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition shadow-lg font-medium"
                   >
-                    📥 Detection Video
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                    Detection Video
                   </button>
                   <button
                     onClick={() => downloadVideo(
                       `/api/v1/video/stream/${selectedVideo.id}/segmentation`,
                       `segmentation_${selectedVideo.filename}`
                     )}
-                    className="px-5 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition shadow-lg font-medium"
+                    className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition shadow-lg font-medium"
                   >
-                    📥 Segmentation Video
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                    Segmentation Video
                   </button>
                   <button
                     onClick={downloadCSVReport}
-                    className="px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium"
+                    className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg font-medium"
                   >
-                    📊 CSV Report
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                    CSV Report
                   </button>
                 </div>
               </div>

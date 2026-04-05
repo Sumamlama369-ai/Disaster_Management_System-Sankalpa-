@@ -10,7 +10,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const STATUS_CONFIG = {
   PENDING: { label: "Pending", color: "#f59e0b", text: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-400", border: "border-amber-200", ring: "ring-amber-100" },
   REVIEWING: { label: "In Review", color: "#3b82f6", text: "text-blue-700", bg: "bg-blue-50", dot: "bg-blue-400", border: "border-blue-200", ring: "ring-blue-100" },
-  DISPATCHED: { label: "Dispatched", color: "#8b5cf6", text: "text-violet-700", bg: "bg-violet-50", dot: "bg-violet-400", border: "border-violet-200", ring: "ring-violet-100" },
+  DISPATCHED: { label: "Dispatched", color: "#06b6d4", text: "text-cyan-700", bg: "bg-cyan-50", dot: "bg-cyan-400", border: "border-cyan-200", ring: "ring-cyan-100" },
   RESCUING: { label: "Rescuing", color: "#f97316", text: "text-orange-700", bg: "bg-orange-50", dot: "bg-orange-400", border: "border-orange-200", ring: "ring-orange-100" },
   RESOLVED: { label: "Resolved", color: "#10b981", text: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-400", border: "border-emerald-200", ring: "ring-emerald-100" },
   REJECTED: { label: "Rejected", color: "#ef4444", text: "text-red-700", bg: "bg-red-50", dot: "bg-red-400", border: "border-red-200", ring: "ring-red-100" },
@@ -28,7 +28,7 @@ const TYPE_COLOR = {
   flood: { bg: "bg-blue-100", text: "text-blue-600", accent: "#3b82f6", gradient: "from-blue-500 to-cyan-500" },
   earthquake: { bg: "bg-amber-100", text: "text-amber-600", accent: "#f59e0b", gradient: "from-amber-500 to-yellow-500" },
   landslide: { bg: "bg-stone-100", text: "text-stone-600", accent: "#78716c", gradient: "from-stone-500 to-amber-600" },
-  storm: { bg: "bg-indigo-100", text: "text-indigo-600", accent: "#6366f1", gradient: "from-indigo-500 to-purple-500" },
+  storm: { bg: "bg-indigo-100", text: "text-indigo-600", accent: "#6366f1", gradient: "from-indigo-500 to-blue-500" },
 };
 
 export default function MyDisasterReports() {
@@ -94,23 +94,23 @@ export default function MyDisasterReports() {
   const activeCount = (statusCounts.PENDING || 0) + (statusCounts.REVIEWING || 0) + (statusCounts.DISPATCHED || 0) + (statusCounts.RESCUING || 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
       <Navbar />
 
       {/* ── Page Header ─────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-blue-100">
         <div className="max-w-[1440px] mx-auto px-6 lg:px-10">
           <div className="py-8 lg:py-10">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600" />
-                    <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">My Disaster Reports</h1>
+                    <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600" />
+                    <h1 className="text-3xl lg:text-4xl font-extrabold text-slate-800 tracking-tight">My Disaster Reports</h1>
                   </div>
-                  <p className="text-gray-500 text-sm lg:text-base ml-[18px]">Monitor the real-time status and response progress of all your submitted disaster reports.</p>
+                  <p className="text-slate-500 text-sm lg:text-base ml-[18px]">Monitor the real-time status and response progress of all your submitted disaster reports.</p>
                 </div>
-                <button onClick={() => navigate('/report-disaster')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all self-start lg:self-auto">
+                <button onClick={() => navigate('/report-disaster')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-indigo-200 transition-all self-start lg:self-auto">
                   <PlusIcon className="w-4 h-4" />
                   New Report
                 </button>
@@ -134,7 +134,7 @@ export default function MyDisasterReports() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-8">
 
         {/* Filter Tabs */}
-        <div className="bg-white rounded-xl border border-gray-200 p-1.5 flex items-center gap-1 overflow-x-auto mb-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-blue-100 p-1.5 flex items-center gap-1 overflow-x-auto mb-6 shadow-lg">
           <FilterChip active={!statusFilter} onClick={() => setStatusFilter("")} label="All" count={total} />
           {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
             <FilterChip key={key} active={statusFilter === key} onClick={() => setStatusFilter(key)} label={cfg.label} color={cfg.color} count={statusCounts[key]} />
@@ -143,23 +143,23 @@ export default function MyDisasterReports() {
 
         {/* Loading */}
         {loading && (
-          <div className="bg-white rounded-2xl border border-gray-200 flex flex-col items-center justify-center py-32">
-            <div className="w-10 h-10 border-[3px] border-gray-200 border-t-blue-600 rounded-full animate-spin" />
-            <p className="text-sm text-gray-400 mt-5 font-medium">Loading your reports...</p>
+          <div className="bg-white rounded-2xl border border-blue-100 shadow-lg flex flex-col items-center justify-center py-32">
+            <div className="w-10 h-10 border-[3px] border-slate-200 border-t-indigo-600 rounded-full animate-spin" />
+            <p className="text-sm text-slate-400 mt-5 font-medium">Loading your reports...</p>
           </div>
         )}
 
         {/* Empty State */}
         {!loading && reports.length === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl border border-gray-200 text-center py-24 px-6">
-            <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-              <InboxIcon className="w-9 h-9 text-gray-300" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl border border-blue-100 shadow-lg text-center py-24 px-6">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center mx-auto mb-6">
+              <InboxIcon className="w-9 h-9 text-indigo-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No Reports Found</h3>
-            <p className="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
+            <h3 className="text-xl font-bold text-slate-800 mb-2">No Reports Found</h3>
+            <p className="text-slate-400 text-sm max-w-sm mx-auto leading-relaxed">
               {statusFilter ? "No reports match the selected filter." : "You haven't submitted any disaster reports yet."}
             </p>
-            <button onClick={() => navigate('/report-disaster')} className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all">
+            <button onClick={() => navigate('/report-disaster')} className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:shadow-indigo-200 transition-all">
               Submit a Report <ArrowRightIcon className="w-4 h-4" />
             </button>
           </motion.div>
@@ -167,9 +167,9 @@ export default function MyDisasterReports() {
 
         {/* ── Report List ───────────────────────────────── */}
         {!loading && reports.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-2xl border border-blue-100 overflow-hidden shadow-lg">
             {/* Table Header */}
-            <div className="hidden lg:grid lg:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+            <div className="hidden lg:grid lg:grid-cols-12 gap-4 px-6 py-3 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 border-b border-blue-100 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
               <div className="col-span-1">Type</div>
               <div className="col-span-4">Description</div>
               <div className="col-span-2">Status</div>
@@ -197,7 +197,7 @@ export default function MyDisasterReports() {
                     {/* Row */}
                     <button
                       onClick={() => toggleExpand(report.id)}
-                      className={`w-full text-left px-6 py-4 lg:py-5 flex items-center gap-4 lg:grid lg:grid-cols-12 lg:gap-4 transition-colors ${isExpanded ? "bg-blue-50/40" : "hover:bg-gray-50/80"}`}
+                      className={`w-full text-left px-6 py-4 lg:py-5 flex items-center gap-4 lg:grid lg:grid-cols-12 lg:gap-4 transition-colors ${isExpanded ? "bg-indigo-50/60" : "hover:bg-blue-50/40"}`}
                     >
                       {/* Type Badge */}
                       <div className="col-span-1 flex-shrink-0">
@@ -244,7 +244,7 @@ export default function MyDisasterReports() {
                           </span>
                         </div>
                         <span className="text-xs text-gray-400 font-medium hidden sm:block lg:hidden">{timeAgo(report.created_at)}</span>
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isExpanded ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isExpanded ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}>
                           <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
                             <ChevronDownIcon className="w-4 h-4" />
                           </motion.div>
@@ -262,13 +262,13 @@ export default function MyDisasterReports() {
                           transition={{ duration: 0.3 }}
                           className="overflow-hidden"
                         >
-                          <div className="bg-gray-50/70">
+                          <div className="bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/50">
                             {/* Color accent bar */}
                             <div className={`h-1 bg-gradient-to-r ${tc.gradient}`} />
 
                             {/* Progress Stepper */}
-                            <div className="px-6 lg:px-10 py-6 border-b border-gray-200/70">
-                              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Response Progress</p>
+                            <div className="px-6 lg:px-10 py-6 border-b border-blue-100/70">
+                              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Response Progress</p>
                               <ProgressSteps currentStatus={report.status} />
                             </div>
 
@@ -278,8 +278,8 @@ export default function MyDisasterReports() {
 
                                 {/* Column 1: Report Details */}
                                 <div className="lg:col-span-4">
-                                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Report Details</p>
-                                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Report Details</p>
+                                  <div className="bg-white rounded-xl border border-blue-100 shadow-sm overflow-hidden">
                                     <table className="w-full text-sm">
                                       <tbody className="divide-y divide-gray-100">
                                         <InfoRow label="Description" value={report.description} />
@@ -308,9 +308,9 @@ export default function MyDisasterReports() {
 
                                 {/* Column 2: Timeline */}
                                 <div className="lg:col-span-4">
-                                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Status Timeline</p>
+                                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Status Timeline</p>
                                   {reportHistory.length > 0 ? (
-                                    <div className="bg-white rounded-xl border border-gray-200 p-5">
+                                    <div className="bg-white rounded-xl border border-blue-100 shadow-sm p-5">
                                       <div className="relative">
                                         <div className="absolute left-[7px] top-3 bottom-3 w-px bg-gray-200" />
                                         <div className="space-y-5">
@@ -350,7 +350,7 @@ export default function MyDisasterReports() {
 
                                 {/* Column 3: Evidence */}
                                 <div className="lg:col-span-4">
-                                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+                                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">
                                     Evidence {reportMedia.length > 0 && `(${reportMedia.length})`}
                                   </p>
                                   {reportMedia.length > 0 ? (
@@ -400,19 +400,19 @@ export default function MyDisasterReports() {
 
 function StatCard({ label, value, icon, color }) {
   const colorMap = {
-    blue: { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-100" },
-    amber: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100" },
-    emerald: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100" },
-    red: { bg: "bg-red-50", text: "text-red-600", border: "border-red-100" },
+    blue: { bg: "bg-gradient-to-br from-blue-50 to-indigo-50", iconBg: "bg-blue-100", text: "text-blue-600", border: "border-blue-200" },
+    amber: { bg: "bg-gradient-to-br from-amber-50 to-orange-50", iconBg: "bg-amber-100", text: "text-amber-600", border: "border-amber-200" },
+    emerald: { bg: "bg-gradient-to-br from-emerald-50 to-green-50", iconBg: "bg-emerald-100", text: "text-emerald-600", border: "border-emerald-200" },
+    red: { bg: "bg-gradient-to-br from-red-50 to-rose-50", iconBg: "bg-red-100", text: "text-red-600", border: "border-red-200" },
   };
   const c = colorMap[color] || colorMap.blue;
   return (
-    <div className={`${c.bg} border ${c.border} rounded-xl p-4 lg:p-5 flex items-center justify-between`}>
+    <div className={`${c.bg} border ${c.border} rounded-xl p-4 lg:p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow`}>
       <div>
-        <p className="text-2xl lg:text-3xl font-extrabold text-gray-900">{value}</p>
-        <p className="text-xs text-gray-500 font-medium mt-1">{label}</p>
+        <p className="text-2xl lg:text-3xl font-extrabold text-slate-800">{value}</p>
+        <p className="text-xs text-slate-500 font-medium mt-1">{label}</p>
       </div>
-      <div className={`w-10 h-10 rounded-lg ${c.bg} flex items-center justify-center ${c.text}`}>
+      <div className={`w-10 h-10 rounded-lg ${c.iconBg} flex items-center justify-center ${c.text}`}>
         {icon}
       </div>
     </div>
@@ -424,13 +424,13 @@ function FilterChip({ active, onClick, label, color, count }) {
     <button
       onClick={onClick}
       className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-        active ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+        active ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md" : "text-slate-500 hover:text-indigo-600 hover:bg-blue-50"
       }`}
     >
       {color && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: active ? "white" : color }} />}
       {label}
       {count > 0 && (
-        <span className={`text-[11px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-md px-1.5 ${active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>
+        <span className={`text-[11px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-md px-1.5 ${active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
           {count}
         </span>
       )}

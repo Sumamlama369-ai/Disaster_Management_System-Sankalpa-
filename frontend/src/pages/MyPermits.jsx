@@ -261,22 +261,202 @@ export default function MyPermits() {
                   </button>
                 </div>
 
-                {/* Detailed information - you can expand this */}
+                {/* Status banner */}
+                <div className="mb-6">
+                  {getStatusBadge(selectedPermit.status)}
+                </div>
+
                 <div className="space-y-6">
+                  {/* Drone Technical Specifications */}
                   <div>
-                    <h3 className="font-bold text-lg mb-3">Drone Information</h3>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b">
+                      Drone Technical Specifications
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                       <div>
                         <p className="font-semibold text-gray-700">Manufacturer:</p>
-                        <p>{selectedPermit.manufacturer}</p>
+                        <p className="text-gray-600">{selectedPermit.manufacturer || '-'}</p>
                       </div>
                       <div>
                         <p className="font-semibold text-gray-700">Model:</p>
-                        <p>{selectedPermit.model}</p>
+                        <p className="text-gray-600">{selectedPermit.model || '-'}</p>
                       </div>
-                      {/* Add more fields as needed */}
+                      <div>
+                        <p className="font-semibold text-gray-700">Serial Number:</p>
+                        <p className="text-gray-600">{selectedPermit.serial_number || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Manufactured Year:</p>
+                        <p className="text-gray-600">{selectedPermit.manufactured_year || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Drone Type:</p>
+                        <p className="text-gray-600">{selectedPermit.drone_type || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Max Payload:</p>
+                        <p className="text-gray-600">
+                          {selectedPermit.max_payload != null ? `${selectedPermit.max_payload} kg` : '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Color:</p>
+                        <p className="text-gray-600">{selectedPermit.color || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Retailer:</p>
+                        <p className="text-gray-600">{selectedPermit.retailer_name || '-'}</p>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Operator Information */}
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b">
+                      Operator Information
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      {selectedPermit.registration_type && (
+                        <div>
+                          <p className="font-semibold text-gray-700">Registration Type:</p>
+                          <p className="text-gray-600 capitalize">{selectedPermit.registration_type}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-gray-700">Full Name:</p>
+                        <p className="text-gray-600">{selectedPermit.full_name || '-'}</p>
+                      </div>
+                      {selectedPermit.citizenship_passport_no && (
+                        <div>
+                          <p className="font-semibold text-gray-700">Citizenship/Passport:</p>
+                          <p className="text-gray-600">{selectedPermit.citizenship_passport_no}</p>
+                        </div>
+                      )}
+                      {selectedPermit.date_of_birth && (
+                        <div>
+                          <p className="font-semibold text-gray-700">Date of Birth:</p>
+                          <p className="text-gray-600">
+                            {new Date(selectedPermit.date_of_birth).toLocaleDateString()}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-gray-700">Phone:</p>
+                        <p className="text-gray-600">{selectedPermit.phone_number || '-'}</p>
+                      </div>
+                      {selectedPermit.email_address && (
+                        <div>
+                          <p className="font-semibold text-gray-700">Email:</p>
+                          <p className="text-gray-600">{selectedPermit.email_address}</p>
+                        </div>
+                      )}
+                      {selectedPermit.username && (
+                        <div>
+                          <p className="font-semibold text-gray-700">Username:</p>
+                          <p className="text-gray-600">{selectedPermit.username}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Address Information */}
+                  {(selectedPermit.country || selectedPermit.province || selectedPermit.district) && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b">
+                        Address Information
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="font-semibold text-gray-700">Country:</p>
+                          <p className="text-gray-600">{selectedPermit.country || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-700">Province:</p>
+                          <p className="text-gray-600">{selectedPermit.province || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-700">District:</p>
+                          <p className="text-gray-600">{selectedPermit.district || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-700">Municipality:</p>
+                          <p className="text-gray-600">{selectedPermit.municipality || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-700">Ward No:</p>
+                          <p className="text-gray-600">{selectedPermit.ward_no || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Application Timeline */}
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b">
+                      Application Timeline
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="font-semibold text-gray-700">Application ID:</p>
+                        <p className="text-gray-600">#{selectedPermit.id}</p>
+                      </div>
+                      {selectedPermit.created_at && (
+                        <div>
+                          <p className="font-semibold text-gray-700">Submitted On:</p>
+                          <p className="text-gray-600">
+                            {new Date(selectedPermit.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {selectedPermit.reviewed_at && (
+                        <div>
+                          <p className="font-semibold text-gray-700">Reviewed On:</p>
+                          <p className="text-gray-600">
+                            {new Date(selectedPermit.reviewed_at).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-gray-700">Current Status:</p>
+                        <p className="text-gray-600 capitalize">{selectedPermit.status}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Officer Review Details */}
+                  {selectedPermit.officer_name && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b">
+                        Officer Review
+                      </h3>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="font-semibold text-gray-700">Officer:</p>
+                            <p className="text-gray-600">{selectedPermit.officer_name}</p>
+                          </div>
+                          {selectedPermit.officer_designation && (
+                            <div>
+                              <p className="font-semibold text-gray-700">Designation:</p>
+                              <p className="text-gray-600">{selectedPermit.officer_designation}</p>
+                            </div>
+                          )}
+                          {selectedPermit.officer_organization && (
+                            <div>
+                              <p className="font-semibold text-gray-700">Organization:</p>
+                              <p className="text-gray-600">{selectedPermit.officer_organization}</p>
+                            </div>
+                          )}
+                        </div>
+                        {selectedPermit.review_remarks && (
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <p className="font-semibold text-gray-700">Remarks:</p>
+                            <p className="text-gray-600 whitespace-pre-wrap">{selectedPermit.review_remarks}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex justify-end">
                     <button
