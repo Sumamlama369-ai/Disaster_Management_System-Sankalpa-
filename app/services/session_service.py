@@ -3,7 +3,7 @@ Session Service
 Handles server-side session creation, validation, refresh, and destruction
 """
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from app.models.session import UserSession
 from app.models.user import User
@@ -20,14 +20,14 @@ class SessionService:
         Returns the session_id to be stored in a cookie.
         """
         session_id = secrets.token_urlsafe(64)
-        expires_at = datetime.utcnow() + timedelta(minutes=settings.SESSION_EXPIRE_MINUTES)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.SESSION_EXPIRE_MINUTES)
 
         db_session = UserSession(
             session_id=session_id,
             user_id=user_id,
             is_active=True,
             expires_at=expires_at,
-            last_activity=datetime.utcnow(),
+            last_activity=datetime.now(timezone.utc),
         )
         db.add(db_session)
         db.commit()
@@ -54,14 +54,14 @@ class SessionService:
             return None
 
         # Check if expired
-        if db_session.expires_at < datetime.utcnow():
+        if db_session.expires_at < datetime.now(timezone.utc):
             db_session.is_active = False
             db.commit()
             return None
 
         # Sliding expiration: refresh expiry on every valid request
-        db_session.expires_at = datetime.utcnow() + timedelta(minutes=settings.SESSION_EXPIRE_MINUTES)
-        db_session.last_activity = datetime.utcnow()
+        db_session.expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.SESSION_EXPIRE_MINUTES)
+        db_session.last_activity = datetime.now(timezone.utc)
         db.commit()
 
         # Return the user
@@ -112,7 +112,7 @@ class SessionService:
         """
         count = (
             db.query(UserSession)
-            .filter(UserSession.expires_at < datetime.utcnow())
+            .filter(UserSession.expires_at < datetime.now(timezone.utc))
             .delete()
         )
         db.commit()

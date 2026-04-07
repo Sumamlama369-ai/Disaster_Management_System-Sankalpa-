@@ -87,6 +87,12 @@ const tileLayers = {
 // SVG icon components
 function LayersIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>; }
 function CrosshairIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>; }
+function ShieldIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>; }
+function PlaneIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>; }
+function TreeIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L7 10h3l-4 8h12l-4-8h3L12 2z"/><path d="M12 18v4"/></svg>; }
+function BuildingIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg>; }
+function LandmarkIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L3 7v2h18V7l-9-5z"/><path d="M5 10v8h3v-8"/><path d="M10 10v8h4v-8"/><path d="M16 10v8h3v-8"/><path d="M3 20h18v2H3z"/></svg>; }
+function ClipboardIcon({ className }) { return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>; }
 
 // Helper to parse radius string to meters
 const parseRadius = (radiusStr) => {
@@ -100,11 +106,11 @@ const parseRadius = (radiusStr) => {
 
 // Category configuration
 const categoryConfig = {
-  military: { color: '#ef4444', label: 'Restricted Military Zones', icon: '🛡️', bgColor: 'bg-red-500' },
-  airport: { color: '#f59e0b', label: 'Airport Buffer Zones', icon: '✈️', bgColor: 'bg-amber-500' },
-  protected: { color: '#22c55e', label: 'Protected Areas', icon: '🌲', bgColor: 'bg-green-500' },
-  government: { color: '#06b6d4', label: 'Government Buildings', icon: '🏛️', bgColor: 'bg-cyan-500' },
-  heritage: { color: '#8b5cf6', label: 'Heritage Sites', icon: '🕉️', bgColor: 'bg-violet-500' },
+  military: { color: '#ef4444', label: 'Restricted Military Zones', icon: ShieldIcon, bgColor: 'bg-red-500' },
+  airport: { color: '#f59e0b', label: 'Airport Buffer Zones', icon: PlaneIcon, bgColor: 'bg-amber-500' },
+  protected: { color: '#22c55e', label: 'Protected Areas', icon: TreeIcon, bgColor: 'bg-green-500' },
+  government: { color: '#06b6d4', label: 'Government Buildings', icon: BuildingIcon, bgColor: 'bg-cyan-500' },
+  heritage: { color: '#8b5cf6', label: 'Heritage Sites', icon: LandmarkIcon, bgColor: 'bg-violet-500' },
 };
 
 export default function NoFlyZone() {
@@ -471,48 +477,48 @@ export default function NoFlyZone() {
       <Navbar />
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white shadow-xl">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-[1920px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg border-2 border-white/20">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-2xl font-bold text-white">NP</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Nepal Drone No-Fly Zone Mapper</h1>
-                <p className="text-slate-300 text-sm">Professional Aerial Restriction Visualization System</p>
+                <h1 className="text-2xl font-bold text-gray-800">Nepal Drone No-Fly Zone Mapper</h1>
+                <p className="text-gray-400 text-sm">Professional Aerial Restriction Visualization System</p>
               </div>
             </div>
 
             {/* Stats */}
             <div className="flex items-center gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold">{stats.totalZones}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">No-Fly Zones</div>
+                <div className="text-3xl font-bold text-gray-800">{stats.totalZones}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wide">No-Fly Zones</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">{stats.militaryZones}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Military</div>
+                <div className="text-3xl font-bold text-gray-800">{stats.militaryZones}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wide">Military</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">{stats.airportZones}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Airport</div>
+                <div className="text-3xl font-bold text-gray-800">{stats.airportZones}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wide">Airport</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">{stats.protectedAreas}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Protected</div>
+                <div className="text-3xl font-bold text-gray-800">{stats.protectedAreas}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wide">Protected</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">{stats.governmentZones}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Government</div>
+                <div className="text-3xl font-bold text-gray-800">{stats.governmentZones}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wide">Government</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">{stats.heritageZones}</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Heritage</div>
+                <div className="text-3xl font-bold text-gray-800">{stats.heritageZones}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wide">Heritage</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">Active</div>
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Status</div>
+                <div className="text-2xl font-bold text-green-500">Active</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wide">Status</div>
               </div>
             </div>
           </div>
@@ -596,7 +602,7 @@ export default function NoFlyZone() {
                     }`}
                   >
                     <div className={`w-8 h-8 ${config.bgColor} rounded-lg flex items-center justify-center`}>
-                      <span className="text-white text-sm">{config.icon}</span>
+                      <config.icon className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 text-left">
                       <div className="font-medium text-sm">{config.label.replace(' Zones', '').replace(' Areas', '')}</div>
@@ -619,7 +625,7 @@ export default function NoFlyZone() {
             {/* Zones List */}
             <div className="bg-white rounded-xl shadow-lg p-5 border border-gray-200">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <span>📋</span>
+                <ClipboardIcon className="w-5 h-5 text-gray-500" />
                 {selectedCategory === 'all' ? 'All Zones' : categoryConfig[selectedCategory]?.label} ({filteredZones.length})
               </h2>
               
@@ -657,7 +663,7 @@ export default function NoFlyZone() {
               {/* Map Header */}
               <div className="flex justify-between items-center px-5 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-sm">
                     <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   </div>
                   <div>
@@ -702,7 +708,7 @@ export default function NoFlyZone() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                            <span className="text-xl">{categoryConfig[selectedZone.category]?.icon}</span>
+                            {categoryConfig[selectedZone.category]?.icon && (() => { const IconComp = categoryConfig[selectedZone.category].icon; return <IconComp className="w-5 h-5 text-white" />; })()}
                           </div>
                           <div>
                             <h3 className="text-lg font-bold text-white leading-tight">{selectedZone.name}</h3>

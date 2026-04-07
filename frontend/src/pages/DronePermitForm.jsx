@@ -125,7 +125,7 @@ export default function DronePermitForm() {
       <Navbar />
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -138,34 +138,36 @@ export default function DronePermitForm() {
         </div>
 
         {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="flex items-center flex-1">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                    currentStep >= step
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {step}
-                </div>
-                {step < 4 && (
-                  <div
-                    className={`flex-1 h-1 mx-2 ${
+        <div className="mb-8 max-w-2xl mx-auto">
+          <div className="flex items-center">
+            {['Drone Info', 'Operator', 'Address', 'Documents'].map((label, i) => {
+              const step = i + 1;
+              return (
+                <div key={step} className="flex items-center flex-1 last:flex-none">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${
+                        currentStep >= step
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {step}
+                    </div>
+                    <span className={`mt-2 text-xs font-medium whitespace-nowrap ${
+                      currentStep >= step ? 'text-blue-600' : 'text-gray-400'
+                    }`}>
+                      {label}
+                    </span>
+                  </div>
+                  {step < 4 && (
+                    <div className={`flex-1 h-1 mx-3 mb-6 ${
                       currentStep > step ? 'bg-blue-500' : 'bg-gray-200'
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-2 text-sm text-gray-600">
-            <span>Drone Info</span>
-            <span>Operator</span>
-            <span>Address</span>
-            <span>Documents</span>
+                    }`} />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 

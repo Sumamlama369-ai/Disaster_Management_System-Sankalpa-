@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -44,31 +47,9 @@ const WarningTriangleIcon = ({ className = "w-7 h-7" }) => (
     <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
-const SatelliteIcon = ({ className = "w-6 h-6" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M13 7L9 3 5 7l4 4" /><path d="M17 11l4 4-4 4-4-4" />
-    <path d="M8 12l4 4" /><path d="M16 8l-4-4" />
-    <path d="M3 21l4.34-4.34" /><circle cx="5.5" cy="18.5" r="1.5" />
-  </svg>
-);
 const MapPinIcon = ({ className = "w-6 h-6" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
-  </svg>
-);
-const UserIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-  </svg>
-);
-const PhoneIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-  </svg>
-);
-const UploadIcon = ({ className = "w-7 h-7" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
   </svg>
 );
 const FileVideoIcon = ({ className = "w-5 h-5" }) => (
@@ -119,6 +100,47 @@ const ClockIcon = ({ className = "w-4 h-4" }) => (
     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
   </svg>
 );
+const CrosshairIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" />
+  </svg>
+);
+const CameraIcon = ({ className = "w-7 h-7" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
+);
+
+// ─── Tile Layers ──────────────────────────────────────────────
+const TILE_LAYERS = {
+  positron:  { name: "Positron",   url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" },
+  street:    { name: "Street",     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" },
+  satellite: { name: "Satellite",  url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" },
+  terrain:   { name: "Terrain",    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" },
+  dark:      { name: "Dark",       url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" },
+};
+
+const LayersIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
+// ─── Custom Map Marker ────────────────────────────────────────
+const createLocationIcon = () => {
+  return L.divIcon({
+    className: "custom-location-marker",
+    html: `
+      <div style="position:relative;width:40px;height:40px;">
+        <div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.15);animation:pulse-ring 2s ease-out infinite;"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#06b6d4);border:3px solid white;box-shadow:0 2px 8px rgba(59,130,246,0.5);"></div>
+      </div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  });
+};
 
 // ─── Data ──────────────────────────────────────────────────────
 const DISASTER_TYPES = [
@@ -137,21 +159,56 @@ const SEVERITY = [
   { value: "CRITICAL", label: "Critical", color: "text-red-700", bg: "bg-red-50", border: "border-red-200", activeBg: "bg-red-100", activeBorder: "border-red-500", dot: "bg-red-500" },
 ];
 
-const typeStyles = {
-  fire: "bg-red-50 border-red-300 text-red-700",
-  flood: "bg-blue-50 border-blue-300 text-blue-700",
-  earthquake: "bg-orange-50 border-orange-300 text-orange-700",
-  landslide: "bg-amber-50 border-amber-300 text-amber-700",
-  storm: "bg-sky-50 border-sky-300 text-sky-700",
-  other: "bg-yellow-50 border-yellow-300 text-yellow-700",
-};
 
-const severityStyles = {
-  LOW: "bg-emerald-50 text-emerald-700 border-emerald-300",
-  MEDIUM: "bg-yellow-50 text-yellow-700 border-yellow-300",
-  HIGH: "bg-orange-50 text-orange-700 border-orange-300",
-  CRITICAL: "bg-red-50 text-red-700 border-red-300",
-};
+// ─── Draggable Marker Component ───────────────────────────────
+function DraggableMarker({ position, onPositionChange }) {
+  const markerRef = useRef(null);
+  const icon = useMemo(() => createLocationIcon(), []);
+
+  const eventHandlers = useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          const latlng = marker.getLatLng();
+          onPositionChange({ lat: latlng.lat, lng: latlng.lng });
+        }
+      },
+    }),
+    [onPositionChange]
+  );
+
+  return (
+    <Marker
+      draggable
+      eventHandlers={eventHandlers}
+      position={[position.lat, position.lng]}
+      ref={markerRef}
+      icon={icon}
+    />
+  );
+}
+
+// ─── Map click handler ────────────────────────────────────────
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({
+    click(e) {
+      onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
+  });
+  return null;
+}
+
+// ─── Fly to position ──────────────────────────────────────────
+function FlyToPosition({ position }) {
+  const map = useMap();
+  useEffect(() => {
+    if (position) {
+      map.flyTo([position.lat, position.lng], 16, { duration: 1.5 });
+    }
+  }, [position, map]);
+  return null;
+}
 
 // ─── Component ─────────────────────────────────────────────────
 export default function DisasterReport() {
@@ -161,13 +218,55 @@ export default function DisasterReport() {
     severity: "", name: "", contact: "",
   });
   const [status, setStatus] = useState("idle");
-  const [locationData, setLocationData] = useState(null);
+  const [markerPosition, setMarkerPosition] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [flyTarget, setFlyTarget] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [reportId, setReportId] = useState(null);
   const [mediaFiles, setMediaFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [tileLayer, setTileLayer] = useState("positron");
+  const [layerMenuOpen, setLayerMenuOpen] = useState(false);
+
+  // Nepal center default
+  const defaultCenter = [28.3949, 84.1240];
+  const defaultZoom = 7;
 
   const set_ = (f, v) => setForm((p) => ({ ...p, [f]: v }));
+
+  const handleShareLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setMarkerPosition(newPos);
+        setFlyTarget({ ...newPos, _ts: Date.now() });
+        setLocationLoading(false);
+      },
+      (err) => {
+        setLocationLoading(false);
+        if (err.code === 1) setLocationError("Location access denied. Please enable GPS permissions.");
+        else if (err.code === 2) setLocationError("Location unavailable. Please try again.");
+        else setLocationError("Location request timed out. Please try again.");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  const handleMarkerDrag = (newPos) => {
+    setMarkerPosition(newPos);
+  };
+
+  const handleMapClick = (newPos) => {
+    setMarkerPosition(newPos);
+  };
 
   const handleSubmit = async () => {
     if (!form.disasterType || !form.description || !form.severity) {
@@ -182,100 +281,85 @@ export default function DisasterReport() {
       setErrorMsg("Description must be at least 10 characters.");
       return;
     }
+    if (!markerPosition) {
+      setErrorMsg("Please share your location or select a location on the map.");
+      return;
+    }
     setErrorMsg("");
-    setStatus("locating");
+    setStatus("sending");
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const loc = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        };
-        setLocationData(loc);
-        setStatus("sending");
+    try {
+      if (!token) {
+        setStatus("error");
+        setErrorMsg("Please login first to submit a report.");
+        return;
+      }
 
-        try {
-          if (!token) {
-            setStatus("error");
-            setErrorMsg("Please login first to submit a report.");
-            return;
-          }
+      const response = await axios.post(
+        `${API_URL}/api/v1/disaster-reports/reports`,
+        {
+          disaster_type:
+            form.disasterType === "other"
+              ? form.otherType.trim()
+              : form.disasterType,
+          description: form.description,
+          severity: form.severity,
+          latitude: markerPosition.lat,
+          longitude: markerPosition.lng,
+          location_accuracy: null,
+          reporter_name: form.name || "Anonymous",
+          reporter_contact: form.contact ? `+977${form.contact}` : null,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-          const response = await axios.post(
-            `${API_URL}/api/v1/disaster-reports/reports`,
-            {
-              disaster_type:
-                form.disasterType === "other"
-                  ? form.otherType.trim()
-                  : form.disasterType,
-              description: form.description,
-              severity: form.severity,
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-              location_accuracy: loc.accuracy,
-              reporter_name: form.name || "Anonymous",
-              reporter_contact: form.contact || null,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+      setReportId(response.data.id);
 
-          setReportId(response.data.id);
-
-          if (mediaFiles.length > 0) {
-            setStatus("uploading");
-            let uploaded = 0;
-            for (const file of mediaFiles) {
-              const formData = new FormData();
-              formData.append("file", file);
-              try {
-                await axios.post(
-                  `${API_URL}/api/v1/disaster-reports/reports/${response.data.id}/media`,
-                  formData,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                      "Content-Type": "multipart/form-data",
-                    },
-                  }
-                );
-                uploaded++;
-                setUploadProgress(`${uploaded}/${mediaFiles.length}`);
-              } catch (err) {
-                console.error("Media upload failed:", err);
+      if (mediaFiles.length > 0) {
+        setStatus("uploading");
+        let uploaded = 0;
+        for (const file of mediaFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+          try {
+            await axios.post(
+              `${API_URL}/api/v1/disaster-reports/reports/${response.data.id}/media`,
+              formData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "multipart/form-data",
+                },
               }
-            }
-          }
-
-          setStatus("success");
-        } catch (error) {
-          console.error("Submission error:", error);
-          setStatus("error");
-          if (error.response?.status === 401) {
-            setErrorMsg("Session expired. Please login again.");
-          } else if (error.response?.status === 403) {
-            setErrorMsg("You don't have permission to submit reports.");
-          } else {
-            setErrorMsg(
-              error.response?.data?.detail ||
-                "Submission failed. Please try again."
             );
+            uploaded++;
+            setUploadProgress(`${uploaded}/${mediaFiles.length}`);
+          } catch (err) {
+            console.error("Media upload failed:", err);
           }
         }
-      },
-      () => {
-        setStatus("error");
+      }
+
+      setStatus("success");
+    } catch (error) {
+      console.error("Submission error:", error);
+      setStatus("error");
+      if (error.response?.status === 401) {
+        setErrorMsg("Session expired. Please login again.");
+      } else if (error.response?.status === 403) {
+        setErrorMsg("You don't have permission to submit reports.");
+      } else {
         setErrorMsg(
-          "Location access denied. Please enable GPS to submit a report."
+          error.response?.data?.detail ||
+            "Submission failed. Please try again."
         );
-      },
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
+      }
+    }
   };
 
   const reset = () => {
@@ -284,25 +368,26 @@ export default function DisasterReport() {
       severity: "", name: "", contact: "",
     });
     setStatus("idle");
-    setLocationData(null);
+    setMarkerPosition(null);
+    setLocationLoading(false);
+    setLocationError("");
+    setFlyTarget(null);
     setErrorMsg("");
     setReportId(null);
     setMediaFiles([]);
     setUploadProgress(null);
   };
 
-  const selType = DISASTER_TYPES.find((d) => d.value === form.disasterType);
-
   // ─── Success Screen ─────────────────────────────────────────
   if (status === "success") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-gray-50/80">
         <Navbar />
         <div className="max-w-xl mx-auto px-4 py-16">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl border border-blue-100 p-10 text-center"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-10 text-center"
           >
             <div className="relative w-20 h-20 mx-auto mb-6">
               <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-20" />
@@ -319,7 +404,7 @@ export default function DisasterReport() {
               Response teams have been notified.
             </p>
 
-            <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-blue-100 divide-y divide-blue-100/70 text-left mb-8">
+            <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-100 text-left mb-8">
               <Row label="Report ID" value={`#${reportId}`} />
               <Row
                 label="Incident Type"
@@ -343,12 +428,8 @@ export default function DisasterReport() {
               />
               <Row
                 label="Coordinates"
-                value={`${locationData?.latitude.toFixed(6)}, ${locationData?.longitude.toFixed(6)}`}
+                value={`${markerPosition?.lat.toFixed(6)}, ${markerPosition?.lng.toFixed(6)}`}
                 valueClass="text-blue-600 text-sm"
-              />
-              <Row
-                label="Accuracy"
-                value={`\u00B1${locationData?.accuracy.toFixed(0)}m`}
               />
               <Row
                 label="Status"
@@ -368,7 +449,7 @@ export default function DisasterReport() {
 
             <button
               onClick={reset}
-              className="w-full px-8 py-3.5 bg-gradient-to-br from-blue-500 to-indigo-600 hover:shadow-lg hover:shadow-indigo-200 text-white rounded-xl font-semibold transition-all"
+              className="w-full px-8 py-3.5 bg-gradient-to-br from-blue-500 to-cyan-500 hover:shadow-lg hover:shadow-blue-200 text-white rounded-xl font-semibold transition-all"
             >
               Submit Another Report
             </button>
@@ -388,149 +469,128 @@ export default function DisasterReport() {
 
   // ─── Main Form ──────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50/80">
       <Navbar />
 
-      {/* Hero Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1580894894513-541e068a3e2b?w=1600&h=400&fit=crop&q=80"
-            alt=""
-            className="w-full h-full object-cover opacity-10"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-blue-900/80 to-slate-900/90" />
-        </div>
-        <div className="absolute top-0 right-[15%] w-72 h-72 bg-white/10 rounded-full blur-[100px]" />
+      <style>{`
+        @keyframes pulse-ring {
+          0% { transform: scale(0.8); opacity: 0.6; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+        .leaflet-container { border-radius: 12px; }
+      `}</style>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
-                  <WarningTriangleIcon className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-extrabold text-white">
-                    Emergency Incident Report
-                  </h1>
-                  <p className="text-slate-300 text-sm mt-0.5">
-                    Fill out this form to report a disaster. GPS coordinates are captured automatically.
-                  </p>
-                </div>
-              </div>
-              <a
-                href="/my-disaster-reports"
-                className="group flex-shrink-0 px-5 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/30 text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
-              >
-                <ClipboardListIcon className="w-4 h-4" />
-                Track My Reports
-                <ArrowRightIcon className="w-3.5 h-3.5 opacity-50 group-hover:translate-x-1 transition-transform" />
-              </a>
+      {/* Header */}
+      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 pt-8 pb-2">
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">Emergency Incident Report</h1>
+              <p className="text-gray-400 text-sm mt-1 max-w-lg">
+                Provide critical details to assist emergency response teams. Your timely report ensures rapid mobilization and resource allocation.
+              </p>
             </div>
-          </motion.div>
-        </div>
-
-        {/* Wave */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 40" fill="none" className="w-full" preserveAspectRatio="none">
-            <path d="M0 40L60 35C120 30 240 20 360 16.7C480 13.3 600 16.7 720 20C840 23.3 960 26.7 1080 25C1200 23.3 1320 16.7 1380 13.3L1440 10V40H0Z" fill="#f1f5f9"/>
-          </svg>
-        </div>
+            <a
+              href="/my-disaster-reports"
+              className="group flex-shrink-0 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2 shadow-sm"
+            >
+              <ClipboardListIcon className="w-4 h-4" />
+              Track My Reports
+              <ArrowRightIcon className="w-3.5 h-3.5 opacity-70 group-hover:translate-x-1 transition-transform" />
+            </a>
+          </div>
+        </motion.div>
       </div>
 
       {/* Form Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 py-6">
+        <div className="space-y-6">
 
-          {/* Left Column */}
-          <div className="lg:col-span-7 space-y-6">
-
-            {/* Incident Type */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
-            >
-              <SectionHeader num="01" title="Incident Type" required />
-              <div className="grid grid-cols-3 gap-3 mt-5">
-                {DISASTER_TYPES.map((d) => {
-                  const Icon = d.icon;
-                  const isActive = form.disasterType === d.value;
-                  return (
-                    <button
-                      key={d.value}
-                      onClick={() => set_("disasterType", d.value)}
-                      className={`relative flex flex-col items-center gap-2.5 p-4 rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5 ${
-                        isActive
-                          ? `${d.activeBg} ${d.activeBorder} shadow-md`
-                          : `bg-white ${d.border} hover:shadow-sm`
-                      }`}
-                    >
-                      <div className={`w-12 h-12 ${isActive ? d.activeBg : d.bg} rounded-xl flex items-center justify-center transition-colors`}>
-                        <Icon className={`w-6 h-6 ${isActive ? d.activeText : d.color}`} />
-                      </div>
-                      <span className={`text-sm font-semibold ${isActive ? d.activeText : 'text-gray-600'}`}>
-                        {d.label}
-                      </span>
-                      {isActive && (
-                        <motion.div
-                          layoutId="typeCheck"
-                          className="absolute top-2 right-2 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-200"
-                        >
-                          <CheckCircleIcon className={`w-4 h-4 ${d.activeText}`} />
-                        </motion.div>
-                      )}
-                    </button>
-                  );
-                })}
+          {/* Row 1: Incident Type */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+          >
+            <SectionHeader num="01" title="Incident Type" required />
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-5">
+              {DISASTER_TYPES.map((d) => {
+                const Icon = d.icon;
+                const isActive = form.disasterType === d.value;
+                return (
+                  <button
+                    key={d.value}
+                    onClick={() => set_("disasterType", d.value)}
+                    className={`relative flex flex-col items-center gap-2 p-3.5 rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5 ${
+                      isActive
+                        ? `${d.activeBg} ${d.activeBorder} shadow-md`
+                        : `bg-white ${d.border} hover:shadow-sm`
+                    }`}
+                  >
+                    <div className={`w-11 h-11 ${isActive ? d.activeBg : d.bg} rounded-xl flex items-center justify-center transition-colors`}>
+                      <Icon className={`w-5 h-5 ${isActive ? d.activeText : d.color}`} />
+                    </div>
+                    <span className={`text-xs font-semibold ${isActive ? d.activeText : 'text-gray-600'}`}>
+                      {d.label}
+                    </span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="typeCheck"
+                        className="absolute top-1.5 right-1.5 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-200"
+                      >
+                        <CheckCircleIcon className={`w-3.5 h-3.5 ${d.activeText}`} />
+                      </motion.div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {form.disasterType === "other" && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Specify Incident Type *
+                </label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition text-sm bg-gray-50"
+                  placeholder="e.g. Gas leak, Building collapse..."
+                  value={form.otherType}
+                  onChange={(e) => set_("otherType", e.target.value)}
+                  autoFocus
+                />
               </div>
-              {form.disasterType === "other" && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Specify Incident Type *
-                  </label>
-                  <input
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition text-sm bg-gray-50"
-                    placeholder="e.g. Gas leak, Building collapse..."
-                    value={form.otherType}
-                    onChange={(e) => set_("otherType", e.target.value)}
-                    autoFocus
-                  />
-                </div>
-              )}
-            </motion.div>
+            )}
+          </motion.div>
 
+          {/* Row 2: Severity + Description side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Severity */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
+              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
             >
-              <SectionHeader num="02" title="Severity Level" required />
-              <div className="grid grid-cols-4 gap-3 mt-5">
+              <SectionHeader num="02" title="Severity" required />
+              <div className="space-y-3 mt-5">
                 {SEVERITY.map((s) => {
                   const isActive = form.severity === s.value;
                   return (
                     <button
                       key={s.value}
                       onClick={() => set_("severity", s.value)}
-                      className={`relative py-3.5 px-2 rounded-xl border-2 text-sm font-bold tracking-wide transition-all duration-200 ${
+                      className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
                         isActive
-                          ? `${s.activeBg} ${s.activeBorder} ${s.color} shadow-md`
-                          : `bg-white ${s.border} text-gray-400 hover:text-gray-600 hover:shadow-sm`
+                          ? `${s.activeBg} ${s.activeBorder} ${s.color} shadow-sm`
+                          : `bg-white ${s.border} text-gray-500 hover:bg-gray-50`
                       }`}
                     >
-                      <div className="flex items-center justify-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${isActive ? s.dot : 'bg-gray-300'} transition-colors`} />
-                        {s.label}
-                      </div>
+                      <span className={`w-2.5 h-2.5 rounded-full ${isActive ? s.dot : 'bg-gray-300'} transition-colors flex-shrink-0`} />
+                      <span className={`w-1 h-6 rounded-full ${isActive ? s.dot : 'bg-gray-200'} transition-colors flex-shrink-0`} />
+                      {s.label}
+                      {isActive && (
+                        <CheckCircleIcon className={`w-4 h-4 ml-auto ${s.color}`} />
+                      )}
                     </button>
                   );
                 })}
@@ -542,133 +602,170 @@ export default function DisasterReport() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
+              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
             >
               <SectionHeader num="03" title="Description" required />
               <textarea
                 className="w-full mt-4 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition text-sm resize-none bg-gray-50"
-                placeholder="Describe the situation clearly — number of people affected, extent of damage, immediate dangers..."
+                placeholder="Detail the emergency, number of people involved, and any immediate hazards..."
                 value={form.description}
                 onChange={(e) => set_("description", e.target.value)}
-                rows={5}
+                rows={7}
               />
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-xs text-gray-300">Min 10 characters</p>
-                <p className={`text-xs font-medium ${form.description.length >= 10 ? 'text-emerald-500' : 'text-gray-400'}`}>
-                  {form.description.length} characters
-                </p>
+              <div className="flex items-center gap-2 mt-2">
+                <AlertCircleIcon className="w-3.5 h-3.5 text-gray-300" />
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Avoid abbreviations. Be specific about the scene.</p>
               </div>
             </motion.div>
           </div>
 
-          {/* Right Column */}
-          <div className="lg:col-span-5 space-y-6">
-
-            {/* Reporter Information */}
+          {/* Row 3: Location Capture + Evidence side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Location Capture with Map */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
+              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
             >
-              <SectionHeader num="04" title="Reporter Information" optional />
-              <div className="space-y-4 mt-5">
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                    <UserIcon className="w-4 h-4 text-gray-400" />
-                    Full Name
-                  </label>
-                  <input
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition text-sm bg-gray-50"
-                    placeholder="Enter your full name..."
-                    value={form.name}
-                    onChange={(e) => set_("name", e.target.value)}
+              <SectionHeader num="04" title="Location Capture" required />
+
+              {/* Map */}
+              <div className="mt-4 rounded-xl overflow-hidden border border-gray-200 relative" style={{ height: "260px" }}>
+                <MapContainer
+                  center={defaultCenter}
+                  zoom={defaultZoom}
+                  style={{ height: "100%", width: "100%", zIndex: 1 }}
+                  scrollWheelZoom={true}
+                  attributionControl={false}
+                >
+                  <TileLayer
+                    key={tileLayer}
+                    url={TILE_LAYERS[tileLayer].url}
                   />
+                  {markerPosition && (
+                    <>
+                      <DraggableMarker
+                        position={markerPosition}
+                        onPositionChange={handleMarkerDrag}
+                      />
+                      <FlyToPosition position={flyTarget} />
+                    </>
+                  )}
+                  <MapClickHandler onMapClick={handleMapClick} />
+                </MapContainer>
+
+                {/* Map Style Switcher */}
+                <div className="absolute top-2.5 left-2.5 z-[500]">
+                  <button
+                    onClick={() => setLayerMenuOpen(!layerMenuOpen)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-all text-xs font-medium text-gray-600"
+                  >
+                    <LayersIcon className="w-3.5 h-3.5" />
+                    Map Style
+                  </button>
+                  {layerMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute top-9 left-0 bg-white/98 backdrop-blur-sm rounded-xl border border-gray-200 shadow-xl py-1.5 min-w-[130px]"
+                    >
+                      {Object.entries(TILE_LAYERS).map(([key, layer]) => (
+                        <button
+                          key={key}
+                          onClick={() => { setTileLayer(key); setLayerMenuOpen(false); }}
+                          className={`w-full text-left px-3.5 py-1.5 text-xs font-medium transition-all ${
+                            tileLayer === key ? "bg-blue-50 text-blue-600 font-bold" : "text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {layer.name}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
                 </div>
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                    <PhoneIcon className="w-4 h-4 text-gray-400" />
-                    Contact Number
-                  </label>
-                  <input
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition text-sm bg-gray-50"
-                    placeholder="Enter your phone number..."
-                    value={form.contact}
-                    onChange={(e) => set_("contact", e.target.value)}
-                  />
-                </div>
+
+                {/* Coordinate overlay on map */}
+                {markerPosition && (
+                  <div className="absolute bottom-2 left-2 z-[500] bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-sm border border-gray-200">
+                    <span className="text-xs font-mono font-semibold text-blue-600">
+                      {markerPosition.lat.toFixed(4)}&deg; N, {markerPosition.lng.toFixed(4)}&deg; E
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Share Location Button */}
+              <button
+                onClick={handleShareLocation}
+                disabled={locationLoading}
+                className={`w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
+                  markerPosition
+                    ? "bg-emerald-50 border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                    : "bg-blue-50 border-2 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-300"
+                } ${locationLoading ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+              >
+                {locationLoading ? (
+                  <>
+                    <Spinner /> Detecting GPS Location...
+                  </>
+                ) : markerPosition ? (
+                  <>
+                    <CrosshairIcon className="w-4 h-4" />
+                    Recalibrate GPS Location
+                  </>
+                ) : (
+                  <>
+                    <CrosshairIcon className="w-4 h-4" />
+                    Share My Location
+                  </>
+                )}
+              </button>
+
+              {/* Location info */}
+              {markerPosition && (
+                <div className="mt-3 flex items-start gap-3 p-3 bg-blue-50/60 rounded-xl border border-blue-100">
+                  <MapPinIcon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-blue-700">Location Selected</p>
+                    <p className="text-xs text-blue-600 font-mono mt-0.5">
+                      {markerPosition.lat.toFixed(6)}&deg; N, {markerPosition.lng.toFixed(6)}&deg; E
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Drag the marker or click the map to adjust.</p>
+                  </div>
+                </div>
+              )}
+
+              {!markerPosition && !locationLoading && (
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  Click "Share My Location" or tap on the map to set incident location.
+                </p>
+              )}
+
+              {locationError && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-red-500 font-medium">
+                  <AlertCircleIcon className="w-3.5 h-3.5" />
+                  {locationError}
+                </div>
+              )}
             </motion.div>
 
-            {/* Location Capture */}
+            {/* Evidence Upload */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
+              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
             >
-              <SectionHeader num="05" title="Location Capture" />
-              <div
-                className={`mt-5 flex items-start gap-4 p-4 rounded-xl border-2 transition-all ${
-                  locationData
-                    ? "bg-emerald-50 border-emerald-300"
-                    : "bg-gray-50 border-gray-200"
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${locationData ? 'bg-emerald-100' : 'bg-blue-100'}`}>
-                  {locationData
-                    ? <MapPinIcon className="w-5 h-5 text-emerald-600" />
-                    : <SatelliteIcon className="w-5 h-5 text-blue-500" />
-                  }
-                </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  {locationData ? (
-                    <>
-                      <span className="text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
-                        <CheckCircleIcon className="w-4 h-4" />
-                        GPS Location Captured
-                      </span>
-                      <span className="text-sm text-gray-800 font-medium font-mono">
-                        {locationData.latitude.toFixed(6)},{" "}
-                        {locationData.longitude.toFixed(6)}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        Accuracy: {"\u00B1"}{locationData.accuracy.toFixed(0)} meters
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-sm font-semibold text-blue-600">
-                        Auto-capture on submit
-                      </span>
-                      <span className="text-xs text-gray-500 leading-relaxed">
-                        Your precise GPS coordinates will be automatically
-                        attached when you click Submit.
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </motion.div>
+              <SectionHeader num="05" title="Evidence" optional />
 
-            {/* Media Upload */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl border border-blue-100 shadow-lg p-6"
-            >
-              <SectionHeader num="06" title="Photo / Video Evidence" optional />
-              <p className="text-xs text-gray-400 mt-2 mb-4">
-                Images (JPEG, PNG, WebP — max 10MB) or videos (MP4, WebM, MOV — max 50MB)
-              </p>
-              <label className="group flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+              <label className="group flex flex-col items-center justify-center w-full h-40 mt-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all">
                 <div className="flex flex-col items-center">
-                  <div className="w-11 h-11 bg-gray-100 group-hover:bg-blue-100 rounded-xl flex items-center justify-center mb-2 transition-colors">
-                    <UploadIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  <div className="w-14 h-14 bg-gray-100 group-hover:bg-blue-100 rounded-2xl flex items-center justify-center mb-3 transition-colors">
+                    <CameraIcon className="w-6 h-6 text-gray-400 group-hover:text-blue-500 transition-colors" />
                   </div>
-                  <span className="text-sm font-medium text-gray-500">Click to add photos or videos</span>
-                  <span className="text-xs text-gray-300 mt-0.5">Up to 5 files</span>
+                  <span className="text-sm font-semibold text-gray-600">Upload Photo or Video</span>
+                  <span className="text-xs text-gray-400 mt-1">Max size 50MB. Drag and drop files here.</span>
                 </div>
                 <input
                   type="file"
@@ -682,144 +779,153 @@ export default function DisasterReport() {
                   }}
                 />
               </label>
-              {mediaFiles.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {mediaFiles.map((file, i) => {
-                    const isVideo = file.type.startsWith("video/");
-                    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-                    return (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        {isVideo ? (
-                          <div className="w-11 h-11 bg-sky-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileVideoIcon className="w-5 h-5 text-sky-500" />
-                          </div>
-                        ) : (
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt=""
-                            className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
-                          <p className="text-xs text-gray-400">{sizeMB} MB · {isVideo ? "Video" : "Image"}</p>
+
+              {/* File previews grid */}
+              <div className="grid grid-cols-4 gap-2 mt-4">
+                {mediaFiles.map((file, i) => {
+                  const isVideo = file.type.startsWith("video/");
+                  return (
+                    <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                      {isVideo ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FileVideoIcon className="w-6 h-6 text-sky-500" />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setMediaFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                          className="w-7 h-7 bg-gray-100 hover:bg-red-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <XIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
-
-            {/* Report Preview */}
-            {(form.disasterType || form.severity) && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-indigo-50 via-blue-50 to-slate-50 border border-indigo-200 rounded-2xl p-5 shadow-sm"
-              >
-                <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-3">
-                  Report Preview
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {selType && (
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                        typeStyles[selType.value]
-                      }`}
-                    >
-                      <selType.icon className="w-3.5 h-3.5" />
-                      {selType.label}
-                    </span>
-                  )}
-                  {form.severity && (
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        severityStyles[form.severity]
-                      }`}
-                    >
-                      {form.severity}
-                    </span>
-                  )}
-                  {form.name && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                      <UserIcon className="w-3 h-3" />
-                      {form.name}
-                    </span>
-                  )}
-                  {mediaFiles.length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-600 border border-sky-200">
-                      <UploadIcon className="w-3 h-3" />
-                      {mediaFiles.length} file{mediaFiles.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Error */}
-            {errorMsg && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-                <AlertCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-600 font-medium">{errorMsg}</p>
+                      ) : (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setMediaFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/50 hover:bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                {mediaFiles.length < 5 && mediaFiles.length > 0 && (
+                  <label className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all">
+                    <span className="text-2xl text-gray-300 font-light">+</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setMediaFiles((prev) => [...prev, ...files].slice(0, 5));
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
               </div>
-            )}
+            </motion.div>
+          </div>
 
-            {/* Submit Button */}
-            <button
-              onClick={handleSubmit}
-              disabled={status !== "idle" && status !== "error"}
-              className={`w-full py-4 rounded-xl font-bold text-base transition-all duration-200 flex items-center justify-center gap-3 ${
-                status === "idle" || status === "error"
-                  ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-200 cursor-pointer"
-                  : "bg-slate-300 text-slate-500 cursor-not-allowed"
-              }`}
-            >
-              {status === "idle" && (
-                <>
-                  <SendIcon className="w-5 h-5" />
-                  Submit Emergency Report
-                </>
-              )}
-              {status === "locating" && (
-                <>
-                  <Spinner /> Acquiring GPS Location...
-                </>
-              )}
-              {status === "sending" && (
-                <>
-                  <Spinner /> Transmitting to Command...
-                </>
-              )}
-              {status === "uploading" && (
-                <>
-                  <Spinner /> Uploading media {uploadProgress || ""}...
-                </>
-              )}
-              {status === "error" && (
-                <>
-                  <AlertCircleIcon className="w-5 h-5" />
-                  Submission Failed — Try Again
-                </>
-              )}
-            </button>
+          {/* Row 4: Reporter Details */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+          >
+            <SectionHeader num="06" title="Reporter Details" optional />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition text-sm bg-gray-50"
+                  placeholder="Enter your name"
+                  value={form.name}
+                  onChange={(e) => set_("name", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Number</label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-3.5 py-3 rounded-l-xl border border-r-0 border-gray-200 bg-gray-100 text-sm font-semibold text-gray-600 select-none">
+                    +977
+                  </span>
+                  <input
+                    className="w-full px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition text-sm bg-gray-50"
+                    placeholder="98XXXXXXXX"
+                    value={form.contact}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+                      set_("contact", val);
+                    }}
+                    maxLength={10}
+                    inputMode="numeric"
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
-            {/* Legal Disclaimer */}
-            <div className="flex items-start gap-2.5 px-1">
-              <ShieldIcon className="w-4 h-4 text-gray-300 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Submitting false emergency reports is a criminal offence under
-                Nepal law. Only submit genuine emergencies.
-              </p>
+          {/* Footer: Secure notice + buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 pb-8">
+            <div className="flex items-center gap-2">
+              <ShieldIcon className="w-4 h-4 text-emerald-500" />
+              <div>
+                <p className="text-xs font-semibold text-gray-700">Secure Submission</p>
+                <p className="text-xs text-gray-400">Your data is encrypted and sent directly to emergency dispatch.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={reset}
+                className="px-6 py-3 text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={status !== "idle" && status !== "error"}
+                className={`px-8 py-3 rounded-xl font-bold text-sm transition-all duration-200 flex items-center gap-2 ${
+                  status === "idle" || status === "error"
+                    ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-200 cursor-pointer"
+                    : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                }`}
+              >
+                {status === "idle" && (
+                  <>
+                    <SendIcon className="w-4 h-4" />
+                    Submit Critical Report
+                  </>
+                )}
+                {status === "sending" && (
+                  <>
+                    <Spinner /> Transmitting...
+                  </>
+                )}
+                {status === "uploading" && (
+                  <>
+                    <Spinner /> Uploading media {uploadProgress || ""}...
+                  </>
+                )}
+                {status === "error" && (
+                  <>
+                    <AlertCircleIcon className="w-4 h-4" />
+                    Try Again
+                  </>
+                )}
+              </button>
             </div>
           </div>
+
+          {/* Error */}
+          {errorMsg && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 -mt-4 mb-4">
+              <AlertCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-600 font-medium">{errorMsg}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -830,9 +936,7 @@ export default function DisasterReport() {
 function SectionHeader({ num, title, required, optional }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm">
-        {num}
-      </span>
+      <span className="text-blue-500 text-sm font-bold">{num}</span>
       <h3 className="text-base font-bold text-gray-900">
         {title}
         {required && <span className="text-red-500 ml-1">*</span>}
@@ -860,7 +964,7 @@ function Row({ label, value, valueClass = "", icon }) {
 function Spinner() {
   return (
     <svg
-      className="animate-spin h-5 w-5 text-current"
+      className="animate-spin h-4 w-4 text-current"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
