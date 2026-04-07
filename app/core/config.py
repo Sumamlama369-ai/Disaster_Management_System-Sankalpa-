@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    SESSION_EXPIRE_MINUTES: int = 60
+    SESSION_COOKIE_NAME: str = "session_id"
     
     # Google OAuth
     GOOGLE_CLIENT_ID: str

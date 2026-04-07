@@ -8,7 +8,7 @@ from app.api.v1.endpoints import auth, users, drone_permit, disaster, video, dis
 from app.database.database import engine, Base
 
 # Import models for table creation
-from app.models import user, otp, drone_permit as drone_permit_models, disaster as disaster_models, video as video_models, disaster_reports as disaster_reports_models
+from app.models import user, otp, drone_permit as drone_permit_models, disaster as disaster_models, video as video_models, disaster_reports as disaster_reports_models, session as session_models
 
 # Try to import org_code if it exists, otherwise skip
 try:

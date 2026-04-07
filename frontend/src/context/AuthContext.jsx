@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/auth';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -8,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
 
-  // Load user from localStorage on mount
+  // Load user from localStorage on mount, then verify session is still valid
   useEffect(() => {
     const storedToken = localStorage.getItem('access_token');
     const storedUser = localStorage.getItem('user');
@@ -16,8 +17,28 @@ export const AuthProvider = ({ children }) => {
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
+
+      // Verify session cookie is still valid with the server
+      api.get('/auth/session-check')
+        .then((res) => {
+          if (res.data.valid) {
+            // Update user data from server (in case it changed)
+            const serverUser = res.data.user;
+            localStorage.setItem('user', JSON.stringify(serverUser));
+            setUser(serverUser);
+          }
+        })
+        .catch(() => {
+          // Session expired on server — clear local state and redirect
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   // Login function
@@ -28,8 +49,13 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
-  // Logout function
-  const logout = () => {
+  // Logout function — calls server to destroy session + clear cookie
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      // Even if server call fails, clear local state
+    }
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     setToken(null);
