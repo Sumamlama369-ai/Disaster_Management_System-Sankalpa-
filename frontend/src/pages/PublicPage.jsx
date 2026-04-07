@@ -576,7 +576,7 @@ export default function PublicPage() {
             transition={{ duration: 0.5 }}
             className="px-8 lg:px-12 py-5 flex items-center justify-between"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ml-10 lg:ml-19.5">
               <img src="/src/logo/FYP_Logo.png" alt="Sankalpa Logo" className="w-18 h-20 rounded-lg object-contain" />
               <div>
                 <span className="text-slate-800 font-bold text-sm tracking-wide"></span>
