@@ -381,87 +381,212 @@ export default function DisasterReport() {
   // ─── Success Screen ─────────────────────────────────────────
   if (status === "success") {
     return (
-      <div className="min-h-screen bg-gray-50/80">
+      <div className="min-h-screen bg-white">
         <Navbar />
-        <div className="max-w-xl mx-auto px-4 py-16">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-10 text-center"
-          >
-            <div className="relative w-20 h-20 mx-auto mb-6">
-              <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-20" />
-              <div className="relative z-10 w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200">
-                <CheckCircleIcon className="w-10 h-10 text-white" />
+
+        {/* ── Centered Success Banner ──────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center pt-10 pb-8 border-b border-gray-100"
+        >
+          <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-200">
+            <CheckCircleIcon className="w-7 h-7 text-white" />
+          </div>
+          <h1 className="text-2xl lg:text-3xl font-extrabold text-gray-900 mb-2">Report Submitted Successfully</h1>
+          <p className="text-gray-400 text-sm max-w-md mx-auto leading-relaxed">
+            Your incident data has been logged with local authorities. We are monitoring
+            the situation in your coordinates in real-time.
+          </p>
+        </motion.div>
+
+        {/* ── Main Content ─────────────────────────────────── */}
+        <div className="max-w-[1920px] mx-auto px-6 lg:px-10 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* ── Left Column ─────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="lg:col-span-2 space-y-6"
+            >
+              {/* Report Details Card */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                  <h2 className="text-base font-bold text-gray-900">Report Details</h2>
+                  <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">REF: #{reportId}</span>
+                </div>
+
+                <div className="p-6">
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 mb-6">
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Report ID</p>
+                      <p className="text-sm font-semibold text-gray-800">#{reportId}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Incident Type</p>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const dtype = DISASTER_TYPES.find(d => d.value === form.disasterType);
+                          if (dtype) {
+                            const Icon = dtype.icon;
+                            return <Icon className={`w-4 h-4 ${dtype.color}`} />;
+                          }
+                          return null;
+                        })()}
+                        <p className="text-sm font-semibold text-gray-800">
+                          {form.disasterType === "other"
+                            ? form.otherType
+                            : form.disasterType.charAt(0).toUpperCase() + form.disasterType.slice(1)}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Severity</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${
+                          form.severity === "CRITICAL" ? "bg-red-500"
+                          : form.severity === "HIGH" ? "bg-orange-500"
+                          : form.severity === "MEDIUM" ? "bg-yellow-500"
+                          : "bg-blue-500"
+                        }`} />
+                        <p className={`text-sm font-bold ${
+                          form.severity === "CRITICAL" ? "text-red-600"
+                          : form.severity === "HIGH" ? "text-orange-600"
+                          : form.severity === "MEDIUM" ? "text-yellow-600"
+                          : "text-blue-600"
+                        }`}>{form.severity}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Coordinates</p>
+                      <p className="text-sm font-semibold text-gray-800 font-mono">
+                        {markerPosition?.lat.toFixed(4)}&deg; N, {markerPosition?.lng.toFixed(4)}&deg; W
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Map Preview */}
+                  {markerPosition && (
+                    <div className="rounded-xl overflow-hidden border border-gray-200 h-52">
+                      <MapContainer
+                        center={[markerPosition.lat, markerPosition.lng]}
+                        zoom={14}
+                        scrollWheelZoom={false}
+                        dragging={false}
+                        zoomControl={false}
+                        attributionControl={false}
+                        className="w-full h-full"
+                      >
+                        <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+                        <Marker
+                          position={[markerPosition.lat, markerPosition.lng]}
+                          icon={createLocationIcon()}
+                        />
+                      </MapContainer>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">
-              Report Submitted Successfully
-            </h2>
-            <p className="text-gray-500 mb-8">
-              Your emergency report has been transmitted to the command center.
-              Response teams have been notified.
-            </p>
+              {/* Safety Reminder Card */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <ShieldIcon className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">Safety Reminder</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Avoid moving water. High waters can be deceptive and hide dangerous debris or
+                    structural failures. If power lines are down, treat them as live and stay at least 35 feet away.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
 
-            <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-100 text-left mb-8">
-              <Row label="Report ID" value={`#${reportId}`} />
-              <Row
-                label="Incident Type"
-                value={
-                  form.disasterType === "other"
-                    ? form.otherType
-                    : form.disasterType.charAt(0).toUpperCase() +
-                      form.disasterType.slice(1)
-                }
-              />
-              <Row
-                label="Severity"
-                value={form.severity}
-                valueClass={
-                  form.severity === "CRITICAL"
-                    ? "text-red-600"
-                    : form.severity === "HIGH"
-                    ? "text-orange-600"
-                    : "text-emerald-600"
-                }
-              />
-              <Row
-                label="Coordinates"
-                value={`${markerPosition?.lat.toFixed(6)}, ${markerPosition?.lng.toFixed(6)}`}
-                valueClass="text-blue-600 text-sm"
-              />
-              <Row
-                label="Status"
-                icon={<ClockIcon className="w-3.5 h-3.5 text-amber-500" />}
-                value="Pending Response"
-                valueClass="text-amber-600"
-              />
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-left mb-8">
-              <ShieldIcon className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-700">
-                Stay calm and move to a safe location. Do not return to the
-                affected area until cleared by authorities.
-              </p>
-            </div>
-
-            <button
-              onClick={reset}
-              className="w-full px-8 py-3.5 bg-gradient-to-br from-blue-500 to-cyan-500 hover:shadow-lg hover:shadow-blue-200 text-white rounded-xl font-semibold transition-all"
+            {/* ── Right Column ────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-6"
             >
-              Submit Another Report
-            </button>
-            <a
-              href="/my-disaster-reports"
-              className="group flex items-center justify-center gap-2 mt-3 px-8 py-3.5 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all text-center"
-            >
-              <ClipboardListIcon className="w-4.5 h-4.5" />
-              Track My Reports
-              <ArrowRightIcon className="w-3.5 h-3.5 opacity-50 group-hover:translate-x-1 transition-transform" />
-            </a>
-          </motion.div>
+              {/* What Happens Next */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h3 className="text-base font-bold text-gray-900">What Happens Next</h3>
+                </div>
+                <div className="p-6 space-y-5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[11px] font-bold text-white">1</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Report Review</p>
+                      <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">Authorities are validating the data against current satellite feeds.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[11px] font-bold text-white">2</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Team Dispatch</p>
+                      <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">If verified, a response unit will be assigned to your sector.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[11px] font-bold text-white">3</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Live Updates</p>
+                      <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">You will receive SMS alerts for status changes in your area.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={reset}
+                  className="w-full px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <SendIcon className="w-4 h-4" />
+                  Submit Another Report
+                </button>
+                <a
+                  href="/my-disaster-reports"
+                  className="group w-full flex items-center justify-center gap-2 px-5 py-3.5 border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:border-gray-300 hover:bg-gray-50 transition-all"
+                >
+                  <ClipboardListIcon className="w-4 h-4 text-gray-500" />
+                  Track My Reports
+                </a>
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="bg-gray-900 rounded-2xl p-6 text-white">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircleIcon className="w-4 h-4 text-red-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-red-400">Need Immediate Help?</h3>
+                </div>
+                <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                  If you are in immediate danger and cannot wait for report processing, use the emergency channels below.
+                </p>
+                <a href="tel:911" className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-sm transition-all">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  Call 911
+                </a>
+              </div>
+            </motion.div>
+
+          </div>
         </div>
       </div>
     );
@@ -787,9 +912,15 @@ export default function DisasterReport() {
                   return (
                     <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                       {isVideo ? (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <FileVideoIcon className="w-6 h-6 text-sky-500" />
-                        </div>
+                        <video
+                          src={URL.createObjectURL(file)}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                          playsInline
+                          onMouseEnter={(e) => e.target.play()}
+                          onMouseLeave={(e) => { e.target.pause(); e.target.currentTime = 0; }}
+                        />
                       ) : (
                         <img
                           src={URL.createObjectURL(file)}

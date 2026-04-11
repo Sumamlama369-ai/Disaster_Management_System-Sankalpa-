@@ -8,6 +8,7 @@ The testing strategy for the Sankalpa Disaster Management System is structured i
 
 Unit testing focuses on validating individual backend components, APIs, and service-level logic in isolation using the FastAPI Swagger interface (`/docs`).
 
+
 ### 1.1 Core Application and Environment Unit Tests
 
 #### 1.1.1 UT-01 -- Root Endpoint Validation
@@ -39,6 +40,8 @@ Validate that CORS middleware allows requests from configured origins (`http://l
 Verify that background tasks (Reddit data fetching) start only when `ENABLE_REDDIT_FETCHING` is set to `True` in settings, and remain stopped when set to `False`.
 
 ---
+
+
 
 ### 1.2 Authentication and OTP Unit Tests
 
@@ -82,7 +85,7 @@ Ensure that requesting OTP resend for a non-existent email returns an appropriat
 
 Ensure a verified user can log in via `POST /api/v1/auth/login` and receive an access token directly in the `LoginResponse`.
 
-#### 1.2.11 UT-18 -- Login (Unverified User)
+#### 1.2.11 UT-18 -- Login (Unverified User) 
 
 Verify the system returns a `needs_verification` flag for users who have not yet completed OTP verification.
 
@@ -103,6 +106,8 @@ Verify that session check with an expired or invalid token returns an unauthoriz
 Validate that `GET /api/v1/auth/check-email/{email}` correctly reports whether an email is already registered in the system.
 
 ---
+
+
 
 ### 1.3 User Profile and Admin User Management Unit Tests
 
@@ -152,6 +157,9 @@ Verify `GET /api/v1/users/admin/stats` returns accurate counts and breakdowns of
 
 ---
 
+
+
+
 ### 1.4 Drone Permit Unit Tests
 
 #### 1.4.1 UT-34 -- Permit Submission (Valid Data)
@@ -195,6 +203,9 @@ Verify `GET /api/v1/permits/download/{permit_id}` returns the permit package wit
 Ensure citizens cannot access the permit review endpoint, receiving an authorization error.
 
 ---
+
+
+
 
 ### 1.5 Disaster Reporting Unit Tests
 
@@ -256,6 +267,9 @@ Verify that citizens cannot access or modify other users' reports, ensuring prop
 
 ---
 
+
+
+
 ### 1.6 Drone Deployment Unit Tests
 
 #### 1.6.1 UT-58 -- Deploy Drone (Valid Request)
@@ -275,6 +289,10 @@ Verify `GET /api/v1/disaster-reports/drones/active` returns the list of currentl
 Ensure only officers and admins can deploy drones; citizens should receive a forbidden response.
 
 ---
+
+
+
+
 
 ### 1.7 Video Analysis Unit Tests
 
@@ -316,6 +334,10 @@ Verify that requesting analysis for a non-existent video ID returns a proper 404
 
 ---
 
+
+
+
+
 ### 1.8 Realtime Detection and WebSocket Unit Tests
 
 #### 1.8.1 UT-71 -- WebSocket Connection (Valid Token)
@@ -348,6 +370,10 @@ Validate that the disaster dashboard live WebSocket (`WS /api/v1/disasters/dashb
 
 ---
 
+
+
+
+
 ### 1.9 SMS Alert Unit Tests
 
 #### 1.9.1 UT-78 -- Send Single SMS
@@ -376,6 +402,9 @@ Verify that only officers and admins can access SMS sending endpoints; citizens 
 
 ---
 
+
+
+
 ### 1.10 Weather Intelligence Unit Tests
 
 #### 1.10.1 UT-84 -- AI Advisory Request
@@ -399,6 +428,10 @@ Verify that requesting a weather report for an invalid or non-existent location 
 Validate that the `build_prompt()` function correctly constructs the LLM prompt with all required weather parameters, location data, and context for accurate advisory generation.
 
 ---
+
+
+
+
 
 ### 1.11 Disaster Dashboard Analytics Unit Tests
 
@@ -431,6 +464,10 @@ Validate `GET /api/v1/disasters/dashboard/timeline` returns chronological disast
 Verify `GET /api/v1/disasters/system/status` returns the current operational status of all system components.
 
 ---
+
+
+
+
 
 ### 1.12 Background Service Unit Tests
 
@@ -468,7 +505,13 @@ Validate the session service (`session_service.py`) correctly creates, validates
 
 ---
 
-## 2. System Testing
+
+
+
+
+
+
+## 2. System Testing\\\\\\\\\\\
 
 System testing validates the complete integrated application using frontend workflows, ensuring all components work together seamlessly from the user's perspective.
 
@@ -508,6 +551,9 @@ Verify that when an access token expires, the Axios interceptor catches the 401 
 
 ---
 
+
+
+
 ### 2.2 Citizen Workflow System Tests
 
 #### 2.2.1 ST-09 -- Citizen Dashboard Load
@@ -544,6 +590,9 @@ Verify that weather data is correctly displayed on the citizen dashboard with cu
 
 ---
 
+
+
+
 ### 2.3 Officer Workflow System Tests
 
 #### 2.3.1 ST-17 -- Officer Dashboard Access
@@ -578,7 +627,18 @@ Ensure officers can compose and send disaster alert SMS messages to affected cit
 
 Verify officers can deploy drones to disaster locations from the command center, specifying mission parameters and viewing active drone positions.
 
+#### 2.3.9 ST-40 -- Officer Navigation Active State Theme Color
+
+Verify that the officer role navigation bar in `Navbar.jsx` uses sky blue (`sky-500`) as the active/clicked page indicator color, consistent with the citizen role's blue navigation theme, instead of the previous green/emerald color. Confirm the active state applies correctly on both desktop and mobile navigation for all officer route links.
+
+#### 2.3.10 ST-41 -- Permit Review Page SVG Icons
+
+Verify that all UI elements on `PermitReview.jsx` use inline SVG icons instead of emoji characters. This includes: page header icon, stats card icons (pending reviews, urgent, unique applicants), permit status badges (pending, urgent), action buttons (view details, download, approve, reject), detail modal section headers (drone specs, operator info, address, documents), document viewer buttons, review modal icons (approve/reject header, warning notice, confirm buttons), and the empty state illustration. Ensure all SVG icons render correctly across browsers and maintain proper alignment, sizing, and color theming.
+
 ---
+
+
+
 
 ### 2.4 Admin Workflow System Tests
 
@@ -611,6 +671,10 @@ Ensure `NoFlyZone.jsx` allows admins to view, create, and manage no-fly zones on
 Verify admins have full oversight of all drone permits across all statuses with the ability to override officer decisions when necessary.
 
 ---
+
+
+
+
 
 ### 2.5 Cross-System Integration Tests
 
@@ -648,7 +712,16 @@ Validate that multiple simultaneous users can interact with the system (submitti
 
 ---
 
-## 3. IoT Testing (Firebase / Realtime Communication)
+
+
+
+
+
+
+
+
+
+## 3. IoT Testing (Firebase / Realtime Communication)\\\\\\\\\\
 
 This section validates real-time communication, notification mechanisms, and IoT data synchronization using Firebase Realtime Database and WebSocket connections.
 
@@ -667,6 +740,9 @@ Ensure `getDatabase(app)` returns a valid database reference and the app can rea
 Validate that Firebase security rules correctly restrict read/write access based on authentication state, preventing unauthorized data manipulation.
 
 ---
+
+
+
 
 ### 3.2 Realtime Data Synchronization Tests
 
@@ -692,6 +768,9 @@ Ensure that concurrent writes to the same Firebase path from multiple clients re
 
 ---
 
+
+
+
 ### 3.3 WebSocket Communication Tests
 
 #### 3.3.1 IT-09 -- WebSocket Connection Establishment
@@ -715,6 +794,9 @@ Verify that clients only receive notifications for channels they have subscribed
 Ensure WebSocket connections are properly closed when components unmount or when the `enabled` option is set to `false`, preventing memory leaks.
 
 ---
+
+
+
 
 ### 3.4 Notification System Tests
 
@@ -744,6 +826,9 @@ Validate that notifications are delivered to all connected clients simultaneousl
 
 ---
 
+
+
+
 ### 3.5 SMS Integration Tests
 
 #### 3.5.1 IT-20 -- SMS Delivery on Status Change
@@ -760,7 +845,10 @@ Validate that SMS delivery failures (invalid numbers, service unavailable) are h
 
 ---
 
-## 4. Drone Features Testing
+
+
+
+## 4. Drone Features Testing\\\\\\\\\
 
 This section validates drone-specific functionalities including permit workflows, visualization, no-fly zone enforcement, and deployment operations.
 
@@ -783,6 +871,10 @@ Ensure permits follow the correct status flow (submitted -> under_review -> appr
 Validate that approved permits have an expiration mechanism and that expired permits are correctly flagged in the system.
 
 ---
+
+
+
+
 
 ### 4.2 Drone Visualization Tests
 
@@ -832,6 +924,9 @@ Validate that temporary no-fly zones (e.g., during active disaster response) are
 
 ---
 
+
+
+
 ### 4.4 Drone Deployment Tests
 
 #### 4.4.1 DT-15 -- Drone Deployment from Disaster Report
@@ -856,6 +951,9 @@ Validate that deployed drone video feeds can be accessed through the `LiveSurvei
 
 ---
 
+
+////
+
 ### 4.5 Drone Data and Analytics Tests
 
 #### 4.5.1 DT-20 -- Drone Deployment History
@@ -872,15 +970,18 @@ Ensure drone-captured images and videos are processed through the YOLO detection
 
 ---
 
+
+
+
 ## 5. Test Summary Table
 
 | Testing Category          | Test ID Range  | Total Tests | Key Focus Areas                                        |
 |---------------------------|----------------|-------------|--------------------------------------------------------|
 | Unit Testing              | UT-01 to UT-103| 103         | API endpoints, services, authentication, data validation|
-| System Testing            | ST-01 to ST-39 | 39          | End-to-end workflows, UI integration, cross-system ops |
+| System Testing            | ST-01 to ST-41 | 41          | End-to-end workflows, UI integration, cross-system ops |
 | IoT / Firebase Testing    | IT-01 to IT-22 | 22          | Realtime sync, WebSocket, notifications, SMS           |
 | Drone Features Testing    | DT-01 to DT-22 | 22          | Permits, visualization, no-fly zones, deployment       |
-| **Total**                 |                | **186**     |                                                        |
+| **Total**                 |                | **188**     |                                                        |
 
 ---
 

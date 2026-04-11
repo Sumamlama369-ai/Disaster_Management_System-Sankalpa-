@@ -15,15 +15,15 @@ import useWebSocket from '../hooks/useWebSocket';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const SEV_COLOR = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#059669' };
-const SEV_BG = { CRITICAL: '#fee2e2', HIGH: '#fff7ed', MEDIUM: '#fffbeb', LOW: '#ecfdf5' };
+const SEV_COLOR = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#0284c7' };
+const SEV_BG = { CRITICAL: '#fee2e2', HIGH: '#fff7ed', MEDIUM: '#fffbeb', LOW: '#e0f2fe' };
 
 const STATUS_CONFIG = {
   PENDING:    { label: 'Pending',    color: '#d97706', dot: 'bg-amber-400',   bg: 'bg-amber-50 text-amber-700 border-amber-200' },
   REVIEWING:  { label: 'Reviewing',  color: '#2563eb', dot: 'bg-blue-400',    bg: 'bg-blue-50 text-blue-700 border-blue-200' },
-  DISPATCHED: { label: 'Dispatched', color: '#7c3aed', dot: 'bg-violet-400',  bg: 'bg-violet-50 text-violet-700 border-violet-200' },
+  DISPATCHED: { label: 'Dispatched', color: '#0891b2', dot: 'bg-cyan-400',    bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
   RESCUING:   { label: 'Rescuing',   color: '#ea580c', dot: 'bg-orange-400',  bg: 'bg-orange-50 text-orange-700 border-orange-200' },
-  RESOLVED:   { label: 'Resolved',   color: '#059669', dot: 'bg-emerald-400', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  RESOLVED:   { label: 'Resolved',   color: '#0369a1', dot: 'bg-sky-500',     bg: 'bg-sky-50 text-sky-700 border-sky-200' },
   REJECTED:   { label: 'Rejected',   color: '#dc2626', dot: 'bg-red-400',     bg: 'bg-red-50 text-red-700 border-red-200' },
 };
 
@@ -222,12 +222,12 @@ export default function CommandCenter() {
   const clockStr = clock.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-sky-50 via-blue-50/40 to-sky-100/60">
       <Navbar />
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { fontSize: '14px' } }} />
 
       {/* Header + Stats */}
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white shadow-lg flex-shrink-0">
+      <div className="bg-gradient-to-r from-sky-700 via-sky-600 to-cyan-600 text-white shadow-lg flex-shrink-0">
         <div className="max-w-[1920px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -245,7 +245,7 @@ export default function CommandCenter() {
                   { val: statistics.totalReports, label: 'Total', cls: '' },
                   { val: statistics.criticalReports, label: 'Critical', cls: 'text-red-200' },
                   { val: statistics.pendingReports, label: 'Pending', cls: 'text-amber-200' },
-                  { val: statistics.resolvedReports, label: 'Resolved', cls: 'text-green-200' },
+                  { val: statistics.resolvedReports, label: 'Resolved', cls: 'text-sky-200' },
                 ].map(s => (
                   <div key={s.label} className="text-center">
                     <div className={`text-2xl font-bold ${s.cls}`}>{s.val}</div>
@@ -255,13 +255,13 @@ export default function CommandCenter() {
               </div>
               <div className="h-10 w-px bg-white/20" />
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg">
-                <span className={`w-2.5 h-2.5 rounded-full ${drone ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                <span className={`w-2.5 h-2.5 rounded-full ${drone ? 'bg-cyan-300 animate-pulse shadow-[0_0_6px_rgba(103,232,249,0.8)]' : 'bg-gray-400'}`} />
                 <span className="text-sm font-semibold">{drone ? 'Drone Online' : 'Drone Offline'}</span>
               </div>
               <div className="h-10 w-px bg-white/20" />
               <div className="text-right">
                 <div className="flex items-center gap-1.5 text-[10px] text-white/40 uppercase tracking-wider font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-pulse" />
                   Live
                 </div>
                 <div className="text-lg font-bold font-mono tabular-nums">{clockStr}</div>
@@ -287,7 +287,7 @@ export default function CommandCenter() {
                 <h2 className="text-lg font-bold text-gray-800">Active Reports</h2>
                 <p className="text-sm text-gray-500">{filteredReports.length} incidents found</p>
               </div>
-              <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-bold border border-emerald-200">{reports.length}</span>
+              <span className="px-3 py-1 bg-sky-50 text-sky-700 rounded-full text-sm font-bold border border-sky-200">{reports.length}</span>
             </div>
 
             {/* Severity filter */}
@@ -296,8 +296,8 @@ export default function CommandCenter() {
                 <button key={sev} onClick={() => setFilterSeverity(sev)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                     filterSeverity === sev
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-sky-500 to-cyan-600 text-white shadow-md shadow-sky-200'
+                      : 'bg-sky-50/60 text-slate-500 hover:bg-sky-100'
                   }`}
                 >
                   {sev === 'ALL' ? 'All' : sev}
@@ -321,10 +321,10 @@ export default function CommandCenter() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.03 }}
                       onClick={() => navigateToReport(r)}
-                      className={`relative p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-50/30 hover:-translate-y-[1px] hover:shadow-md ${
+                      className={`relative p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:border-sky-300 hover:bg-sky-50/40 hover:-translate-y-[1px] hover:shadow-md ${
                         selectedReport?.id === r.id
-                          ? 'border-emerald-400 bg-emerald-50 shadow-lg ring-2 ring-emerald-200'
-                          : 'border-gray-200 bg-gray-50/50'
+                          ? 'border-sky-400 bg-sky-50 shadow-lg ring-2 ring-sky-200'
+                          : 'border-slate-200 bg-white'
                       }`}
                     >
                       <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
@@ -365,7 +365,7 @@ export default function CommandCenter() {
                           r.severity === 'CRITICAL' ? 'bg-red-50 text-red-600 border-red-200' :
                           r.severity === 'HIGH' ? 'bg-orange-50 text-orange-600 border-orange-200' :
                           r.severity === 'MEDIUM' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
-                          'bg-green-50 text-green-600 border-green-200'
+                          'bg-sky-50 text-sky-600 border-sky-200'
                         }`}>{r.severity}</span>
                       </div>
                     </motion.div>
@@ -384,7 +384,7 @@ export default function CommandCenter() {
           >
             <div className="flex justify-between items-center px-5 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200 flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+                <div className="w-9 h-9 bg-gradient-to-br from-sky-500 to-cyan-600 rounded-lg flex items-center justify-center shadow-sm shadow-sky-200">
                   <CommandIcon className="w-4.5 h-4.5 text-white" />
                 </div>
                 <div>
@@ -480,7 +480,7 @@ export default function CommandCenter() {
                   {Object.entries(TILE_LAYERS).map(([key, layer]) => (
                     <button key={key} onClick={() => { setTileKey(key); setTileMenuOpen(false); }}
                       className={`w-full text-left px-4 py-2 text-xs font-medium transition-all ${
-                        tileKey === key ? 'bg-emerald-50 text-emerald-600 font-bold' : 'text-gray-600 hover:bg-gray-50'
+                        tileKey === key ? 'bg-sky-50 text-sky-600 font-bold' : 'text-gray-600 hover:bg-gray-50'
                       }`}>
                       {layer.name}
                     </button>
@@ -512,28 +512,29 @@ export default function CommandCenter() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 30 }}
               transition={{ duration: 0.3 }}
-              className="mt-4 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+              className="mt-4 bg-white rounded-2xl shadow-xl shadow-sky-200/40 border border-sky-100 overflow-hidden"
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <div className="relative flex items-center justify-between px-6 py-5 bg-gradient-to-r from-sky-700 via-sky-600 to-cyan-600 text-white overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_60%)] pointer-events-none" />
+                <div className="relative flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center ring-1 ring-white/25 shadow-lg shadow-sky-900/20">
                     <DisasterTypeIcon type={selectedReport.metadata?.disaster_type} className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold capitalize">
+                    <h2 className="text-xl font-extrabold capitalize tracking-tight drop-shadow-sm">
                       {capitalize(selectedReport.metadata?.disaster_type || 'Unknown')} &mdash; Report #{selectedReport.id}
                     </h2>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs font-bold px-3 py-1 rounded-lg"
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider"
                         style={{
-                          background: SEV_COLOR[selectedReport.severity] + '30',
+                          background: SEV_COLOR[selectedReport.severity] + '35',
                           color: '#fff',
-                          border: `1px solid ${SEV_COLOR[selectedReport.severity]}80`,
+                          border: `1px solid ${SEV_COLOR[selectedReport.severity]}90`,
                         }}>
                         {selectedReport.severity}
                       </span>
-                      <span className="text-xs font-bold px-3 py-1 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20">
+                      <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md bg-white/15 backdrop-blur-sm border border-white/25 uppercase tracking-wider">
                         {STATUS_CONFIG[selectedReport.status]?.label || selectedReport.status}
                       </span>
                     </div>
@@ -541,16 +542,16 @@ export default function CommandCenter() {
                 </div>
                 <button
                   onClick={() => setSelectedReport(null)}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
+                  className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/25 text-white transition ring-1 ring-white/20"
                 >
                   <XIcon className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 bg-gradient-to-b from-sky-50/30 to-white">
                 {/* LEFT: Report Info */}
-                <div className="lg:border-r border-gray-200 p-6">
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Report Information</h3>
+                <div className="lg:border-r border-sky-100 p-6">
+                  <h3 className="text-[11px] font-extrabold text-sky-700/80 uppercase tracking-[0.14em] mb-4">Report Information</h3>
                   <div className="space-y-3">
                     <InfoItem label="Reporter" value={selectedReport.metadata?.reporter_name || 'Anonymous'} />
                     <InfoItem label="Contact" value={selectedReport.metadata?.reporter_contact || 'N/A'} />
@@ -563,16 +564,16 @@ export default function CommandCenter() {
                     )}
                   </div>
 
-                  <div className="mt-5 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                    <span className="block text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">Description</span>
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  <div className="mt-5 p-4 bg-gradient-to-br from-sky-50 to-blue-50/50 border border-sky-100 rounded-xl shadow-sm shadow-sky-100/50">
+                    <span className="block text-[11px] text-sky-700/70 uppercase tracking-[0.12em] font-extrabold mb-2">Description</span>
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
                       {selectedReport.metadata?.full_description || selectedReport.metadata?.description || 'No description provided'}
                     </p>
                   </div>
 
                   <a href={`https://maps.google.com/?q=${selectedReport.latitude},${selectedReport.longitude}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-sky-500 via-sky-600 to-cyan-600 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-sky-200 transition-all">
                     <MapPinIcon className="w-4 h-4" /> Open in Google Maps
                   </a>
 
@@ -590,24 +591,24 @@ export default function CommandCenter() {
                         });
                         navigate(`/incident-weather?${params.toString()}`);
                       }}
-                      className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all"
+                      className="flex items-center justify-center gap-2 py-2.5 bg-white border border-sky-200 text-sky-700 text-xs font-bold rounded-xl hover:bg-sky-50 hover:border-sky-300 hover:shadow-md hover:shadow-sky-100 transition-all"
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
                       Weather
                     </button>
                     <button
                       onClick={() => navigate('/drone-visualization')}
-                      className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-violet-200 transition-all"
+                      className="flex items-center justify-center gap-2 py-2.5 bg-white border border-cyan-200 text-cyan-700 text-xs font-bold rounded-xl hover:bg-cyan-50 hover:border-cyan-300 hover:shadow-md hover:shadow-cyan-100 transition-all"
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                       Live Drone
                     </button>
                   </div>
                 </div>
 
                 {/* CENTER: Officer Actions */}
-                <div className="lg:border-r border-gray-200 p-6 border-t lg:border-t-0">
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Officer Actions</h3>
+                <div className="lg:border-r border-sky-100 p-6 border-t lg:border-t-0">
+                  <h3 className="text-[11px] font-extrabold text-sky-700/80 uppercase tracking-[0.14em] mb-4">Officer Actions</h3>
 
                   <div className="flex gap-3 mb-5">
                     <button
@@ -615,8 +616,8 @@ export default function CommandCenter() {
                       onClick={() => updateReportStatus(selectedReport.id, 'RESOLVED', officerNotes)}
                       className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
                         selectedReport.status === 'RESOLVED'
-                          ? 'bg-green-100 text-green-700 border-2 border-green-400 ring-2 ring-green-200'
-                          : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-green-200'
+                          ? 'bg-sky-100 text-sky-700 border-2 border-sky-400 ring-2 ring-sky-200'
+                          : 'bg-gradient-to-r from-sky-500 via-sky-600 to-cyan-600 text-white hover:shadow-lg hover:shadow-sky-200'
                       } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <CheckCircleIcon className="w-4 h-4" /> Approve / Resolve
@@ -635,17 +636,17 @@ export default function CommandCenter() {
                   </div>
 
                   <div className="mb-5">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Officer Notes (sent to citizen)</label>
+                    <label className="block text-[11px] font-extrabold text-sky-700/80 uppercase tracking-[0.12em] mb-2">Officer Notes (sent to citizen)</label>
                     <textarea
                       value={officerNotes}
                       onChange={(e) => setOfficerNotes(e.target.value)}
                       placeholder="Add notes for the citizen (reason for rejection, instructions, etc.)..."
                       rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none resize-none transition"
+                      className="w-full px-4 py-3 bg-sky-50/30 border border-sky-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-sky-200 focus:border-sky-400 focus:bg-white outline-none resize-none transition"
                     />
                   </div>
 
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">All Status Options</h4>
+                  <h4 className="text-[11px] font-extrabold text-sky-700/60 uppercase tracking-[0.12em] mb-3">All Status Options</h4>
                   <div className="grid grid-cols-3 gap-2">
                     {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                       <button
@@ -654,8 +655,8 @@ export default function CommandCenter() {
                         onClick={() => updateReportStatus(selectedReport.id, key, officerNotes)}
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
                           selectedReport.status === key
-                            ? 'border-emerald-400 bg-emerald-50 text-emerald-700 shadow-sm'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400 hover:shadow-sm'
+                            ? 'border-sky-400 bg-sky-50 text-sky-700 shadow-sm ring-1 ring-sky-200'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:bg-sky-50/40 hover:shadow-sm'
                         } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
@@ -666,64 +667,64 @@ export default function CommandCenter() {
                 </div>
 
                 {/* RIGHT: Report Summary */}
-                <div className="p-6 border-t lg:border-t-0">
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Report Summary</h3>
+                <div className="p-6 border-t lg:border-t-0 border-sky-100">
+                  <h3 className="text-[11px] font-extrabold text-sky-700/80 uppercase tracking-[0.14em] mb-4">Report Summary</h3>
 
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                      <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                        <DisasterTypeIcon type={selectedReport.metadata?.disaster_type} className="w-4 h-4 text-gray-600" />
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-slate-50 to-sky-50/40 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                        <DisasterTypeIcon type={selectedReport.metadata?.disaster_type} className="w-4 h-4 text-slate-600" />
                       </div>
                       <div>
-                        <span className="text-xs text-gray-400 block">Disaster Type</span>
-                        <span className="text-sm font-bold text-gray-900 capitalize">{capitalize(selectedReport.metadata?.disaster_type || 'Unknown')}</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">Disaster Type</span>
+                        <span className="text-sm font-bold text-slate-900 capitalize">{capitalize(selectedReport.metadata?.disaster_type || 'Unknown')}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 rounded-xl border"
+                    <div className="flex items-center gap-3 p-3 rounded-xl border shadow-sm"
                       style={{ background: SEV_BG[selectedReport.severity] || '#f8fafc', borderColor: (SEV_COLOR[selectedReport.severity] || '#94a3b8') + '40' }}>
-                      <div className="w-9 h-9 rounded-lg bg-white border flex items-center justify-center" style={{ borderColor: (SEV_COLOR[selectedReport.severity] || '#94a3b8') + '40' }}>
+                      <div className="w-9 h-9 rounded-lg bg-white border flex items-center justify-center shadow-sm" style={{ borderColor: (SEV_COLOR[selectedReport.severity] || '#94a3b8') + '40' }}>
                         <SeverityIcon className="w-4 h-4" style={{ color: SEV_COLOR[selectedReport.severity] }} />
                       </div>
                       <div>
-                        <span className="text-xs text-gray-400 block">Severity Level</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">Severity Level</span>
                         <span className="text-sm font-bold" style={{ color: SEV_COLOR[selectedReport.severity] }}>{selectedReport.severity}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 rounded-xl border"
-                      style={{ background: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '08', borderColor: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '30' }}>
-                      <div className="w-9 h-9 rounded-lg bg-white border flex items-center justify-center" style={{ borderColor: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '30' }}>
+                    <div className="flex items-center gap-3 p-3 rounded-xl border shadow-sm"
+                      style={{ background: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '0d', borderColor: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '33' }}>
+                      <div className="w-9 h-9 rounded-lg bg-white border flex items-center justify-center shadow-sm" style={{ borderColor: (STATUS_CONFIG[selectedReport.status]?.color || '#64748b') + '33' }}>
                         <span className={`w-3 h-3 rounded-full ${STATUS_CONFIG[selectedReport.status]?.dot || 'bg-gray-400'}`} />
                       </div>
                       <div>
-                        <span className="text-xs text-gray-400 block">Current Status</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">Current Status</span>
                         <span className="text-sm font-bold" style={{ color: STATUS_CONFIG[selectedReport.status]?.color }}>{STATUS_CONFIG[selectedReport.status]?.label || selectedReport.status}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                      <div className="w-9 h-9 rounded-lg bg-white border border-emerald-200 flex items-center justify-center">
-                        <MapPinIcon className="w-4 h-4 text-emerald-600" />
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-sky-50 to-cyan-50/60 rounded-xl border border-sky-200 shadow-sm">
+                      <div className="w-9 h-9 rounded-lg bg-white border border-sky-200 flex items-center justify-center shadow-sm">
+                        <MapPinIcon className="w-4 h-4 text-sky-600" />
                       </div>
                       <div>
-                        <span className="text-xs text-gray-400 block">Priority</span>
-                        <span className="text-sm font-bold text-emerald-800">{selectedReport.metadata?.priority || 0}</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">Priority</span>
+                        <span className="text-sm font-bold text-sky-800">{selectedReport.metadata?.priority || 0}</span>
                       </div>
                     </div>
                   </div>
 
                   {selectedReport.metadata?.officer_notes && (
-                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                      <span className="block text-xs text-amber-600 uppercase tracking-wider font-bold mb-1">Officer Notes</span>
+                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl shadow-sm">
+                      <span className="block text-[10px] text-amber-600 uppercase tracking-wider font-extrabold mb-1">Officer Notes</span>
                       <p className="text-sm text-amber-800">{selectedReport.metadata.officer_notes}</p>
                     </div>
                   )}
 
                   {selectedReport.metadata?.response_notes && (
-                    <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                      <span className="block text-xs text-emerald-600 uppercase tracking-wider font-bold mb-1">Response Notes</span>
-                      <p className="text-sm text-emerald-800">{selectedReport.metadata.response_notes}</p>
+                    <div className="mt-3 p-4 bg-gradient-to-br from-sky-50 to-blue-50/60 border border-sky-200 rounded-xl shadow-sm">
+                      <span className="block text-[10px] text-sky-600 uppercase tracking-wider font-extrabold mb-1">Response Notes</span>
+                      <p className="text-sm text-sky-800">{selectedReport.metadata.response_notes}</p>
                     </div>
                   )}
                 </div>
@@ -761,9 +762,9 @@ export default function CommandCenter() {
 
 function InfoItem({ label, value, mono = false, highlight = false }) {
   return (
-    <div className={`flex items-center justify-between ${highlight ? 'bg-cyan-50 px-3 py-2 rounded-lg border border-cyan-200' : ''}`}>
-      <span className={`text-xs ${highlight ? 'text-cyan-600' : 'text-gray-400'} uppercase tracking-wide`}>{label}</span>
-      <span className={`text-sm font-semibold text-right max-w-[200px] truncate ${mono ? 'font-mono text-blue-600 text-xs' : 'text-gray-800'} ${highlight ? 'text-cyan-700' : ''}`}>{value}</span>
+    <div className={`flex items-center justify-between ${highlight ? 'bg-gradient-to-r from-cyan-50 to-sky-50 px-3 py-2 rounded-lg border border-cyan-200 shadow-sm' : ''}`}>
+      <span className={`text-[10px] ${highlight ? 'text-cyan-700' : 'text-slate-400'} uppercase tracking-[0.12em] font-bold`}>{label}</span>
+      <span className={`text-sm font-semibold text-right max-w-[200px] truncate ${mono ? 'font-mono text-sky-600 text-xs' : 'text-slate-800'} ${highlight ? 'text-cyan-800' : ''}`}>{value}</span>
     </div>
   );
 }

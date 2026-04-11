@@ -191,30 +191,42 @@ def get_disaster_timeline(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get disaster timeline for last N hours"""
-    
-    cutoff = datetime.now() - timedelta(hours=hours)
-    
-    results = db.query(
-        func.date_trunc('hour', DisasterPost.timestamp).label('hour'),
+    """Get disaster timeline for last N hours.
+
+    Bucketed by DisasterInsight.created_at (when NLP detected the event)
+    rather than DisasterPost.timestamp (original Reddit post time), so the
+    series reflects platform activity in the window. Returns one point per
+    hour with zero-fill for empty hours so the frontend chart has a full
+    X-axis even on quiet days.
+    """
+
+    # Align to the top of the current hour so buckets are stable.
+    end_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
+    start_hour = end_hour - timedelta(hours=hours - 1)
+
+    raw = db.query(
+        func.date_trunc('hour', DisasterInsight.created_at).label('hour'),
         func.count(DisasterInsight.id).label('count')
-    ).join(
-        DisasterInsight
     ).filter(
-        DisasterPost.timestamp >= cutoff
+        DisasterInsight.created_at >= start_hour
     ).group_by(
         'hour'
-    ).order_by(
-        'hour'
     ).all()
-    
-    return [
-        {
-            "timestamp": r[0].isoformat(),
-            "count": r[1]
-        }
-        for r in results
-    ]
+
+    bucket_counts = {
+        r[0].replace(minute=0, second=0, microsecond=0).isoformat(): r[1]
+        for r in raw if r[0] is not None
+    }
+
+    series = []
+    for i in range(hours):
+        bucket = start_hour + timedelta(hours=i)
+        series.append({
+            "timestamp": bucket.isoformat(),
+            "count": bucket_counts.get(bucket.isoformat(), 0),
+        })
+
+    return series
 
 
 @router.websocket("/dashboard/live")

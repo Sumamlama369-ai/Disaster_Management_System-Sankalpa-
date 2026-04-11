@@ -6,7 +6,7 @@ import shutil
 from datetime import datetime
 
 from app.database.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.video import VideoAnalysis, FrameAnalysis, VideoStatistics
 from app.api.v1.dependencies.auth import get_current_user
 from app.services.video_processor import VideoProcessor
@@ -139,13 +139,21 @@ async def list_videos(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     skip: int = 0,
-    limit: int = 10
+    limit: int = 10,
+    all: bool = False,
 ):
-    """List user's videos"""
-    
-    videos = db.query(VideoAnalysis).filter(
-        VideoAnalysis.user_id == current_user.id
-    ).order_by(
+    """List videos.
+
+    By default returns only the caller's own videos. Admins may pass
+    ``all=true`` to get every video in the system (used by the admin
+    analytics dashboard for system-wide risk distribution).
+    """
+
+    query = db.query(VideoAnalysis)
+    if not (all and current_user.role == UserRole.ADMIN):
+        query = query.filter(VideoAnalysis.user_id == current_user.id)
+
+    videos = query.order_by(
         VideoAnalysis.upload_timestamp.desc()
     ).offset(skip).limit(limit).all()
     

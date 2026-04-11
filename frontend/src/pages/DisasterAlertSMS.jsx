@@ -456,34 +456,141 @@ export default function DisasterAlertSMS() {
       {/* ─── HEADER ─── */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-red-900/90 to-slate-900" />
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+        {/* Animated background layers */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Grid with slow opacity pulse */}
+          <motion.div
+            className="absolute inset-0"
+            style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
+            animate={{ opacity: [0.035, 0.06, 0.035] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Drifting red aurora blobs */}
+          <motion.div
+            className="absolute top-0 right-0 w-96 h-96 bg-red-500/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"
+            animate={{ x: [0, -40, 15, 0], y: [0, 25, -15, 0] }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute top-1/2 left-[10%] w-72 h-72 bg-rose-600/12 rounded-full blur-3xl"
+            animate={{ x: [0, 35, -20, 0], y: [0, -20, 25, 0] }}
+            transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute bottom-0 left-1/2 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl -translate-x-1/2 translate-y-1/3"
+            animate={{ x: ['-50%', 'calc(-50% + 30px)', 'calc(-50% - 25px)', '-50%'], scale: [1, 1.08, 0.95, 1] }}
+            transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* CRT-style horizontal scan line sweeping top-to-bottom */}
+          <motion.div
+            className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-400/40 to-transparent"
+            animate={{ top: ['-2%', '102%'] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2.5 }}
+          />
+
+          {/* Horizontal data-stream particles (like packets flowing across) */}
+          {[0,1,2,3,4,5].map(i => (
+            <motion.span
+              key={i}
+              className="absolute h-px w-12 bg-gradient-to-r from-transparent via-red-300/60 to-transparent"
+              style={{ top: `${15 + i * 13}%` }}
+              animate={{ x: ['-5%', '105%'], opacity: [0, 1, 0] }}
+              transition={{ duration: 4 + (i % 3), repeat: Infinity, delay: i * 0.7, ease: 'linear' }}
+            />
+          ))}
+        </div>
 
         <div className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between mb-5">
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex items-center justify-between mb-5"
+          >
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                {/* Radar wave emanations from the Radio icon */}
+                {[0, 1, 2].map(i => (
+                  <motion.span
+                    key={i}
+                    className="absolute inset-0 rounded-xl border-2 border-red-400/50"
+                    animate={{ scale: [1, 2.1], opacity: [0.6, 0] }}
+                    transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.8, ease: 'easeOut' }}
+                  />
+                ))}
+                <motion.div
+                  className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20"
+                  animate={{ boxShadow: ['0 10px 25px -5px rgba(239,68,68,0.3)', '0 10px 35px -5px rgba(239,68,68,0.55)', '0 10px 25px -5px rgba(239,68,68,0.3)'] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                >
                   <RadioIcon className="w-5 h-5 text-white" />
-                </div>
-                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 border-2 border-slate-900"></span></span>
+                </motion.div>
+                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 z-10"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 border-2 border-slate-900"></span></span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Disaster Alert System</h1>
-                <p className="text-xs text-red-300/70 font-medium">Emergency SMS Broadcast Console</p>
+                <motion.h1
+                  className="text-2xl font-bold tracking-tight"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{
+                    opacity: 1,
+                    x: 0,
+                    textShadow: [
+                      '0 0 0px rgba(248,113,113,0)',
+                      '0 0 18px rgba(248,113,113,0.35)',
+                      '0 0 0px rgba(248,113,113,0)',
+                    ],
+                    backgroundPositionX: ['0%', '-220%'],
+                  }}
+                  transition={{
+                    opacity: { delay: 0.1, duration: 0.5 },
+                    x: { delay: 0.1, duration: 0.5 },
+                    textShadow: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.6 },
+                    backgroundPositionX: { duration: 7, repeat: Infinity, ease: 'linear', delay: 0.6 },
+                  }}
+                  style={{
+                    backgroundImage: 'linear-gradient(90deg,#ffffff 0%,#fecaca 45%,#ffffff 100%)',
+                    backgroundSize: '220% 100%',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  Disaster Alert System
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className="text-xs text-red-300/70 font-medium"
+                >
+                  Emergency SMS Broadcast Console
+                </motion.p>
               </div>
             </div>
-            <div className="hidden sm:flex items-center gap-4">
+            <motion.div
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25, duration: 0.5 }}
+              className="hidden sm:flex items-center gap-4"
+            >
               {lastAlertTime && <div className="flex items-center gap-1.5 text-xs text-white/40"><ClockIcon className="w-3 h-3" /> Last: {timeAgo(lastAlertTime)}</div>}
               <div className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs text-white/60 font-mono">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
+                <span className="text-xs text-white/60 font-mono tabular-nums">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.07, delayChildren: 0.3 } } }}
+            className="grid grid-cols-2 sm:grid-cols-5 gap-3"
+          >
             {[
               { label: 'Registered Citizens', value: citizens.length, icon: <UsersIcon className="w-4 h-4" />, color: 'text-white', live: true },
               { label: 'Alerts Dispatched', value: stats.totalSent, icon: <SendIcon className="w-4 h-4" />, color: 'text-white', live: false },
@@ -491,7 +598,12 @@ export default function DisasterAlertSMS() {
               { label: 'Failed', value: stats.totalFailed, icon: <XCircleIcon className="w-4 h-4" />, color: 'text-red-400', live: false },
               { label: 'Delivery Rate', value: deliveryRate, icon: <ZapIcon className="w-4 h-4" />, color: 'text-amber-400', suffix: '%', live: false },
             ].map((s, i) => (
-              <div key={i} className="bg-white/[0.06] backdrop-blur-md rounded-xl px-4 py-3 border border-white/[0.08] hover:bg-white/[0.1] transition-colors group">
+              <motion.div
+                key={i}
+                variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0 } }}
+                whileHover={{ y: -2, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                className="bg-white/[0.06] backdrop-blur-md rounded-xl px-4 py-3 border border-white/[0.08] transition-colors group"
+              >
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-white/25 group-hover:text-white/40 transition-colors">{s.icon}</span>
                   <span className="text-xs text-white/35 font-semibold uppercase tracking-wider">{s.label}</span>
@@ -501,9 +613,9 @@ export default function DisasterAlertSMS() {
                   <AnimatedCount value={s.value} className={`text-2xl font-bold ${s.color}`} />
                   {s.suffix && <span className={`text-sm font-semibold ${s.color} opacity-60`}>{s.suffix}</span>}
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
 

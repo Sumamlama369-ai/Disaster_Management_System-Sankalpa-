@@ -374,27 +374,127 @@ export default function UserManagement() {
 
       {/* ── Hero Header ─────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-slate-700 via-slate-800 to-gray-900 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-300 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-teal-300 rounded-full blur-3xl" />
+        {/* Animated background layers */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Subtle dot grid */}
+          <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px,white 1px,transparent 0)', backgroundSize: '28px 28px' }}/>
+
+          {/* Drifting sky + teal aurora blobs */}
+          <motion.div
+            className="absolute top-0 left-1/4 w-96 h-96 bg-sky-400/15 rounded-full blur-3xl"
+            animate={{ x: [0, 35, -20, 0], y: [0, 25, -10, 0] }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute bottom-0 right-1/4 w-80 h-80 bg-teal-400/12 rounded-full blur-3xl"
+            animate={{ x: [0, -30, 20, 0], y: [0, -20, 15, 0] }}
+            transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute top-[30%] right-[15%] w-64 h-64 bg-blue-400/10 rounded-full blur-3xl"
+            animate={{ x: [0, 20, -15, 0], y: [0, -15, 20, 0], scale: [1, 1.1, 0.95, 1] }}
+            transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Floating "user node" dots — evokes a network of people */}
+          {[
+            { top: '18%', left: '42%', color: 'bg-sky-300', d: 5, delay: 0 },
+            { top: '62%', left: '38%', color: 'bg-teal-300', d: 6, delay: 1.2 },
+            { top: '28%', left: '58%', color: 'bg-blue-300', d: 5.5, delay: 0.6 },
+            { top: '72%', left: '52%', color: 'bg-cyan-300', d: 6.5, delay: 2 },
+            { top: '44%', left: '68%', color: 'bg-sky-200', d: 5.2, delay: 1.6 },
+            { top: '15%', left: '78%', color: 'bg-teal-200', d: 6.2, delay: 2.8 },
+            { top: '78%', left: '72%', color: 'bg-blue-200', d: 5.8, delay: 0.4 },
+          ].map((dot, i) => (
+            <motion.span
+              key={i}
+              className={`absolute w-1.5 h-1.5 rounded-full ${dot.color}`}
+              style={{ top: dot.top, left: dot.left, boxShadow: '0 0 10px 2px rgba(125,211,252,0.4)' }}
+              animate={{ opacity: [0.3, 0.9, 0.3], scale: [1, 1.4, 1] }}
+              transition={{ duration: dot.d, repeat: Infinity, delay: dot.delay, ease: 'easeInOut' }}
+            />
+          ))}
+
+          {/* Horizontal scan beam sweeping top→bottom */}
+          <motion.div
+            className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-300/35 to-transparent"
+            animate={{ top: ['-2%', '102%'] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+          />
         </div>
+
         <div className="max-w-[1600px] mx-auto px-6 py-8 relative">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center">
-                  <UsersIcon className="w-6 h-6 text-white" />
+                <div className="relative">
+                  {/* Pulsing halo ring behind the icon */}
+                  <motion.span
+                    aria-hidden
+                    className="absolute inset-0 rounded-xl bg-sky-400/25 blur-lg"
+                    animate={{ opacity: [0.25, 0.6, 0.25], scale: [1, 1.25, 1] }}
+                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  {/* Expanding radar ring */}
+                  <motion.span
+                    aria-hidden
+                    className="absolute inset-0 rounded-xl border border-sky-300/40"
+                    animate={{ scale: [1, 1.7], opacity: [0.6, 0] }}
+                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeOut' }}
+                  />
+                  <motion.div
+                    className="relative w-12 h-12 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center border border-white/20"
+                    animate={{ boxShadow: ['0 0 0px 0px rgba(125,211,252,0)', '0 0 24px 2px rgba(125,211,252,0.35)', '0 0 0px 0px rgba(125,211,252,0)'] }}
+                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <UsersIcon className="w-6 h-6 text-white" />
+                  </motion.div>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-extrabold text-white tracking-tight">User Management</h1>
-                  <p className="text-slate-300 text-sm">Manage citizens, officers & platform activity</p>
+                  <motion.h1
+                    className="text-2xl font-extrabold tracking-tight"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                      backgroundPositionX: ['0%', '-220%'],
+                    }}
+                    transition={{
+                      opacity: { delay: 0.1, duration: 0.5 },
+                      x: { delay: 0.1, duration: 0.5 },
+                      backgroundPositionX: { duration: 7, repeat: Infinity, ease: 'linear', delay: 0.6 },
+                    }}
+                    style={{
+                      backgroundImage: 'linear-gradient(90deg,#ffffff 0%,#bae6fd 45%,#ffffff 100%)',
+                      backgroundSize: '220% 100%',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                  >
+                    User Management
+                  </motion.h1>
+                  <motion.p
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                    className="text-slate-300 text-sm"
+                  >
+                    Manage citizens, officers & platform activity
+                  </motion.p>
                 </div>
               </div>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-              <button onClick={() => fetchData(true)} disabled={refreshing} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/25 rounded-xl px-5 py-3 text-white text-sm font-bold transition-colors">
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25, duration: 0.5 }}>
+              <motion.button
+                onClick={() => fetchData(true)}
+                disabled={refreshing}
+                whileHover={{ scale: 1.04, boxShadow: '0 10px 30px -10px rgba(125,211,252,0.55)' }}
+                whileTap={{ scale: 0.96 }}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/25 rounded-xl px-5 py-3 text-white text-sm font-bold transition-colors"
+              >
                 <RefreshIcon className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
-              </button>
+              </motion.button>
             </motion.div>
           </div>
         </div>

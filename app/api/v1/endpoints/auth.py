@@ -66,7 +66,7 @@ def register_user(
 
 
 @router.post("/verify-otp", response_model=LoginResponse)
-def verify_otp(
+async def verify_otp(
     request: VerifyOTPRequest,
     response: Response,
     db: Session = Depends(get_db)

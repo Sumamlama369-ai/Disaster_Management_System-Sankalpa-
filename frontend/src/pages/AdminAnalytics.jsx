@@ -84,7 +84,6 @@ export default function AdminAnalytics() {
   const [disasterTypes, setDisasterTypes] = useState([]);
   const [urgencyDist, setUrgencyDist] = useState([]);
   const [locationHotspots, setLocationHotspots] = useState([]);
-  const [timeline, setTimeline] = useState([]);
   const [systemStatus, setSystemStatus] = useState(null);
   const [videos, setVideos] = useState([]);
   const [permits, setPermits] = useState([]);
@@ -112,7 +111,7 @@ export default function AdminAnalytics() {
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const [usersRes, statsRes, nlpRes, recentRes, typesRes, urgencyRes, hotspotsRes, timelineRes, sysRes, videosRes, permitsRes, reportsRes] = await Promise.allSettled([
+      const [usersRes, statsRes, nlpRes, recentRes, typesRes, urgencyRes, hotspotsRes, sysRes, videosRes, permitsRes, reportsRes] = await Promise.allSettled([
         api.get('/users/all?skip=0&limit=500'),
         api.get('/disaster-reports/statistics'),
         api.get('/disasters/dashboard/stats'),
@@ -120,9 +119,8 @@ export default function AdminAnalytics() {
         api.get('/disasters/dashboard/disaster-types'),
         api.get('/disasters/dashboard/urgency-distribution'),
         api.get('/disasters/dashboard/location-hotspots?limit=15'),
-        api.get('/disasters/dashboard/timeline?hours=24'),
         api.get('/disasters/system/status'),
-        api.get('/video/list?skip=0&limit=50'),
+        api.get('/video/list?skip=0&limit=500&all=true'),
         api.get('/permits/pending'),
         api.get('/disaster-reports/reports?page=1&page_size=100'),
       ]);
@@ -134,7 +132,6 @@ export default function AdminAnalytics() {
       if (typesRes.status === 'fulfilled') setDisasterTypes(typesRes.value.data || []);
       if (urgencyRes.status === 'fulfilled') setUrgencyDist(urgencyRes.value.data || []);
       if (hotspotsRes.status === 'fulfilled') setLocationHotspots(hotspotsRes.value.data || []);
-      if (timelineRes.status === 'fulfilled') setTimeline(timelineRes.value.data || []);
       if (sysRes.status === 'fulfilled') setSystemStatus(sysRes.value.data);
       if (videosRes.status === 'fulfilled') setVideos(videosRes.value.data?.videos || videosRes.value.data || []);
       if (permitsRes.status === 'fulfilled') setPermits(permitsRes.value.data || []);
@@ -255,22 +252,63 @@ export default function AdminAnalytics() {
     };
   };
 
-  // 2. 24h Incident Timeline (area)
-  const getTimelineOption = () => {
-    const hours = timeline.map(t => { const d = new Date(t.timestamp); return `${String(d.getHours()).padStart(2, '0')}:00`; });
-    const counts = timeline.map(t => t.count);
+  // 2. Disaster Types by Urgency — horizontal stacked bars.
+  // Cross-tabulates the recent-disasters feed to show which disaster types
+  // dominate AND how serious each one typically is, in a single wide view.
+  const typeUrgencyEntries = (() => {
+    const matrix = {};
+    recentDisasters.forEach(d => {
+      if (!d.disaster_type || !d.urgency_level) return;
+      const t = d.disaster_type;
+      if (!matrix[t]) matrix[t] = { low: 0, medium: 0, high: 0, critical: 0 };
+      if (matrix[t][d.urgency_level] !== undefined) matrix[t][d.urgency_level] += 1;
+    });
+    return Object.entries(matrix)
+      .map(([type, u]) => ({ type, ...u, total: u.low + u.medium + u.high + u.critical }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 7)
+      .reverse(); // reverse so the highest-volume type sits at the top of the y-axis
+  })();
+  const typeUrgencyTotal = typeUrgencyEntries.reduce((a, e) => a + e.total, 0);
+  const getTypeUrgencyOption = () => {
+    const labels = typeUrgencyEntries.map(e => e.type.charAt(0).toUpperCase() + e.type.slice(1));
+    const mkSeries = (key, label) => ({
+      name: label,
+      type: 'bar',
+      stack: 'urg',
+      emphasis: { focus: 'series' },
+      data: typeUrgencyEntries.map(e => e[key]),
+      itemStyle: { color: URGENCY_COLORS[key], borderRadius: key === 'critical' ? [0, 6, 6, 0] : 0 },
+      barWidth: '55%',
+    });
     return {
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.98)', borderColor: '#e5e7eb', borderWidth: 1, textStyle: { color: '#1f2937' }, axisPointer: { type: 'line', lineStyle: { color: '#0ea5e9', width: 2 } } },
-      grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
-      xAxis: { type: 'category', data: hours, boundaryGap: false, axisLabel: { fontSize: 10, color: '#6b7280', interval: 2 }, axisLine: { lineStyle: { color: '#e5e7eb' } }, axisTick: { show: false } },
-      yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6', type: 'dashed' } }, axisLine: { show: false } },
-      series: [{
-        type: 'line', data: counts, smooth: 0.4, showSymbol: false,
-        lineStyle: { width: 3, color: lg(0, 0, 1, 0, [{ offset: 0, color: '#38bdf8' }, { offset: 1, color: '#0ea5e9' }]) },
-        areaStyle: { color: lg(0, 0, 0, 1, [{ offset: 0, color: 'rgba(14,165,233,0.35)' }, { offset: 1, color: 'rgba(14,165,233,0.02)' }]) },
-        markPoint: { data: [{ type: 'max', name: 'Peak' }], symbol: 'pin', symbolSize: 40, itemStyle: { color: '#ef4444' }, label: { color: '#fff', fontWeight: 'bold', fontSize: 10 } },
-      }],
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: 'rgba(255,255,255,0.98)', borderColor: '#e5e7eb', borderWidth: 1,
+        textStyle: { color: '#1f2937' },
+        formatter: (params) => {
+          if (!params || !params.length) return '';
+          const name = params[0].name;
+          const total = params.reduce((a, p) => a + (p.value || 0), 0);
+          const rows = params
+            .filter(p => p.value > 0)
+            .map(p => `<div style="display:flex;align-items:center;gap:6px;margin-top:3px;"><span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span><span style="flex:1;color:#6b7280;">${p.seriesName}</span><span style="font-weight:700;color:#1f2937;">${p.value}</span></div>`)
+            .join('');
+          return `<div style="min-width:160px;"><div style="font-weight:700;color:#1f2937;margin-bottom:4px;">${name}</div><div style="font-size:11px;color:#6b7280;margin-bottom:4px;">${total} total detections</div>${rows}</div>`;
+        },
+      },
+      legend: { data: ['Low', 'Medium', 'High', 'Critical'], bottom: 0, textStyle: { fontSize: 11, fontWeight: '600', color: '#374151' }, itemWidth: 16, itemHeight: 10, icon: 'roundRect' },
+      grid: { left: '3%', right: '6%', bottom: '14%', top: '6%', containLabel: true },
+      xAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6', type: 'dashed' } }, axisLine: { show: false }, axisTick: { show: false } },
+      yAxis: { type: 'category', data: labels, axisLabel: { fontSize: 11, fontWeight: '600', color: '#374151' }, axisTick: { show: false }, axisLine: { show: false } },
+      series: [
+        mkSeries('low', 'Low'),
+        mkSeries('medium', 'Medium'),
+        mkSeries('high', 'High'),
+        mkSeries('critical', 'Critical'),
+      ],
     };
   };
 
@@ -609,20 +647,38 @@ export default function AdminAnalytics() {
     };
   };
 
-  // 14. Video Analysis Risk Level Distribution
-  const getVideoRiskOption = () => {
-    const riskMap = { low:0, medium:0, high:0, critical:0 };
-    (Array.isArray(videos) ? videos : []).forEach(v => { if(v.risk_level) riskMap[v.risk_level]++; });
-    const data = Object.entries(riskMap).filter(([_,v])=>v>0).map(([k,v])=>({value:v,name:k.charAt(0).toUpperCase()+k.slice(1),itemStyle:{color:URGENCY_COLORS[k]||'#6b7280'}}));
-    const vLen = Array.isArray(videos) ? videos.length : 0;
-    if (data.length === 0) return { backgroundColor:'transparent', graphic:{type:'text',left:'center',top:'center',style:{text:`${vLen} Videos Analyzed`,fontSize:18,fontWeight:'bold',fill:'#0ea5e9'}} };
+  // 14. Top Intelligence Sources — horizontal bars of the most active
+  // subreddits feeding the NLP pipeline. Aggregated client-side from
+  // the recent-disasters feed so no extra API call is needed.
+  const topSources = (() => {
+    const counts = {};
+    recentDisasters.forEach(d => { if (d.source) counts[d.source] = (counts[d.source] || 0) + 1; });
+    return Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 8);
+  })();
+  const getTopSourcesOption = () => {
+    if (topSources.length === 0) {
+      return { backgroundColor:'transparent', graphic:{type:'text',left:'center',top:'center',style:{text:'No sources yet',fontSize:14,fontWeight:'bold',fill:'#9ca3af'}} };
+    }
+    const palette = ['#0ea5e9','#06b6d4','#14b8a6','#10b981','#6366f1','#8b5cf6','#f59e0b','#ef4444'];
+    const labels = topSources.map(([k]) => `r/${k}`);
+    const values = topSources.map(([,v]) => v);
     return {
       backgroundColor:'transparent',
-      tooltip:{trigger:'item',backgroundColor:'rgba(255,255,255,0.98)',borderColor:'#e5e7eb',borderWidth:1,textStyle:{color:'#1f2937'}},
-      series:[{type:'pie',radius:['48%','72%'],center:['50%','50%'],
-        itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:4},
-        label:{show:true,formatter:'{b}\n{c}',fontSize:12,fontWeight:'bold',color:'#374151'},
-        data,
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},backgroundColor:'rgba(255,255,255,0.98)',borderColor:'#e5e7eb',borderWidth:1,textStyle:{color:'#1f2937'},formatter:(p)=>`<b>${p[0].name}</b><br/>${p[0].value} detections`},
+      grid:{left:'3%',right:'14%',bottom:'3%',top:'3%',containLabel:true},
+      xAxis:{type:'value',show:false,max:'dataMax'},
+      yAxis:{type:'category',data:labels,inverse:true,axisTick:{show:false},axisLine:{show:false},axisLabel:{fontSize:11,fontWeight:'600',color:'#374151'}},
+      series:[{
+        type:'bar',
+        data:values.map((v,i)=>({
+          value:v,
+          itemStyle:{
+            color:lg(0,0,1,0,[{offset:0,color:palette[i%palette.length]+'66'},{offset:1,color:palette[i%palette.length]}]),
+            borderRadius:[0,8,8,0],
+          },
+        })),
+        barWidth:'62%',
+        label:{show:true,position:'right',formatter:'{c}',fontSize:11,fontWeight:'bold',color:'#374151'},
       }],
     };
   };
@@ -675,33 +731,141 @@ export default function AdminAnalytics() {
 
       {/* ── Hero ───────────────────────────────────────────────── */}
       <div className="relative bg-gradient-to-br from-sky-600 via-sky-500 to-cyan-500 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage:'radial-gradient(circle at 1px 1px,white 1px,transparent 0)',backgroundSize:'24px 24px'}}/>
-          <div className="absolute top-0 left-[20%] w-96 h-96 bg-cyan-400/20 rounded-full blur-[120px]"/>
-          <div className="absolute bottom-0 right-[10%] w-80 h-80 bg-sky-300/15 rounded-full blur-[100px]"/>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full"/>
+        {/* Animated background layers */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Dot grid */}
+          <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage:'radial-gradient(circle at 1px 1px,white 1px,transparent 0)',backgroundSize:'24px 24px'}}/>
+
+          {/* Drifting aurora blobs */}
+          <motion.div
+            className="absolute top-0 left-[20%] w-96 h-96 bg-cyan-400/25 rounded-full blur-[120px]"
+            animate={{ x: [0, 40, -20, 0], y: [0, 30, -10, 0] }}
+            transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute bottom-0 right-[10%] w-80 h-80 bg-sky-300/20 rounded-full blur-[100px]"
+            animate={{ x: [0, -30, 20, 0], y: [0, -20, 15, 0] }}
+            transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute top-[40%] right-[35%] w-64 h-64 bg-teal-300/15 rounded-full blur-[100px]"
+            animate={{ x: [0, 25, -15, 0], y: [0, -25, 20, 0] }}
+            transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Concentric orbital rings with tracking dots */}
+          <div className="absolute top-1/2 left-1/2 w-0 h-0">
+            <motion.div
+              className="absolute w-[560px] h-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+            >
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-[0_0_14px_3px_rgba(255,255,255,0.7)]"/>
+            </motion.div>
+            <motion.div
+              className="absolute w-[400px] h-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/8"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 42, repeat: Infinity, ease: 'linear' }}
+            >
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-200 shadow-[0_0_10px_2px_rgba(103,232,249,0.8)]"/>
+            </motion.div>
+            <motion.div
+              className="absolute w-[260px] h-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/6"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
+            >
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-white/80"/>
+            </motion.div>
+          </div>
+
+          {/* Diagonal scan beam */}
+          <motion.div
+            className="absolute -top-1/4 h-[150%] w-[3px] bg-gradient-to-b from-transparent via-white/30 to-transparent"
+            style={{ rotate: 18, transformOrigin: 'top center' }}
+            animate={{ left: ['-10%', '110%'] }}
+            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+          />
+
+          {/* Floating particles rising through the hero */}
+          {[0,1,2,3,4,5,6,7].map(i => (
+            <motion.span
+              key={i}
+              className="absolute w-1 h-1 rounded-full bg-white/60"
+              style={{ left: `${8 + i * 12}%`, bottom: '-6px' }}
+              animate={{ y: [0, -360], opacity: [0, 0.9, 0] }}
+              transition={{ duration: 7 + (i % 3) * 2, repeat: Infinity, delay: i * 0.9, ease: 'linear' }}
+            />
+          ))}
         </div>
 
         <div className="relative max-w-[1600px] mx-auto px-6 py-10">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <motion.div initial={{opacity:0,y:15}} animate={{opacity:1,y:0}}>
-              <div className="inline-flex items-center gap-2.5 bg-white/15 backdrop-blur-md border border-white/25 rounded-full px-4 py-1.5 mb-3">
-                <span className="relative flex h-2.5 w-2.5"><span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-60"/><span className="relative rounded-full h-2.5 w-2.5 bg-emerald-400"/></span>
-                <span className="text-[11px] font-bold text-white/90 tracking-wider uppercase">Live Analytics — {recentDisasters.length} NLP Insights</span>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-1">System Analytics Console</h1>
-              <p className="text-sky-100/70 text-sm max-w-md">6 data sources — Users, Reports, NLP Insights, Permits, Video Analysis, Drones</p>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className="inline-flex items-center gap-2.5 bg-white/15 backdrop-blur-md border border-white/25 rounded-full px-4 py-1.5 mb-3"
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-60"/>
+                  <span className="relative rounded-full h-2.5 w-2.5 bg-emerald-400"/>
+                </span>
+                <span className="text-[11px] font-bold text-white/90 tracking-wider uppercase">
+                  Live Analytics — <AnimatedNumber value={recentDisasters.length}/> NLP Insights
+                </span>
+              </motion.div>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  backgroundPositionX: ['0%', '-220%'],
+                }}
+                transition={{
+                  opacity: { delay: 0.15, duration: 0.6, ease: 'easeOut' },
+                  y: { delay: 0.15, duration: 0.6, ease: 'easeOut' },
+                  backgroundPositionX: { duration: 6, repeat: Infinity, ease: 'linear', delay: 0.6 },
+                }}
+                className="text-3xl md:text-4xl font-extrabold mb-1"
+                style={{
+                  backgroundImage: 'linear-gradient(90deg,#ffffff 0%,#a5f3fc 45%,#ffffff 100%)',
+                  backgroundSize: '220% 100%',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                System Analytics Console
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.28, duration: 0.5 }}
+                className="text-sky-100/70 text-sm max-w-md"
+              >
+                6 data sources — Users, Reports, NLP Insights, Permits, Video Analysis, Drones
+              </motion.p>
             </motion.div>
 
             <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.2}} className="flex items-center gap-3">
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 text-white flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-2"><ClockIcon className="w-3.5 h-3.5 text-sky-200"/><span className="text-sky-100">{lastUpdate?.toLocaleTimeString()}</span></div>
                 <div className="h-4 w-px bg-white/20"/>
-                <div className="flex items-center gap-2"><span className="text-sky-200">Next:</span><span className="font-mono font-bold text-white">{countdown}s</span></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sky-200">Next:</span>
+                  <span className="font-mono font-bold text-white tabular-nums w-7 text-right">{countdown}s</span>
+                </div>
               </div>
-              <button onClick={()=>fetchData(true)} disabled={refreshing} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/25 rounded-xl px-5 py-3 text-white text-sm font-bold transition-colors">
+              <motion.button
+                onClick={()=>fetchData(true)}
+                disabled={refreshing}
+                whileHover={{ scale: 1.04, boxShadow: '0 10px 30px -10px rgba(14,165,233,0.55)' }}
+                whileTap={{ scale: 0.96 }}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/25 rounded-xl px-5 py-3 text-white text-sm font-bold transition-colors"
+              >
                 <RefreshIcon className={`w-4 h-4 ${refreshing?'animate-spin':''}`}/> Refresh
-              </button>
+              </motion.button>
             </motion.div>
           </div>
         </div>
@@ -792,8 +956,18 @@ export default function AdminAnalytics() {
               </CC>
             </div>
             <div className="col-span-12 lg:col-span-7">
-              <CC t="24-Hour Incident Timeline" s="Hourly NLP-detected disaster activity with peak markers" ic={<ActivityIcon/>} b={`${timeline.length} hours`}>
-                <ReactECharts option={getTimelineOption()} style={{height:'380px'}} opts={{renderer:'svg'}}/>
+              <CC t="Disaster Types by Urgency" s="Top detected disaster categories split by NLP urgency classification" ic={<LayersIcon/>} b={`${typeUrgencyTotal} classified`}>
+                <div className="relative">
+                  <ReactECharts option={getTypeUrgencyOption()} style={{height:'380px'}} opts={{renderer:'svg'}}/>
+                  {typeUrgencyEntries.length === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-white/85 backdrop-blur-sm border border-gray-200 rounded-xl px-5 py-3 shadow-sm text-center">
+                        <p className="text-sm font-bold text-gray-700">No classified disasters yet</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">Bars will appear once the NLP pipeline tags new events by type and urgency.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CC>
             </div>
             <div className="col-span-12 lg:col-span-4">
@@ -1008,8 +1182,8 @@ export default function AdminAnalytics() {
               </CC>
             </div>
             <div className="col-span-12 lg:col-span-3">
-              <CC t="Video Risk Levels" s="AI video analysis risk distribution" ic={<VideoIcon/>} b={`${videos.length} analyzed`}>
-                <ReactECharts option={getVideoRiskOption()} style={{height:'380px'}} opts={{renderer:'svg'}}/>
+              <CC t="Top Intelligence Sources" s="Most active subreddits in the NLP pipeline" ic={<GlobeIcon/>} b={`${topSources.length} sources`}>
+                <ReactECharts option={getTopSourcesOption()} style={{height:'380px'}} opts={{renderer:'svg'}}/>
               </CC>
             </div>
             <div className="col-span-12 lg:col-span-4">
@@ -1046,6 +1220,31 @@ export default function AdminAnalytics() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────
+
+// Count-up animation for hero stat. Re-runs whenever `value` changes,
+// which gives the header a live feel when WebSocket pushes updates.
+function AnimatedNumber({ value, duration = 1400 }) {
+  const [n, setN] = useState(0);
+  const prevRef = useRef(0);
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = Number(value) || 0;
+    if (from === to) return;
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      setN(Math.round(from + (to - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else prevRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <>{n}</>;
+}
+
 function CC({ t, s, ic, b, children }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm h-full">

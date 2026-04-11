@@ -52,7 +52,7 @@ def get_current_user_profile(current_user: User = Depends(get_current_user)):
 
 
 @router.put("/me/phone", response_model=UserResponse)
-def update_phone_number(
+async def update_phone_number(
     request: UpdatePhoneRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -231,7 +231,7 @@ def deactivate_user(
 
 
 @router.put("/admin/update/{user_id}")
-def admin_update_user(
+async def admin_update_user(
     user_id: int,
     request: AdminUpdateUserRequest,
     db: Session = Depends(get_db),

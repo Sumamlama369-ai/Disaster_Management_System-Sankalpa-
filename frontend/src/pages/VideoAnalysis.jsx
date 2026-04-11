@@ -465,14 +465,98 @@ export default function VideoAnalysis() {
 
       <div className="max-w-[1800px] mx-auto px-6 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2 flex items-center gap-3">
-            <svg className="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
-            Video Analysis Dashboard
-          </h1>
-          <p className="text-gray-600">
-            AI-powered disaster video analysis with YOLOv8 detection and segmentation
-          </p>
+        <div className="mb-8 relative">
+          {/* Animated background decorations — floating wireframe "detection boxes" suggesting YOLO inference */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden -z-0">
+            {[
+              { top: '8%', left: '62%', w: 70, h: 42, d: 8, delay: 0 },
+              { top: '52%', left: '74%', w: 54, h: 38, d: 11, delay: 1.6 },
+              { top: '22%', left: '86%', w: 46, h: 32, d: 9, delay: 3.2 },
+              { top: '68%', left: '56%', w: 38, h: 28, d: 10, delay: 2.1 },
+            ].map((b, i) => (
+              <motion.div
+                key={i}
+                className="absolute border-2 border-blue-400/30 rounded-md"
+                style={{ top: b.top, left: b.left, width: b.w, height: b.h }}
+                animate={{
+                  y: [0, -14, 4, 0],
+                  opacity: [0, 0.9, 0.9, 0],
+                  borderColor: ['rgba(96,165,250,0.25)', 'rgba(59,130,246,0.55)', 'rgba(96,165,250,0.25)'],
+                }}
+                transition={{ duration: b.d, repeat: Infinity, delay: b.delay, ease: 'easeInOut' }}
+              >
+                {/* Corner accents so it looks like a YOLO bbox */}
+                <span className="absolute -top-[2px] -left-[2px] w-2 h-2 border-t-2 border-l-2 border-blue-500/70"/>
+                <span className="absolute -top-[2px] -right-[2px] w-2 h-2 border-t-2 border-r-2 border-blue-500/70"/>
+                <span className="absolute -bottom-[2px] -left-[2px] w-2 h-2 border-b-2 border-l-2 border-blue-500/70"/>
+                <span className="absolute -bottom-[2px] -right-[2px] w-2 h-2 border-b-2 border-r-2 border-blue-500/70"/>
+              </motion.div>
+            ))}
+            {/* Horizontal scan beam sweeping left→right through the header */}
+            <motion.div
+              className="absolute top-1/2 -translate-y-1/2 h-10 w-16 bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent blur-sm"
+              animate={{ left: ['-8%', '108%'] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1.5 }}
+            />
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="relative z-10"
+          >
+            <motion.h1
+              className="text-3xl font-bold mb-2 flex items-center gap-3"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                backgroundPositionX: ['0%', '-220%'],
+              }}
+              transition={{
+                opacity: { duration: 0.5, ease: 'easeOut', delay: 0.1 },
+                x: { duration: 0.5, ease: 'easeOut', delay: 0.1 },
+                backgroundPositionX: { duration: 6, repeat: Infinity, ease: 'linear', delay: 0.6 },
+              }}
+              style={{
+                backgroundImage: 'linear-gradient(90deg,#1d4ed8 0%,#60a5fa 45%,#1e40af 100%)',
+                backgroundSize: '220% 100%',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              <motion.span
+                className="relative inline-flex items-center justify-center"
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <svg className="w-8 h-8 text-blue-600 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                {/* REC indicator dot with ping */}
+                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2 z-20">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"/>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"/>
+                </span>
+                {/* Soft blue glow behind the icon */}
+                <motion.span
+                  aria-hidden
+                  className="absolute inset-0 rounded-full bg-blue-400/30 blur-xl"
+                  animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.3, 1] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              </motion.span>
+              Video Analysis Dashboard
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.5 }}
+              className="text-gray-600"
+            >
+              AI-powered disaster video analysis with YOLOv8 detection and segmentation
+            </motion.p>
+          </motion.div>
         </div>
 
         {/* Tabs */}
